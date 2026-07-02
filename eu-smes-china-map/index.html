@@ -26,6 +26,7 @@
     --ind-software: #008300;
     --ind-consumer: #4a3aa7;
     --ind-environment: #e34948;
+    --ind-health: #eb6834;
   }
   @media (prefers-color-scheme: dark) {
     .viz-root {
@@ -49,6 +50,7 @@
       --ind-software: #008300;
       --ind-consumer: #9085e9;
       --ind-environment: #e66767;
+      --ind-health: #d95926;
     }
   }
   * { box-sizing: border-box; margin: 0; }
@@ -433,7 +435,7 @@ const CITIES = [
    7,
    "start"
   ],
-  "detail": "European Chamber chapter; smaller SME cluster in the survey.",
+  "detail": "European Chamber chapter; smaller SME cluster in the survey; Danfoss and Novo Nordisk production bases (see compendium).",
   "x": 532,
   "y": 283.1
  },
@@ -517,7 +519,7 @@ const CITIES = [
    2.3,
    "end"
   ],
-  "detail": "Home of Startup Factory China, an industrial co-working hub for European manufacturing SMEs, between Shanghai and Suzhou.",
+  "detail": "Kunshan German Industrial Park — awarded Sino-German (Kunshan) SMEs Cooperation Zone; home of Startup Factory China, an industrial co-working hub for European manufacturing SMEs.",
   "x": 576.5,
   "y": 394.2
  }
@@ -559,6 +561,7 @@ const INDUSTRIES = {
   software: { label: "Software & services", color: "var(--ind-software)" },
   consumer: { label: "Food & consumer", color: "var(--ind-consumer)" },
   environment: { label: "Environment & water", color: "var(--ind-environment)" },
+  health: { label: "Health & pharma", color: "var(--ind-health)" },
 };
 
 // Verifiable seed list: every entry names its public source. anchor = the map
@@ -571,6 +574,9 @@ const SRC = {
   eusme: { label: "EU SME Centre success stories", url: "https://elm.eusmecentre.org.cn/success-stories" },
   cicc: { label: "CICC / CIIF 2023", url: "https://www.cameraitacina.com/en/news/meet-mewg-companies-exhibiting-ciif-2023" },
   ciccMach: { label: "CICC machinery members", url: "https://www.cameraitacina.com/en/taxonomy/term/17" },
+  ice: { label: "Italian Trade Agency — Suzhou fact sheet", url: "https://www.ice.it/en/sites/default/files/inline-files/eng-scheda-informativa-suzhou.pdf" },
+  xinhuaNovo: { label: "Xinhua 2025", url: "https://english.news.cn/20250709/6b269688f1ca4fbd872263904fc9b403/c.html" },
+  scio: { label: "SCIO 2024", url: "http://english.scio.gov.cn/in-depth/2024-03/26/content_117085003.htm" },
 };
 
 const COMPANIES = [
@@ -606,6 +612,18 @@ const COMPANIES = [
     note: "40,000 m² industrial co-working factory for European manufacturing SMEs entering China.", src: "ciccMach" },
   { name: "Fosber Asia", origin: "Italy", city: "Foshan", anchor: "Guangzhou", industry: "machinery", size: "Mittelstand",
     note: "Complete corrugated-board production lines, designed by Fosber Italy.", src: "cicc" },
+  { name: "Marsilli (Suzhou)", origin: "Italy", city: "Suzhou", industry: "machinery", size: "Mittelstand",
+    note: "Winding and assembly machines for coils, motors and sensors.", src: "ice" },
+  { name: "Carel (Suzhou)", origin: "Italy", city: "Suzhou", industry: "machinery", size: "Large group",
+    note: "Controls for air conditioning, refrigeration and humidification; Suzhou plant.", src: "ice" },
+  { name: "Faist (Suzhou)", origin: "Italy", city: "Suzhou", industry: "automotive", size: "Mittelstand",
+    note: "Components and noise-control solutions for automotive.", src: "ice" },
+  { name: "Comau (Kunshan)", origin: "Italy", city: "Kunshan", industry: "machinery", size: "Large group",
+    note: "Industrial automation and robotics for automotive manufacturing.", src: "ice" },
+  { name: "Novo Nordisk (Tianjin)", origin: "Denmark", city: "Tianjin", industry: "health", size: "Large group",
+    note: "Pharmaceutical production base; ¥4bn sterile production expansion under way.", src: "xinhuaNovo" },
+  { name: "Danfoss (Tianjin)", origin: "Denmark", city: "Tianjin", industry: "environment", size: "Large group",
+    note: "Energy-efficiency and climate solutions; major Tianjin campus.", src: "scio" },
 ];
 for (const co of COMPANIES) if (!co.anchor) co.anchor = co.city;
 
@@ -714,11 +732,12 @@ const cityByName = Object.fromEntries(CITIES.map((c) => [c.name, c]));
 const INSET_LAYOUTS = {
   Taicang:  { origin: [-1.1, -3.5], step: [1.1, 1.05], cols: 3 },  // 3×3 grid north of anchor
   Shanghai: { origin: [1.9, -1.6], step: [0, 1.05], cols: 1 },     // column east of anchor
-  Suzhou:   { origin: [0, -1.8], step: [0, 1.05], cols: 1 },
-  Kunshan:  { origin: [0, -1.7], step: [0, 1.05], cols: 1 },
+  Suzhou:   { origin: [0, -1.8], step: [0, -1.05], cols: 1 },
+  Kunshan:  { origin: [0, -1.7], step: [0, -1.05], cols: 1 },
 };
 const MAIN_LAYOUTS = {
   Guangzhou: { origin: [-11, 13], step: [11, 0], cols: 3 },
+  Tianjin: { origin: [14, -8], step: [10, 0], cols: 3 },
 };
 
 function drawCompanies(svg, k, layouts) {
