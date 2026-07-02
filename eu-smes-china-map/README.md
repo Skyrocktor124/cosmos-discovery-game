@@ -25,17 +25,26 @@ embedded. Light and dark mode follow the OS preference.
 - **Challenges** — share of SME respondents citing each issue in the
   EU SME Centre / European Chamber 2025/26 Inter-Chamber SME survey.
 - **Sectors** — the five most represented sectors among surveyed companies.
+- **Company compendium** — a verifiable seed list of 16 individually documented
+  EU companies (9 in Taicang, 4 in Shanghai, plus Suzhou, Kunshan and Foshan),
+  each marked on the map and coloured by industry (machinery, automotive
+  components, software & services, food & consumer, environment & water), with
+  size class (SME / Mittelstand / large group), notes and a per-row public
+  source link. Searchable and filterable by industry; exportable as CSV. The
+  Yangtze Delta inset zooms to company level around Suzhou–Kunshan–Taicang–Shanghai.
 - **Company lookup** — links to the nine chamber member directories that serve
   as the closest thing to a firm-level register, plus CSV downloads of the
-  dashboard's own city and country datasets.
+  dashboard's own city, country and company datasets.
 
 ## Scope and honesty note
 
 No public registry enumerates every EU SME operating in China — neither Chinese
 corporate registries nor EU bodies publish a complete, company-level list. This
 dashboard therefore maps what *is* documented: survey-reported city clusters,
-published chamber-network figures, Taicang's official count, and the directories
-for firm-by-firm identification. Definitions differ between sources (chamber
+published chamber-network figures, Taicang's official count, a seed compendium
+of individually sourced companies, and the directories for firm-by-firm
+identification. The compendium is designed to grow: rows added to its CSV from
+the chamber directories appear on the map with no other changes. Definitions differ between sources (chamber
 members vs. registered subsidiaries vs. firms operating), and no comparable
 counts were found for the remaining 18 EU member states.
 
