@@ -2,16 +2,18 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CelestialBody, DiscoveryType } from "../types";
 import { GEMINI_MODEL, GEMINI_IMAGE_MODEL, SYSTEM_INSTRUCTION } from "../constants";
 
-// Initialize Gemini Client
+// Lazily initialize the Gemini client so a missing API key doesn't crash
+// the whole app at module load time (white screen on boot).
 // Using process.env.API_KEY as per guidelines.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
+const getAI = (): GoogleGenAI => (ai ??= new GoogleGenAI({ apiKey: process.env.API_KEY }));
 
 export const generateDiscovery = async (colorTheme: string): Promise<CelestialBody> => {
   try {
     const prompt = `Generate a unique celestial discovery (Planet, Star, Nebula, or Anomaly) that is themed around the color "${colorTheme}". 
     It should have a unique sci-fi name, a vivid visual description, atmosphere details, and rare resources.`;
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: GEMINI_MODEL,
       contents: prompt,
       config: {
@@ -71,7 +73,7 @@ export const generateDiscovery = async (colorTheme: string): Promise<CelestialBo
 
 export const generateCelestialImage = async (description: string): Promise<string | null> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: GEMINI_IMAGE_MODEL,
       contents: {
         parts: [
@@ -98,7 +100,7 @@ export const editCelestialImage = async (currentImage: string, prompt: string): 
     const [header, base64Data] = currentImage.split(',');
     const mimeType = header.split(':')[1].split(';')[0];
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: GEMINI_IMAGE_MODEL,
       contents: {
         parts: [
