@@ -35,6 +35,18 @@
       .animate-pulse-glow {
         animation: pulse-glow 3s infinite;
       }
+      /* 俯瞰者的话语用衬线体：区分 AI 之声与界面文字 */
+      .voice {
+        font-family: Georgia, 'Songti SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'STSong', serif;
+      }
+      /* 尊重系统的减少动态偏好：所有装饰性动画降级为静态 */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
     </style>
   <script type="importmap">
 {

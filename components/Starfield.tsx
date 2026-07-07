@@ -32,6 +32,7 @@ const Starfield: React.FC<StarfieldProps> = ({ speed }) => {
     }
 
     let animationFrameId: number;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const render = () => {
       // Clear with trail effect during warp
@@ -80,7 +81,10 @@ const Starfield: React.FC<StarfieldProps> = ({ speed }) => {
         }
       });
 
-      animationFrameId = requestAnimationFrame(render);
+      // 减少动态偏好：只画一帧静态星空，不进入动画循环
+      if (!reduceMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();

@@ -52,7 +52,7 @@ export const GODSEYE_PROMPTS = [
 
 /** 升维扫描时轮播的文案 */
 export const GODSEYE_SCAN_PHASES = [
-  '正在升维，脱离第一人称……',
+  '脱离第一人称……',
   '定位思维盲区……',
   '扫描信念暗星……',
   '标记重复出现的引力模式……',
