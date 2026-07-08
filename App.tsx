@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Rocket, Zap, MapPin, Database, History, RefreshCw, Radio, LayoutGrid, ArrowLeft, Sparkles, Image as ImageIcon, Send, Wand2 } from 'lucide-react';
+import { Rocket, Zap, MapPin, Database, History, RefreshCw, Radio, LayoutGrid, ArrowLeft, LifeBuoy, Trash2 } from 'lucide-react';
 import { DiscoveryType, CelestialBody, PlayerState, LogEntry, SectorNode } from './types';
-import { generateDiscovery, generateCelestialImage, editCelestialImage } from './services/geminiService';
+import { generateDiscovery } from './services/proceduralService';
 import { COLORS, INITIAL_FUEL, FUEL_COST_WARP, FUEL_COST_TRAVEL, SCIENCE_REWARD_BASE } from './constants';
 import Starfield from './components/Starfield';
 import Visualizer from './components/Visualizer';
@@ -20,6 +20,26 @@ const TypeIcon = ({ type }: { type: DiscoveryType }) => {
 
 type ViewMode = 'MAP' | 'SYSTEM';
 
+const SAVE_KEY = 'chroma-cosmos-save-v1';
+
+interface SaveData {
+  player: PlayerState;
+  sectorNodes: SectorNode[];
+  history: CelestialBody[];
+}
+
+const loadSave = (): SaveData | null => {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as SaveData;
+    if (!data.player || !Array.isArray(data.sectorNodes)) return null;
+    return data;
+  } catch {
+    return null;
+  }
+};
+
 const App: React.FC = () => {
   // Game State
   const [player, setPlayer] = useState<PlayerState>({
@@ -36,11 +56,8 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false); // Warping or Scanning
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [history, setHistory] = useState<CelestialBody[]>([]);
+  const [booted, setBooted] = useState(false);
 
-  // Image Generation State
-  const [isImageProcessing, setIsImageProcessing] = useState(false);
-  const [editPrompt, setEditPrompt] = useState('');
-  
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Helper to add logs
@@ -78,12 +95,42 @@ const App: React.FC = () => {
     addLog(`Arrived in ${sectorName}. Scanners detect ${numNodes} signatures.`, 'info');
   };
 
-  // Initial Boot
+  // Initial Boot: restore save if present, otherwise start fresh
   useEffect(() => {
-    addLog("System initialized. Holographic Map online.", 'info');
-    generateSector('Alpha-01');
+    const save = loadSave();
+    if (save) {
+      setPlayer(save.player);
+      setSectorNodes(save.sectorNodes);
+      setHistory(save.history || []);
+      addLog("System initialized. Save data restored.", 'success');
+    } else {
+      addLog("System initialized. Holographic Map online.", 'info');
+      generateSector('Alpha-01');
+    }
+    setBooted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-save
+  useEffect(() => {
+    if (!booted) return;
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ player, sectorNodes, history } satisfies SaveData));
+    } catch {
+      // Storage full or unavailable — play continues without persistence
+    }
+  }, [booted, player, sectorNodes, history]);
+
+  const handleNewGame = () => {
+    if (!window.confirm('Start a new expedition? Current progress will be erased.')) return;
+    localStorage.removeItem(SAVE_KEY);
+    setPlayer({ science: 0, fuel: INITIAL_FUEL, visitedCount: 0, currentSector: 'Alpha-01' });
+    setHistory([]);
+    setCurrentBody(null);
+    setViewMode('MAP');
+    addLog("New expedition launched. All systems nominal.", 'info');
+    generateSector('Alpha-01');
+  };
 
   const handleSectorWarp = () => {
     if (player.fuel < FUEL_COST_WARP) {
@@ -160,54 +207,14 @@ const App: React.FC = () => {
     }
   };
 
-  // Helper to update state in nodes and history
-  const updateBodyData = (updatedBody: CelestialBody) => {
-    setHistory(prev => prev.map(item => item.id === updatedBody.id ? updatedBody : item));
-    setSectorNodes(prev => prev.map(node => node.data?.id === updatedBody.id ? { ...node, data: updatedBody } : node));
-  }
+  // Escape hatch so the game can never soft-lock: when the player can neither
+  // travel nor synthesize fuel, let them deploy solar sails for a small refill.
+  const isStranded = player.fuel < FUEL_COST_TRAVEL && player.science < 100;
 
-  const handleGenerateImage = async () => {
-    if (!currentBody) return;
-    setIsImageProcessing(true);
-    addLog("Initializing high-res visual feed...", 'info');
-    try {
-      const imageUrl = await generateCelestialImage(currentBody.description);
-      if (imageUrl) {
-        const updatedBody = { ...currentBody, imageUrl };
-        setCurrentBody(updatedBody);
-        updateBodyData(updatedBody);
-        addLog("Visual feed established.", 'success');
-      } else {
-         addLog("Visual feed failed. Interference detected.", 'warning');
-      }
-    } catch (e) {
-      addLog("Visual feed error.", 'warning');
-    } finally {
-      setIsImageProcessing(false);
-    }
-  }
-
-  const handleEditImage = async () => {
-    if (!currentBody?.imageUrl || !editPrompt.trim()) return;
-    setIsImageProcessing(true);
-    addLog(`Applying visual modification: "${editPrompt}"...`, 'info');
-    try {
-      const imageUrl = await editCelestialImage(currentBody.imageUrl, editPrompt);
-       if (imageUrl) {
-        const updatedBody = { ...currentBody, imageUrl };
-        setCurrentBody(updatedBody);
-        updateBodyData(updatedBody);
-        setEditPrompt('');
-        addLog("Visuals updated successfully.", 'success');
-      } else {
-         addLog("Visual update failed.", 'warning');
-      }
-    } catch (e) {
-       addLog("Visual update error.", 'warning');
-    } finally {
-      setIsImageProcessing(false);
-    }
-  }
+  const handleEmergencySails = () => {
+    setPlayer(p => ({ ...p, fuel: p.fuel + 15 }));
+    addLog("Emergency solar sails deployed. Trickle-charging fuel reserves.", 'warning');
+  };
 
   return (
     <div className="relative min-h-screen flex flex-col font-sans">
@@ -299,49 +306,6 @@ const App: React.FC = () => {
                       />
                   </div>
                   
-                  {/* Image Generation & Editing Controls */}
-                  <div className="mb-8 w-full max-w-lg mx-auto flex flex-col gap-2">
-                     {!currentBody.imageUrl ? (
-                        <Button 
-                           onClick={handleGenerateImage} 
-                           isLoading={isImageProcessing}
-                           className="w-full bg-indigo-600 border-indigo-500 hover:bg-indigo-500"
-                        >
-                           <Sparkles className="w-4 h-4" /> Initialize Visual Feed
-                        </Button>
-                     ) : (
-                        <div className="flex flex-col gap-2 bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                           <div className="flex gap-2">
-                              <input 
-                                 type="text" 
-                                 value={editPrompt}
-                                 onChange={(e) => setEditPrompt(e.target.value)}
-                                 placeholder="E.g. Add a moon, make it rainy..."
-                                 className="flex-grow bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:border-fuchsia-500 focus:outline-none placeholder:text-slate-600"
-                                 onKeyDown={(e) => e.key === 'Enter' && handleEditImage()}
-                              />
-                              <Button 
-                                 onClick={handleEditImage} 
-                                 isLoading={isImageProcessing}
-                                 disabled={!editPrompt.trim()}
-                                 className="px-4 py-2 text-xs min-w-[100px]"
-                              >
-                                 <Wand2 className="w-4 h-4" /> Edit
-                              </Button>
-                           </div>
-                           <div className="flex justify-between items-center text-[10px] text-slate-500 uppercase px-1">
-                              <span>AI Enhanced Visuals Active</span>
-                              <button 
-                                 onClick={() => setCurrentBody({ ...currentBody, imageUrl: undefined })}
-                                 className="hover:text-red-400 transition-colors"
-                              >
-                                 Reset to Sensor View
-                              </button>
-                           </div>
-                        </div>
-                     )}
-                  </div>
-
                   <div className="bg-slate-900/60 backdrop-blur-sm p-6 rounded-2xl border border-slate-700 max-w-3xl w-full shadow-2xl">
                       <div className="flex items-center justify-center gap-3 mb-2">
                         <TypeIcon type={currentBody.type} />
@@ -436,7 +400,7 @@ const App: React.FC = () => {
             Jump to New Sector (-{FUEL_COST_WARP} Fuel)
           </Button>
           
-          <Button 
+          <Button
              variant="secondary"
              onClick={handleRefuel}
              disabled={player.science < 100}
@@ -445,6 +409,25 @@ const App: React.FC = () => {
              <RefreshCw className="w-5 h-5" />
              Synthesize Fuel (-100 Data)
           </Button>
+
+          {isStranded && (
+            <Button
+               variant="secondary"
+               onClick={handleEmergencySails}
+               className="w-full sm:flex-1 max-w-xs border-amber-500 text-amber-300 animate-pulse"
+            >
+               <LifeBuoy className="w-5 h-5" />
+               Deploy Solar Sails (+15 Fuel)
+            </Button>
+          )}
+
+          <button
+            onClick={handleNewGame}
+            title="Start a new expedition"
+            className="text-slate-600 hover:text-red-400 transition-colors p-2"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </footer>
     </div>
