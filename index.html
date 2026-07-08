@@ -3,52 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chroma Cosmos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      /* Custom scrollbar for webkit */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #0f172a; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #334155; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #475569; 
-      }
-      @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-        100% { transform: translateY(0px); }
-      }
-      .animate-float {
-        animation: float 6s ease-in-out infinite;
-      }
-      @keyframes pulse-glow {
-        0%, 100% { opacity: 0.6; filter: blur(8px); }
-        50% { opacity: 1; filter: blur(12px); }
-      }
-      .animate-pulse-glow {
-        animation: pulse-glow 3s infinite;
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
-  }
-}
-</script>
-</head>
+    <title>Chroma Cosmos — Infinite Universe Explorer</title>
+    <meta name="description" content="Explore an infinite, procedurally generated universe. Every planet, star, nebula and anomaly is unique. Free browser space exploration game — no download, no sign-up." />
+    <meta name="keywords" content="space game, browser game, procedural generation, universe explorer, free online game, idle exploration" />
+    <meta name="theme-color" content="#020617" />
+    <meta property="og:title" content="Chroma Cosmos — Infinite Universe Explorer" />
+    <meta property="og:description" content="Explore an infinite, procedurally generated universe. Every discovery is unique. Free to play in your browser." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>" />
+  </head>
   <body class="bg-slate-950 text-white overflow-hidden selection:bg-fuchsia-500 selection:text-white">
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
