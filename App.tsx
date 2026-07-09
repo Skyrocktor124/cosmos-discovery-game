@@ -428,6 +428,13 @@ const App: React.FC = () => {
             ▶ Astro Merge
           </a>
 
+          <a
+            href="./orbit-dash/"
+            className="text-xs text-slate-500 hover:text-fuchsia-300 transition-colors uppercase font-bold whitespace-nowrap"
+          >
+            ▶ Orbit Dash
+          </a>
+
           <button
             onClick={handleNewGame}
             title="Start a new expedition"
