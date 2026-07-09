@@ -25,4 +25,5 @@ description: 写活动 Terms of Reference。按 EU SME Centre 模板生成英文
 
 ## 注意
 
-- 模板当前是占位版；如果 `tor-template.md` 顶部的占位警告还在，提醒用户尽快提供过往真实 ToR 范例来替换模板（提醒一次即可，不阻塞产出）。
+- 动笔前读 `training-coordinator/reference-examples/example-tor-gen-y-webinar.md` 感受真实措辞密度；Background 第一段和 "This free event..." 句是固定 boilerplate，原样保留。
+- Agenda 表中 Presentation 一栏要嵌套详列内容点（这是给讲者的内容规格），不要只写个标题。

@@ -1,6 +1,6 @@
 # Speaker Briefing Template
 
-> 由 `/script` skill 为每位讲者生成一份，发给讲者本人。全英文。
+> 由 `/script` skill 为每位讲者生成一份，发给讲者本人。全英文。"What we'd like you to cover" 和 "Coordination with other speakers" 两节要基于 `index-of-issues.md` 的内容预测和重叠检查结论填写。
 
 ---
 

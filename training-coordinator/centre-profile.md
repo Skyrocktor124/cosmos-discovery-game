@@ -5,9 +5,11 @@
 
 ## 机构背景
 
-- **机构**：EU SME Centre（欧盟中小企业中心），欧盟资助项目，总部位于北京，由中国欧盟商会（European Union Chamber of Commerce in China）牵头的联合体运营，目前处于第五期（Phase V）。
-- **使命**：帮助欧盟及 COSME 参与国的中小企业进入和拓展中国市场。
-- **服务**：business advice（法律、市场准入、税务、标准合规咨询）、trainings & webinars、知识中心（报告和指南）、与成员国商会及 Enterprise Europe Network (EEN) 的合作活动。
+- **机构**：EU SME Centre（欧盟中小企业中心），欧盟资助项目，2010 年成立，总部位于北京，已完成四期项目，现处于第五期（Phase V）。
+- **联合体**：四个 consortium partners——European Union Chamber of Commerce in China (EUCCC)、China-Italian Chamber of Commerce (CICC)、Italy China Council Foundation、SPI；两个 associated partners——Trade Promotion Europe、EU-China Business Association。活动常与其中一家合办（ToR 中的 Implementing partner）。
+- **使命**：帮助 EU Member States 及 Single Market Programme 参与国的中小企业进入和拓展中国市场（注意固定表述是 "SMEs from EU Member States and countries participating in the Single Market Programme"，不再用 COSME）。
+- **五项免费服务**（主持词固定话术，全文见 moderator-script-template.md）：① self-diagnosis tool ② knowledge resources（报告、指南、案例）③ free expert advice（Ask-the-Expert）④ training programmes ⑤ advocacy work。
+- **协调员（用户）**：Keyu，Training Coordinator，主持词自我介绍用 "I'm Keyu, Training Coordinator from the EU SME Centre."
 - **官网**：https://www.eusmecentre.org.cn
 
 ## 目标受众（写所有文档时的默认设定）
@@ -18,8 +20,10 @@
 
 ## 活动惯例
 
-- **线上 webinar**：60–90 分钟，通常 Zoom；结构 = 开场（Centre 介绍 + housekeeping）→ 1–3 位讲者演讲 → Q&A → 结尾（调查问卷 + 服务推广）。多与成员国商会、EEN 伙伴、行业协会合办。
-- **线下 workshop/training**：半天或全天，在欧洲成员国城市或中国举办；含互动环节、案例讨论、networking。
+- **形式**：线上 webinar（约 90 分钟，单讲者居多）和 hybrid 活动（线上+北京线下，可含双讲者+panel discussion）。ToR 的 Activity Number 按格式区分（如 webinar A22203 / hybrid A23206，以最新编号体系为准）。
+- **活动常成系列**：如 China Consumer series（按消费人群分场：active retirees、Gen Y、Gen Z…）、CBEC 跨境电商 series。选题时优先考虑能否归入或开启一个系列。
+- **标准流程**（主持词固定骨架，详见 moderator-script-template.md）：Welcome → 活动介绍 → Centre 五项服务介绍 → 下期活动预告 → 讲者介绍与交接 → 演讲 →（panel）→ 反馈问卷 QR → Q&A（含备好的 prepared questions）→ 收尾（takeaway + 相关 Centre 报告推广）。
+- **免费活动**，固定句式 "This free event will be held in English. It is open to all interested SMEs from EU Member States and countries participating in the Single Market Programme."
 - **语言**：活动和文档以英文为主。
 
 ## 文档口吻
@@ -38,7 +42,7 @@
 | `03-tor.md` | /tor |
 | `04-speakers.md` | /speakers |
 | `05-event-plan.md` | /event-plan |
-| `06-script.md` + `speaker-briefings/` | /script |
+| `index-of-issues.md` + `speaker-briefings/` + `06-script.md` | /script |
 
 如果当前会话没有明确活动文件夹，skill 应先列出 `training-coordinator/events/` 下现有文件夹让用户选择或新建。
 

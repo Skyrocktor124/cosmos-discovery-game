@@ -17,5 +17,8 @@
 | Alicia García-Herrero | Chief Economist Asia Pacific, Natixis | 2024 Understanding China Conference | eusmecentre.org.cn events page | 2026-07 |
 | Rose Hong | Regulatory Analyst, ChemLinked | Food Additives in China webinar | eusmecentre.org.cn events page | 2026-07 |
 | Leo Tian | Business Manager, ChemLinked | Food Additives in China webinar | eusmecentre.org.cn events page | 2026-07 |
+| Echo Liu | Senior Research Director, NielsenIQ China | The Consumer series: Gen Y webinar (2026) | 用户提供的主持词范例 | 2026-07 |
+| Moey {{姓氏待补}} | Head of Legal & Compliance, PSU China | EU-China SME Risk Mitigation hybrid event | 用户提供的主持词范例 | 2026-07 |
+| Icey Xu | Head of Operations, PSU China | EU-China SME Risk Mitigation hybrid event | 用户提供的主持词范例 | 2026-07 |
 
 <!-- 在上表末尾按同样格式追加新行。不要删除历史行。 -->

@@ -13,11 +13,13 @@
 
 ## 目录说明
 
-- `centre-profile.md` — 机构背景、受众定义、口吻规则。**所有 skill 的共享设定，信息有变直接改这个文件。**
+- `centre-profile.md` — 机构背景、受众定义、口吻规则、活动惯例。**所有 skill 的共享设定，信息有变直接改这个文件。**
 - `speakers-exclusion-list.md` — 讲者排除名单，持续追加。
-- `templates/` — ToR、主持词、speaker briefing 模板。
+- `templates/` — 四个模板，均从协调员的真实文档提炼：ToR、主持词、index of issues（讲者内容预测）、speaker briefing。
+- `reference-examples/` — 协调员提供的真实范例原文（Gen Y ToR 和主持词、Risk Mitigation hybrid 主持词、Debt Collection index of issues）。**写正式产出前先读对应范例，模仿其语气和颗粒度。**
 - `events/` — 每个活动一个文件夹（`YYYY-MM-主题短名/`），存放 `01-topic.md` 到 `06-script.md` 的各阶段产出，后续阶段自动读取前面的产出。
 
-## ⚠️ 待办：替换占位模板
+## 维护提示
 
-`templates/tor-template.md` 和 `templates/moderator-script-template.md` 目前是按行业惯例内置的**占位版**。请把你过往的真实 ToR 和主持词范例发给 Claude（对话中粘贴或上传均可），让它替换成你的实际格式和惯用句式，效果会好得多。替换后删除模板顶部的占位警告。
+- 新的好范例（办完活动后的定稿主持词、ToR）随时补进 `reference-examples/`，模板与实际做法脱节时让 Claude 对照更新模板。
+- 每次活动结束后：把实际讲者加进 `speakers-exclusion-list.md`。
