@@ -421,6 +421,13 @@ const App: React.FC = () => {
             </Button>
           )}
 
+          <a
+            href="./astro-merge/"
+            className="text-xs text-slate-500 hover:text-cyan-300 transition-colors uppercase font-bold whitespace-nowrap"
+          >
+            ▶ Astro Merge
+          </a>
+
           <button
             onClick={handleNewGame}
             title="Start a new expedition"

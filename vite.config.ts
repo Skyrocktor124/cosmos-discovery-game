@@ -12,6 +12,14 @@ export default defineConfig({
     host: '0.0.0.0',
   },
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        astroMerge: path.resolve(__dirname, 'astro-merge/index.html'),
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
