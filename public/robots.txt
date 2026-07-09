@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://skyrocktor124.github.io/cosmos-discovery-game/sitemap.xml
