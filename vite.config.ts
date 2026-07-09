@@ -18,6 +18,7 @@ export default defineConfig({
         main: path.resolve(__dirname, 'index.html'),
         astroMerge: path.resolve(__dirname, 'astro-merge/index.html'),
         orbitDash: path.resolve(__dirname, 'orbit-dash/index.html'),
+        mathBlast: path.resolve(__dirname, 'math-blast/index.html'),
       },
     },
   },

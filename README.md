@@ -14,6 +14,18 @@ server or API cost. Free to play, no download, no sign-up.
 - 📱 Responsive layout, works on desktop and mobile
 - 💸 **Zero running cost** — no API keys, no backend, pure static files
 
+## Game portfolio
+
+| Game | Path | Genre |
+|------|------|-------|
+| Chroma Cosmos | `/` | Space exploration |
+| Astro Merge | `/astro-merge/` | Merge puzzle (2048-like) |
+| Orbit Dash | `/orbit-dash/` | One-button arcade |
+| Math Blast | `/math-blast/` | Educational math for kids |
+
+All four are static, zero-cost, cross-linked, and individually
+submittable to game platforms.
+
 ## 中文说明
 
 这是一个零运行成本的网页宇宙探索游戏,已配置好自动部署和多平台上架条件。

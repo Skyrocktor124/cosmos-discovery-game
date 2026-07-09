@@ -435,6 +435,13 @@ const App: React.FC = () => {
             ▶ Orbit Dash
           </a>
 
+          <a
+            href="./math-blast/"
+            className="text-xs text-slate-500 hover:text-amber-300 transition-colors uppercase font-bold whitespace-nowrap"
+          >
+            ▶ Math Blast
+          </a>
+
           <button
             onClick={handleNewGame}
             title="Start a new expedition"

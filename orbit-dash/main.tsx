@@ -272,6 +272,7 @@ const App: React.FC = () => {
           <div className="flex gap-4 text-xs text-slate-500 uppercase font-bold mt-2">
             <a href="../" className="hover:text-cyan-300 transition-colors pointer-events-auto" onPointerDown={e => e.stopPropagation()}>▶ Chroma Cosmos</a>
             <a href="../astro-merge/" className="hover:text-fuchsia-300 transition-colors pointer-events-auto" onPointerDown={e => e.stopPropagation()}>▶ Astro Merge</a>
+            <a href="../math-blast/" className="hover:text-amber-300 transition-colors pointer-events-auto" onPointerDown={e => e.stopPropagation()}>▶ Math Blast</a>
           </div>
         </div>
       )}

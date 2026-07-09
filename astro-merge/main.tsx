@@ -195,6 +195,9 @@ const App: React.FC = () => {
             <a href="../orbit-dash/" className="hover:text-fuchsia-300 transition-colors uppercase font-bold">
               ▶ Orbit Dash
             </a>
+            <a href="../math-blast/" className="hover:text-amber-300 transition-colors uppercase font-bold">
+              ▶ Math Blast
+            </a>
           </div>
         </div>
       </div>
