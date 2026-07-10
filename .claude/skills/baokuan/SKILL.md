@@ -10,8 +10,8 @@ argument-hint: "[find | script <人物名> | review <数据> | status]"
 **用漂亮的英文讲"打开黑箱、留下免费资产"的人物故事**，核心指标是收藏率（观众把视频当资源入口存下来）。
 
 所有方法论细节在 `references/playbook.md`，人物库在 `references/candidates.md`，
-历史数据在 `references/data-log.md`。**执行任何子命令前，先读这三个文件**——
-它们是持续迭代的活文档，比你记忆中的任何版本都新。
+历史数据在 `references/data-log.md`，发布排期在 `references/calendar.md`。
+**执行任何子命令前，先读相关文件**——它们是持续迭代的活文档，比你记忆中的任何版本都新。
 
 根据用户参数进入对应流程。用户没给参数时，读 data-log.md 和 candidates.md
 后主动建议下一步（通常是：有新数据→先 review；无新数据→按排期出下一条 script）。
@@ -59,10 +59,16 @@ argument-hint: "[find | script <人物名> | review <数据> | status]"
    不写"提高完播率"这种空话。
 5. 向用户汇报：诊断结论 + 模型更新了什么 + 下一条的明确动作清单。
 
+## /baokuan plan —— 生成/更新发布排期
+
+读 candidates.md、data-log.md、playbook.md 第8节，把待发人物按 calendar.md 的
+「轮换四原则」排成可执行日历（收藏型↔情绪型交替、女性大神↔普通人逆袭交替、每3条插破圈切片、
+华人:非华人≈3:1），写回 calendar.md。每次 review 后按新数据重排后续档期。
+
 ## /baokuan status —— 现状与排期
 
-读三个 references 文件，汇报：人物库存量与梯队分布、已发内容与数据趋势、
-当前排期建议、模型最新版本的关键结论。
+读四个 references 文件，汇报：人物库存量与梯队分布、已发内容与数据趋势、
+当前排期（calendar.md）进度、模型最新版本的关键结论、下一条该发谁。
 
 ## 纪律（所有子命令通用）
 
