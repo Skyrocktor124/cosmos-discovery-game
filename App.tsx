@@ -435,6 +435,13 @@ const App: React.FC = () => {
             ▶ Orbit Dash
           </a>
 
+          <a
+            href="./star-serpent/"
+            className="text-xs text-slate-500 hover:text-amber-300 transition-colors uppercase font-bold whitespace-nowrap"
+          >
+            ▶ Star Serpent
+          </a>
+
           <button
             onClick={handleNewGame}
             title="Start a new expedition"
