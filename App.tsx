@@ -442,6 +442,13 @@ const App: React.FC = () => {
             ▶ Star Serpent
           </a>
 
+          <a
+            href="./her-ai/"
+            className="text-xs text-slate-500 hover:text-rose-300 transition-colors font-bold whitespace-nowrap"
+          >
+            🦋 成长加速器
+          </a>
+
           <button
             onClick={handleNewGame}
             title="Start a new expedition"

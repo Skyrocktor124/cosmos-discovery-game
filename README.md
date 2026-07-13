@@ -16,8 +16,14 @@ server or API cost. Free to play, no download, no sign-up.
 
 ## 中文说明
 
-这是一个零运行成本的网页宇宙探索游戏,已配置好自动部署和多平台上架条件。
+这是一个零运行成本的网页产品矩阵(4 个小游戏 + 1 个工具站),已配置好自动部署和多平台上架条件。
 **变现步骤请看:[docs/被动收入行动指南.md](docs/被动收入行动指南.md)**
+
+- 🌌 Chroma Cosmos(宇宙探索)— `/`
+- 🪐 Astro Merge(合成 2048)— `/astro-merge/`
+- 🛰️ Orbit Dash(单键街机)— `/orbit-dash/`
+- 🐍 Star Serpent(太空贪吃蛇)— `/star-serpent/`
+- 🦋 女性AI成长加速器(21 天成长计划 + AI 提示词库工具站)— `/her-ai/`
 
 ## Development
 

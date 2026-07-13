@@ -19,6 +19,7 @@ export default defineConfig({
         astroMerge: path.resolve(__dirname, 'astro-merge/index.html'),
         orbitDash: path.resolve(__dirname, 'orbit-dash/index.html'),
         starSerpent: path.resolve(__dirname, 'star-serpent/index.html'),
+        herAi: path.resolve(__dirname, 'her-ai/index.html'),
       },
     },
   },
