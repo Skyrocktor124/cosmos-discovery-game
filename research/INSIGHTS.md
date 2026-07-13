@@ -520,3 +520,157 @@
 - 来源:[Exercise 2: Self-Compassion Break(self-compassion.org,Neff 本人网站)](https://self-compassion.org/exercises/exercise-2-self-compassion-break/)
 - 怎么用:默念三句——1)"这是一个痛苦的时刻";2)"痛苦是人生的一部分,不止我一个人这样";3)(一只手放胸口)"愿我对自己温柔一些"。30 秒也有效。
 - 选题角度:把"要爱自己"翻译成一个 30 秒、有临床数据支撑的具体动作。
+
+## 人身与数字安全
+
+### [安全-01] 排查跟踪软件(stalkerware)前必须先做安全计划——直接卸载会向施暴者发警报,可能触发暴力升级
+- 机制/为什么重要:多数跟踪软件在"停止上报"的一刻会通知安装者,施暴者会立刻意识到受害者已察觉。而 NNEDV 的研究反复显示,受害者"开始离开或主张独立"的时刻恰恰是最危险的时刻。Kaspersky 在检出时会明确警告"立即卸载可能带来后果并销毁可用作证据的痕迹"。
+- 来源:[Information for survivors(Coalition Against Stalkerware)](https://stopstalkerware.org/information-for-survivors/)、[Stalkerware Detection and Removal Guide(State of Surveillance)](https://stateofsurveillance.org/guides/basic/stalkerware-detection-removal-guide/)
+- 怎么用:1) 怀疑被监控时,先不要在被监控的设备上搜索"如何删除跟踪软件"或直接卸载;2) 用另一台安全设备联系反家暴热线/技术安全顾问做计划;3) 在有人身安全预案后再处置,并考虑先固定证据。
+- 选题角度:反直觉——"发现监控就赶紧删掉"恰恰是最危险的做法,顺序错了会要命。
+
+### [安全-02] 用 TinyCheck 可以"隔空"检测手机里的跟踪软件,施暴者完全无法察觉
+- 机制/为什么重要:TinyCheck 由 Kaspersky 研究员开发、Coalition Against Stalkerware 推广,跑在独立的树莓派上伪装成 WiFi 热点,只分析手机的外发流量是否连向已知的间谍服务器。因为什么都不装在手机上,手机里的间谍软件"看不到"这次检测,不会给施暴者报警。
+- 来源:[TinyCheck(Coalition Against Stalkerware)](https://stopstalkerware.org/2022/06/28/visit-tinychecks-brand-new-page-a-free-open-source-tool-for-detecting-stalkerware-on-your-mobile-device/)、[How to detect spyware or stalkerware(Kaspersky)](https://www.kaspersky.com/blog/tinycheck-detects-spyware-stalkerware/38030/)
+- 怎么用:1) 用树莓派按官方指引搭建 TinyCheck;2) 让可疑手机连上它的 WiFi;3) 分析报告会指出是否有流量流向已知跟踪服务器,全程不惊动对方。
+- 选题角度:专业圈的"隐形排雷器"——不碰你的手机就能知道它有没有被监控。
+
+### [安全-03] iOS 16+ 的「安全检查(Safety Check)」有个"紧急重置"一键切断所有人和 App 的访问权,而且对方不会收到任何通知
+- 机制/为什么重要:亲密关系监控往往通过"曾经授权过"的位置共享、账号访问累积起来,逐个排查很难。Emergency Reset 是一个"总闸",一次性停止所有人/所有 App 的共享;关键是 Apple 明确设计为不通知被取消方,并配有"快速退出"按钮方便在施暴者靠近时迅速隐藏。
+- 来源:[Safety Check for an iPhone with iOS 16 or later(Apple Support)](https://support.apple.com/guide/personal-safety/safety-check-iphone-ios-16-ips2aad835e1/web)
+- 怎么用:1) 设置 → 隐私与安全性 → 安全检查;2) 用"紧急重置"一次性停止全部共享并检查账号安全;3) 注意屏幕上的"快速退出"以便随时隐藏。
+- 选题角度:iPhone 里藏着一个专为家暴受害者做的"静默总闸",很多人根本不知道它存在。
+
+### [安全-04] 检查"谁能看到你位置"要去 Find My 的「People」标签,而不是关掉某个 App——共享 Apple ID / 家庭共享是最隐蔽的追踪通道
+- 机制/为什么重要:施暴者常通过家庭共享或曾登入的共享 Apple ID 追踪位置,受害者以为关掉地图 App 就安全了,其实共享关系还在。Apple 个人安全指南指出:Find My → People 里会逐条列出"谁能看到你的位置",可单独对某人"停止共享我的位置"。
+- 来源:[Find My and location sharing(Apple Support)](https://support.apple.com/guide/personal-safety/find-my-and-location-sharing-ips05ede4573/web)、[Checklist 2: Manage location information(Apple Support)](https://support.apple.com/guide/personal-safety/checklist-2-manage-location-information-ips3dbc70436/web)
+- 怎么用:1) 打开"查找" App → People 标签,查看谁标着"可查看你的位置";2) 逐个"停止共享我的位置";3) 同时检查是否与他人共用同一个 Apple ID,若是则需在安全设备上另建独立账号。
+- 选题角度:定位泄露多半不是被黑,而是"当年授权过"没撤——查一个标签页就能发现。
+
+### [安全-05] 对 AirTag/蓝牙追踪器,安卓和 iPhone 现在都有系统级"未知追踪器警报",还能让追踪器发声帮你找到它
+- 机制/为什么重要:被前任放进包里/车里的 AirTag 会长时间跟随你移动。iPhone 会自动弹窗提示"有未知物品在跟随你";安卓 6.0+ 在"设置 → 安全与紧急情况 → 未知追踪器警报"里有自动通知和手动扫描;找到后可在"查找"里让它响铃,并可拆后盖取电池使其失效。
+- 来源:[What to do if you get an alert about a Bluetooth location-tracking device(Apple Support)](https://support.apple.com/en-us/119874)、[AirTag stalking protection is live on Android(Tom's Guide)](https://www.tomsguide.com/how-to/how-to-enable-unknown-tracker-alerts-on-Android)
+- 怎么用:1) 安卓进"设置→安全与紧急情况→未知追踪器警报"手动扫描,iPhone 留意自动弹窗;2) 用"播放声音"定位;3) 逆时针拧开后盖取出电池使其失效,并保留物证报警。
+- 选题角度:被跟踪的不只是名人——一个 30 秒的手动扫描就能查出车里/包里的追踪器。
+
+### [安全-06] 非自愿私密影像(含 AI 换脸)可以用"图像哈希"下架:成年人用 StopNCII.org,未成年时期的影像用 NCMEC 的 Take It Down——图片不会离开你的手机
+- 机制/为什么重要:两者都在你自己设备上把影像转成唯一的"数字指纹"(hash),只上传哈希而非图片本身,再分发给参与平台自动检测删除。StopNCII 由英国 Revenge Porn Helpline/SWGfL 运营(面向成年人),Take It Down 由 NCMEC 运营、覆盖 Facebook/Instagram/OnlyFans/Pornhub/Yubo(面向"你未满18岁时"的影像)。
+- 来源:[How StopNCII.org Works](https://stopncii.org/how-it-works/?lang=en-gb)、[Take It Down(NCMEC)](https://takeitdown.ncmec.org/)
+- 怎么用:1) 成年影像去 stopncii.org、未成年时期影像去 takeitdown.ncmec.org;2) 在本地生成哈希(无需上传原图、可匿名);3) 提交后由参与平台自动匹配删除,保留案件号用于后续。
+- 选题角度:不用把私密照发给任何人、不用逐个平台举报——一次哈希就能在多平台"一键封杀",很多受害者不知道这条路。
+
+### [安全-07] 美国《TAKE IT DOWN Act》要求平台在收到有效举报后 48 小时内删除非自愿私密影像(含深度伪造),不删可向 FTC 投诉
+- 机制/为什么重要:深度伪造性影像的受害者过去只能被动等平台"看心情"处理。该联邦法律给出硬性时限:平台需在 48 小时内删除;逾期可向美国联邦贸易委员会(FTC)投诉。RAINN 同时给出实操:先向出现内容的每个平台分别举报。
+- 来源:[Report & Remove Intimate Images, Sexual Deepfakes, & Fake Nudes(RAINN)](https://rainn.org/reporting-sexual-assault-to-law-enforcement/how-to-report-tech-enabled-sexual-abuse/)
+- 怎么用:1) 在每个出现该内容的平台分别提交举报并截图留证;2) 记录举报时间,超过 48 小时未删向 FTC 投诉;3) 同时用 StopNCII/Take It Down 做哈希拦截。
+- 选题角度:"平台不理我"不再是死局——法律给了 48 小时时钟和一个可投诉的对象。
+
+### [安全-08] 跟踪案定罪的关键往往不是单次证据,而是"模式":一份带日期时间地点的《跟踪事件日志》可能决定案子成不成立
+- 机制/为什么重要:法律上"跟踪"通常要求"重复行为的模式",单次不受欢迎的联系一般达不到立案门槛。受害者延迟数月后才报案、缺乏逐条时间线,会让检方难以证明模式。反跟踪机构 SPARC 提供标准化《Stalking Incident and Behavior Log》模板,记录每次电话、短信、出现、寄送等的日期/时间/地点/细节/证人。
+- 来源:[Stalking Incident and Behavior Log Instructions(SPARC/Stalking Prevention)](https://www.stalkingawareness.org/wp-content/uploads/2018/07/SPARC_StalkingLogInstructions_2018_FINAL.pdf)、[Stalking Incident and Behavior Log(SAFVIC)](https://www.safvic.org/wp-content/uploads/2017/05/Stalking-Incident-and-Behavior-Log.pdf)
+- 怎么用:1) 从第一次异常起就用标准日志逐条记录日期/时间/地点/对方具体行为/在场证人/截图;2) 备份到安全的地方;3) 报案时把完整时间线交给警方,而不是零散复述。
+- 选题角度:定罪靠的是"账本"而非"一巴掌"——从第一天就记日志,是专业倡导者最强调却最少人做的事。
+
+### [安全-09] 高价值账号(邮箱、银行、主云账号)要用验证器 App 而非短信验证码——SIM 交换攻击能绕过短信 2FA
+- 机制/为什么重要:SIM 交换靠社工话术让运营商把你的号码转到攻击者的 SIM 上,之后你所有短信验证码都进对方手机,无需任何技术。FBI 报告 2023 年收到 1600+ 起 SIM 交换投诉、损失超 6800 万美元(此数据来自专业博客转述,建议引用时回查 FBI IC3 原始报告)。验证器 App 的验证码由本地密钥生成、没有可劫持的号码,直接堵死这个洞。
+- 来源:[Authenticator App vs SMS 2FA: Which Is Safer?(Passlock)](https://passlock.to/blog/authenticator-app-vs-sms-2fa)(SIM 交换→验证器 App 更安全,为 CISA/FBI 等安全机构的公认建议)
+- 怎么用:1) 给邮箱/银行/主云账号改用验证器 App(TOTP)或硬件密钥;2) 给运营商账户单独设 PIN/口令防号码被转移;3) 尽量取消这些账号上的短信 2FA 作为唯一手段。
+- 选题角度:"开了两步验证"不等于安全——短信这一种恰恰是能被前任社工绕过的那种。
+
+### [安全-10] 花两分钟跑一遍 Google Security Checkup / 账户"已登录设备",能揪出并踢掉施暴者仍在登录的会话
+- 机制/为什么重要:分手后前任可能仍在某台设备上保持登录、静默读你的邮件和位置。Google 账户的"安全 → 你的设备 → 管理所有设备"会列出近几周所有登录会话,发现陌生设备可"退出登录"立即切断,再改密码防止其重新登入。
+- 来源:[See devices with account access(Google Account Help)](https://support.google.com/accounts/answer/3067630?hl=en)、[The new Security Checkup(Google)](https://myaccount.google.com/intro/security-checkup)
+- 怎么用:1) myaccount.google.com → 安全 → 管理所有设备,逐台核对;2) 对不认识的设备点"退出登录";3) 立即改密码并开启验证器 App 两步验证;其他平台(Apple、微信、Instagram 等)同理都有"登录设备/登录活动"页。
+- 选题角度:被"盯梢"常常不是被黑,而是账号里还挂着对方的登录——两分钟自查就能踢出去。
+
+### [安全-11] 做数字安全前先做"威胁建模":EFF《监控自卫》的"Your Security Plan"教你先问清"要保护什么、防谁、失败代价多大",避免精力用错地方
+- 机制/为什么重要:安全建议海量而互相矛盾,盲目照做既累又留漏洞。EFF 的 Surveillance Self-Defense 是权威隐私倡导机构 EFF 出品,其"Your Security Plan"模块用五个问题(保护什么/防谁/后果多严重/发生概率/愿付多少代价)帮你按自身处境排优先级——离开施暴者与防泛泛数据商,应对措施完全不同。
+- 来源:[Your Security Plan(Surveillance Self-Defense, EFF)](https://ssd.eff.org/module/your-security-plan)、[Surveillance Self-Defense(EFF)](https://www.eff.org/pages/surveillance-self-defense)
+- 怎么用:1) 打开 ssd.eff.org 的"Your Security Plan",按五个问题写下自己的答案;2) 据此定优先级(如先处理账号会话与位置共享,再谈加密聊天);3) 情况变化(如决定离开)时重做一遍。
+- 选题角度:安全不是装满一堆 App,而是先想清楚"防谁"——专业人士第一步都在做威胁建模。
+
+### [安全-12] 离开一段监控关系需要"数字搬家清单":账号在干净设备上重置、权衡取证 vs 彻底重来,权威机构有现成模板
+- 机制/为什么重要:NNEDV Safety Net 的技术安全计划指出,若怀疑账号被访问,应"用更安全的设备更改用户名和密码";若设备本身可能被植入监控,零散改设置未必可靠。它同时强调:一系列事件的记录能向警方/法院呈现符合跟踪或骚扰法律定义的"行为模式",因此在彻底清除前要权衡是否先固定证据。
+- 来源:[Technology Safety Plan(Safety Net Project, NNEDV)](https://www.techsafety.org/resources-survivors/technology-safety-plan)、[NNEDV: Safety Net Project](https://nnedv.org/content/technology-safety/)
+- 怎么用:1) 怀疑账号被入侵时,在一台确认干净的设备上改密码和用户名并开两步验证;2) 涉及可能植入监控的设备,先保留证据、咨询顾问,再决定恢复出厂或换机;3) 全程保留事件日志(美国求助热线 National Domestic Violence Hotline 1-800-799-7233)。
+- 选题角度:离开一段监控关系,"数字上的搬家"和物理搬家一样需要清单——权威机构有现成的技术安全计划模板。
+
+## 皮肤与抗衰的真实科学
+
+### [皮肤-01] 绝经后头 5 年皮肤胶原可掉约 30%,且集中在最初 1–2 年——这是抗衰的"关键窗口",不是慢慢来的事
+- 机制/为什么重要:雌激素刺激成纤维细胞产胶原,绝经后雌激素骤降导致胶原快速降解。综述数据显示绝经后前 5 年皮肤胶原下降约 30%,此后约每年再降 2%(持续约 15 年);流失最快的是绝经最初 1–2 年。这意味着"等皱纹出来再补救"已错过最陡的下坡段。
+- 来源:[Skin, hair and beyond: the impact of menopause(Climacteric, Taylor & Francis)](https://www.tandfonline.com/doi/full/10.1080/13697137.2022.2050206)
+- 怎么用:1) 围绝经期就把维A酸+防晒作为基础;2) 与医生讨论系统性 HRT 的整体收益/风险(对皮肤有额外好处但不应仅为皮肤用药);3) 把"绝经前后 2 年"当成主动干预窗口而非观望期。
+- 选题角度:把"胶原悬崖"讲成一个有倒计时的窗口期,而不是抽象的"变老"。
+
+### [皮肤-02] 维A酸(tretinoin)几乎是唯一有强 RCT 证据能"逆转"皱纹的外用成分——不是你那瓶贵价精华
+- 机制/为什么重要:tretinoin 调控表皮分化、刺激真皮胶原合成与重塑。系统综述(25 项研究)一致显示它改善皱纹、色斑、肤质,最早 1 个月见效、24 个月仍持续;与视黄醇、果酸、抗氧化剂对比多数指标更优,且安全性档次最好。大多数昂贵"抗皱精华"没有这一级别证据。
+- 来源:[Topical tretinoin for treating photoaging: A systematic review of RCTs(PMC)](https://pmc.ncbi.nlm.nih.gov/articles/PMC9112391/)
+- 怎么用:1) 处方 tretinoin 0.025%–0.05%,晚上豌豆粒大小用于全脸;2) 从每周 2–3 次起、逐步建立耐受(维A反应);3) 白天必须配防晒;孕期哺乳期停用(见皮肤-09)。
+- 选题角度:"一支处方药 vs 一柜子精华"——把钱花在证据上。
+
+### [皮肤-03] SPF 是按 2mg/cm² 测的,而真人平均只涂 1/4–1/2——你的"SPF50"实际可能只有约 SPF17
+- 机制/为什么重要:SPF 防护随涂抹量非线性下降。多数研究实测涂抹量约 0.5–1.0mg/cm²(标准的 1/4–1/2);涂一半量时,SPF50 的实际防护可跌到约 SPF17 一级(定量为近似估算),防护随厚度呈近指数关系。也就是说"用量不足"比"选高倍数"更致命。
+- 来源:[Teaspoon rule revisited: Proper amount of sunscreen application(ResearchGate)](https://www.researchgate.net/publication/234041524_Teaspoon_rule_revisited_Proper_amount_of_sunscreen_application)、[How SPF changes with how much you use(Lab Muffin,基于剂量-防护研究的配方科学解读)](https://labmuffin.com/spf-changes-how-much-sunscreen-use/)
+- 怎么用:1) 面颈约需 1/4 茶匙(约 1.25ml)或"两指法"两条完整挤出量;2) 出门前 15 分钟涂足,2 小时/出汗后补涂;3) 与其追高倍数,不如把量涂够。
+- 选题角度:不是防晒没用,是你涂得太少——把"用量"讲成隐形信息差。
+
+### [皮肤-04] 有 RCT 证明:每天用防晒的人 4.5 年后皮肤老化比"想起来才用"的人少 24%——防晒是证据最硬的"抗衰成分"
+- 机制/为什么重要:澳大利亚 903 人随机对照试验(Hughes 2013, Annals of Internal Medicine),每日 vs 随意使用 SPF15+ 广谱防晒,4.5 年后以皮肤微地形测量,每日组光老化少 24%(比值比 0.76, 95%CI 0.59–0.98),且每日组几乎无可测老化增加。这是"防晒抗衰"少有的人体 RCT 级证据。
+- 来源:[Sunscreen and Prevention of Skin Aging: A Randomized Trial(Annals of Internal Medicine)](https://www.acpjournals.org/doi/10.7326/0003-4819-158-11-201306040-00002)
+- 怎么用:1) 把防晒当每日必做,而非海滩专用;2) 全年、阴天也用;3) 优先"每天都涂"这一习惯,胜过偶尔用贵防晒。
+- 选题角度:抗衰"成分"排名第一的其实不是精华,而是每天那一步防晒——且有 RCT 撑腰。
+
+### [皮肤-05] 外用胶原蛋白分子太大,进不了皮肤——"涂胶原补胶原"违反 500 道尔顿定律
+- 机制/为什么重要:皮肤渗透的经验法则是分子量需 <500 道尔顿才能穿过角质层;而胶原分子约 30 万道尔顿(成熟型约 12 万),远超上限,外用只能停在表面起保湿/成膜作用,不能"补进"真皮。想刺激自身胶原,靠的是维A酸/维C等信号分子,不是涂胶原本身。
+- 来源:[The 500 Dalton rule for skin penetration(PubMed 10839713)](https://pubmed.ncbi.nlm.nih.gov/10839713/)
+- 怎么用:1) 别为"含胶原蛋白"面霜付溢价,它约等于普通保湿;2) 要促胶原用 tretinoin/维C;3) 看成分表分子量概念,大分子活性物多为表面功效。
+- 选题角度:"涂胶原=补胶原"是营销幻觉,一条物理定律就能拆穿。
+
+### [皮肤-06] 但"口服胶原肽"是另一回事:多项 RCT/荟萃分析支持其改善皮肤水分与弹性
+- 机制/为什么重要:与外用不同,水解胶原肽在肠道被分解为小肽/氨基酸吸收,可能作为信号刺激成纤维细胞。一项纳入 26 项 RCT、1721 人的荟萃分析显示水解胶原显著改善皮肤水分与弹性;多项双盲安慰剂对照也报告皱纹改善。注意证据仍有异质性、部分研究由厂商资助。
+- 来源:[Exploring the Impact of Hydrolyzed Collagen Oral Supplementation on Skin Rejuvenation: Systematic Review and Meta-Analysis(PMC)](https://pmc.ncbi.nlm.nih.gov/articles/PMC10773595/)、[Effects of Oral Collagen for Skin Anti-Aging: Systematic Review and Meta-Analysis(PMC)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10180699/)
+- 怎么用:1) 若尝试,选水解/低分子量胶原肽,常见有效量约 2.5–10g/天;2) 连续用 8–12 周以上再评估;3) 把它当"锦上添花"而非替代防晒/维A酸。
+- 选题角度:同一个"胶原",涂没用、吃可能有用——反直觉的分界点正是好选题。
+
+### [皮肤-07] 左旋维C(L-抗坏血酸)要有效,浓度需 10–20%、pH<3.5,且开封氧化变黄就失效
+- 机制/为什么重要:L-抗坏血酸在 pH<3.5、浓度 10–20% 时才能有效上调真皮成纤维细胞胶原基因表达,约 20% 达皮肤饱和,再高只增刺激不增效。它极不稳定,遇光/空气/热会氧化降解,变黄至棕色即已显著失活;加维E+阿魏酸可稳定并协同。
+- 来源:[Vitamin C Serum pH Level: What the Science Says(Phyto-C 综述型博客;底层依据为 Pinnell 等经典皮肤药理研究,如 Pinnell 2001, Dermatol Surg,正式引用建议改挂 PubMed 原文)](https://www.phyto-c.com/blogs/news/vitamin-c-serum-ph-level-stability-skin-penetration)
+- 怎么用:1) 选 10–20% L-抗坏血酸、pH<3.5、含维E+阿魏酸、不透明避光包装;2) 变黄/变棕即弃用;3) 白天用并叠加防晒(抗氧化+防晒协同)。
+- 选题角度:同样"20%维C",配方 pH 和氧化状态决定了它是活性物还是黄水。
+
+### [皮肤-08] 局部雌激素(外用雌二醇)可增加绝经后皮肤胶原与厚度——但证据尚弱、有风险,不能自行涂脸
+- 机制/为什么重要:小型试验(Patriarca 等,15 名已用系统 HRT 的绝经后女性)显示脸部外用 0.01% 雌二醇 16 周后胶原显著增加、表皮/真皮增厚(P<0.01)。但相关研究中双盲 RCT 极少、样本小;且面部外用雌激素存在系统吸收与安全性未明的问题,JAAD Reviews 明确称其"未获证实且有风险"。
+- 来源:[Effects of topical estradiol on facial skin collagen of postmenopausal women(EJOG/ScienceDirect)](https://www.sciencedirect.com/science/article/abs/pii/S0301211506002880)、[Topical estrogen therapy for aging skin: current evidence(JAAD Reviews)](https://www.jaadreviews.org/article/S2950-1989(25)00103-5/fulltext)
+- 怎么用:1) 不要网购外用雌激素自行涂脸;2) 有绝经期皮肤/整体症状,与妇科/皮肤科讨论系统 HRT 的整体获益;3) 把它当"需医生评估的处方级选项",而非护肤品。
+- 选题角度:有真机制、但证据和风险都要讲清——反营销的诚实科普正是稀缺内容。
+
+### [皮肤-09] 孕期/哺乳期要停:维A类、氢醌、高浓度水杨酸——最贵的抗衰成分恰恰是孕期禁区
+- 机制/为什么重要:ACOG 建议孕期停用所有维A类(tretinoin/口服异维A酸等),过量维A可致颅面、心脏、中枢神经系统畸形;氢醌经皮吸收高达 35–45%,孕期建议避免;水杨酸低浓度外用一般可接受,但高浓度/换肤/大面积应避开。这些恰是平时最主力的抗衰/淡斑成分。
+- 来源:[Safety of skin care products during pregnancy(PMC/NIH)](https://pmc.ncbi.nlm.nih.gov/articles/PMC3114665/)
+- 怎么用:1) 备孕即停维A类与氢醌;2) 换用孕期相对安全的替代:壬二酸、维C、烟酰胺、防晒(见皮肤-10);3) 任何酸类/换肤前先问产科或皮肤科。
+- 选题角度:"孕期护肤禁忌清单"是高搜索、低整合的实用信息差。
+
+### [皮肤-10] 壬二酸(15–20%)是孕期/哺乳期少见"能打"的替代:祛痘、抗红、淡斑三合一,且属妊娠 B 类
+- 机制/为什么重要:系统综述(43 项试验)显示壬二酸对痤疮、玫瑰痤疮、黄褐斑均优于载体对照;15% 对玫瑰痤疮减少炎性皮损,20% 淡黄褐斑效果接近氢醌但更安全。归为妊娠 B 类,孕期哺乳期可用,正好补上皮肤-09 的空缺。
+- 来源:[A systematic review of azelaic acid in acne, rosacea, melasma and skin aging(PubMed 37550898)](https://pubmed.ncbi.nlm.nih.gov/37550898/)
+- 怎么用:1) 处方 15–20%(OTC 有更低浓度),每日 1–2 次薄涂;2) 可与烟酰胺/维C叠加;3) 孕期用于替代维A酸和氢醌的祛痘淡斑需求。
+- 选题角度:一个被低估的"全能替补",尤其对孕产期女性。
+
+### [皮肤-11] 下颌线/下巴的顽固囊肿痘常是雄激素驱动——尤其 PCOS 女性,螺内酯比一味刷酸更对因
+- 机制/为什么重要:成年女性、经前加重、集中在下颌/下巴/颈部的痤疮多为雄激素驱动。螺内酯抗雄激素、减少皮脂,通常 8–12 周清痘,常用 50–200mg/天;对 PCOS 女性还能减少多毛、改善脱发。指南建议中重度雄激素性成人痤疮可在口服避孕药基础上加螺内酯。
+- 来源:[Female Adult Acne and Androgen Excess: AE-PCOS Committee Report(Journal of the Endocrine Society)](https://academic.oup.com/jes/article/6/3/bvac003/6523224)
+- 怎么用:1) 下颌线/经前囊肿痘反复、伴多毛/月经不规律,查雄激素与 PCOS;2) 与医生讨论螺内酯 ± 口服避孕药(需处方、监测);3) 别只靠外用酸类硬刷,那治标不治本。
+- 选题角度:"痘长在哪+什么时候爆"能指向激素病因——把祛痘从护肤问题升级为内分泌问题。
+
+### [皮肤-12] 糖化(AGEs)会让胶原变硬变脆:20 岁起累积、每年约 +3.7%——"抗糖"概念有真机制,但外用证据仍弱
+- 机制/为什么重要:糖与胶原发生非酶糖化,生成 AGEs 使胶原交联、变短变硬、弹性下降;糖化胶原约 20 岁起可测,每年约增 3.7%,80 岁累积增加 30–50%;由高血糖负荷、UV 氧化应激、慢性炎症加速。机制成立,但"抗糖外用/口服产品能逆转皮肤 AGEs"的临床证据尚不充分。
+- 来源:[Synthetic and Natural Agents Targeting AGEs for Skin Anti-Aging(Antioxidants, MDPI)](https://www.mdpi.com/2076-3921/14/4/498)、[AGEs in the Skin: Mechanisms and Inhibitory Pathways(Frontiers in Medicine)](https://www.frontiersin.org/journals/medicine/articles/10.3389/fmed.2022.837222/full)
+- 怎么用:1) 最有据的"抗糖"是生活方式:控高糖高 GI、严格防晒、不吸烟;2) 别为标"抗糖"的护肤品付高溢价,外用证据弱;3) 想抗衰仍回到防晒+维A酸这类硬证据。
+- 选题角度:"抗糖"是有科学内核但被产品化过度的概念——教读者分清机制与营销。
+
+### [皮肤-13] "天然/纯净/无化学"不等于更安全:植物精油、香料反而是接触性皮炎的常见元凶
+- 机制/为什么重要:免疫系统认的是化学结构,不是"听起来天然"。审计发现标"无香精"的产品 45% 仍含有致敏植物香料成分,标"低敏"的 83% 至少含一种已知过敏原;精油使用增加带来更多过敏性接触性皮炎报告。"clean beauty"是营销词而非医学概念。
+- 来源:['Clean Beauty' in Dermatology: A Scoping Review(Practical Dermatology)](https://practicaldermatology.com/issues/july-2025/clean-beauty/36492/)、[Essential Oils—Natural Products Not Necessarily Safe(PMC)](https://pmc.ncbi.nlm.nih.gov/articles/PMC8243157/)
+- 怎么用:1) 看全成分表而非"天然/无化学"标语;2) 敏感肌避开香精(fragrance/parfum)和精油(如薰衣草、柑橘、茶树)在留驻型产品中的高浓度;3) 新品先耳后/前臂小面积试用几天。
+- 选题角度:"天然=安全"是最贵的护肤误区,拿数据把标签神话拆掉。
