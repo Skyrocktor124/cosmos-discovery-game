@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>小红书笔记首图 · 3:4</title>
+<link rel="stylesheet" href="fonts/noto-sans-sc/400.css">
+<link rel="stylesheet" href="fonts/noto-sans-sc/500.css">
+<link rel="stylesheet" href="fonts/noto-sans-sc/700.css">
+<link rel="stylesheet" href="fonts/noto-serif-sc/700.css">
+<link rel="stylesheet" href="fonts/noto-serif-sc/900.css">
+<style>
+  :root{
+    --cream:#FBF7F1; --ink:#3D3229; --muted:#A2937F; --line:#E4D9C8;
+    --accent:#C9704B; --accent-soft:#F3E2D8; --sage:#8A9B7C; --sage-soft:#EAEFE4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact}
+  body{font-family:'Noto Sans SC',sans-serif;color:var(--ink)}
+  .cv{width:1242px;height:1656px;background:var(--cream);position:relative;overflow:hidden}
+  .serif{font-family:'Noto Serif SC',serif}
+
+  /* ---- cover 1: 主推图 ---- */
+  #c1 .kick{position:absolute;top:110px;left:100px;font-size:34px;letter-spacing:.45em;color:var(--accent);font-weight:700}
+  #c1 h1{position:absolute;top:180px;left:96px;right:96px;font-family:'Noto Serif SC',serif;font-weight:900;font-size:118px;line-height:1.32}
+  #c1 h1 em{font-style:normal;color:var(--accent)}
+  #c1 .sub{position:absolute;top:560px;left:100px;font-size:40px;color:#6B5F51;letter-spacing:.1em}
+  #c1 .shots{position:absolute;top:680px;left:0;right:0;bottom:230px}
+  #c1 .shot{position:absolute;width:430px;border:3px solid var(--ink);border-radius:14px;box-shadow:14px 18px 0 rgba(61,50,41,.16);overflow:hidden;background:#fff}
+  #c1 .shot img{width:100%;display:block}
+  #c1 .s1{left:90px;top:40px;transform:rotate(-5deg)}
+  #c1 .s2{left:420px;top:130px;transform:rotate(2deg);z-index:2}
+  #c1 .s3{left:750px;top:30px;transform:rotate(6deg)}
+  #c1 .badge{position:absolute;right:110px;top:560px;width:200px;height:200px;border-radius:50%;background:var(--accent);color:#FFF7EF;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;transform:rotate(10deg);z-index:5}
+  #c1 .badge b{font-size:64px}#c1 .badge span{font-size:30px;letter-spacing:.2em}
+  #c1 .foot{position:absolute;bottom:100px;left:100px;right:100px;border-top:4px solid var(--ink);padding-top:44px;display:flex;justify-content:space-between;align-items:center}
+  #c1 .foot .m{font-family:'Noto Serif SC',serif;font-weight:700;font-size:52px}
+  #c1 .foot .tag{font-size:32px;color:var(--muted);letter-spacing:.25em}
+
+  /* ---- cover 2: 清单图 ---- */
+  #c2{padding:96px 100px}
+  #c2 .kick{font-size:34px;letter-spacing:.45em;color:var(--accent);font-weight:700}
+  #c2 h1{font-family:'Noto Serif SC',serif;font-weight:900;font-size:88px;line-height:1.3;margin:30px 0 16px}
+  #c2 .sub{font-size:36px;color:#6B5F51;margin-bottom:44px}
+  #c2 .list{border:4px solid var(--ink);border-radius:24px;background:#FFFDF9;padding:38px 56px}
+  #c2 .it{display:flex;align-items:center;gap:26px;font-size:40px;padding:16px 0;border-bottom:2px dashed var(--line)}
+  #c2 .it:last-child{border-bottom:none}
+  #c2 .it .n{font-family:'Noto Serif SC',serif;font-weight:900;color:var(--accent);font-size:40px;width:70px}
+  #c2 .it .hot{margin-left:auto;font-size:28px;color:#fff;background:var(--accent);border-radius:999px;padding:6px 22px}
+  #c2 .foot{margin-top:44px;display:flex;justify-content:space-between;align-items:center;font-size:34px;color:var(--muted);letter-spacing:.15em}
+
+  /* ---- cover 3: 打卡挑战图 ---- */
+  #c3{padding:110px 100px;background:linear-gradient(180deg,var(--cream) 0%,#F6EDE2 100%)}
+  #c3 .kick{font-size:34px;letter-spacing:.45em;color:var(--sage);font-weight:700}
+  #c3 h1{font-family:'Noto Serif SC',serif;font-weight:900;font-size:110px;line-height:1.3;margin:36px 0 16px}
+  #c3 h1 em{font-style:normal;color:var(--accent)}
+  #c3 .sub{font-size:40px;color:#6B5F51;margin-bottom:60px}
+  #c3 .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:16px;margin-bottom:70px}
+  #c3 .c{aspect-ratio:1;border:3px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;color:#6B5F51;background:#FFFDF9}
+  #c3 .c.done{background:var(--accent);border-color:var(--accent);color:#FFF7EF;font-weight:700}
+  #c3 .quote{border-left:14px solid var(--accent);background:#fff;border-radius:0 20px 20px 0;padding:44px 52px;font-size:46px;line-height:1.7}
+  #c3 .foot{margin-top:70px;display:flex;justify-content:space-between;align-items:flex-end}
+  #c3 .price{font-family:'Noto Serif SC',serif}
+  #c3 .price b{font-size:96px;color:var(--accent)}
+  #c3 .price span{font-size:36px;color:var(--muted)}
+  #c3 .cta{font-size:38px;background:var(--ink);color:var(--cream);border-radius:999px;padding:26px 54px;letter-spacing:.1em}
+</style>
+</head>
+<body>
+
+<div class="cv" id="c1">
+  <div class="kick">STAY ON TRACK · 自律套装</div>
+  <h1>把日子过成<br><em>看得见</em>的进度条</h1>
+  <div class="sub">16页全能自律手账 ｜ 打印 / iPad 都能用</div>
+  <div class="shots">
+    <div class="shot s1"><img src="../previews/pages/page-07.png"></div>
+    <div class="shot s3"><img src="../previews/pages/page-11.png"></div>
+    <div class="shot s2"><img src="../previews/pages/page-06.png"></div>
+  </div>
+  <div class="badge"><b>16</b><span>页模板</span></div>
+  <div class="foot">
+    <div class="m">每一天，都算数。</div>
+    <div class="tag">电子版 · 秒发货</div>
+  </div>
+</div>
+
+<div class="cv" id="c2">
+  <div class="kick">ALL IN ONE · 一套管一年</div>
+  <h1>自律人生手账<br>16页全在这了</h1>
+  <div class="sub">年计划 → 月计划 → 周计划 → 每日执行，一套闭环</div>
+  <div class="list">
+    <div class="it"><span class="n">01</span>年度目标规划</div>
+    <div class="it"><span class="n">02</span>月计划 · 日历总览</div>
+    <div class="it"><span class="n">03</span>周计划 · 三只青蛙</div>
+    <div class="it"><span class="n">04</span>每日时间轴计划</div>
+    <div class="it"><span class="n">05</span>100天打卡挑战<span class="hot">最受欢迎</span></div>
+    <div class="it"><span class="n">06</span>21天习惯养成表</div>
+    <div class="it"><span class="n">07</span>番茄钟专注记录</div>
+    <div class="it"><span class="n">08</span>阅读记录 · 金句卡</div>
+    <div class="it"><span class="n">09</span>52周存钱挑战<span class="hot">¥13780</span></div>
+    <div class="it"><span class="n">10</span>预算 / 情绪 / 复盘 / 心愿</div>
+  </div>
+  <div class="foot"><span>A4 高清 PDF · 无限重复打印</span><span>GOODNOTES 可用</span></div>
+</div>
+
+<div class="cv" id="c3">
+  <div class="kick">100-DAY CHALLENGE</div>
+  <h1>敢不敢跟我<br>打卡 <em>100天</em>？</h1>
+  <div class="sub">涂满这100个圈，你会感谢今天下单的自己</div>
+  <div class="grid" id="c3grid"></div>
+  <div class="quote">"坚持不是意志力，<br>是把想做的事变成看得见的格子。"</div>
+  <div class="foot">
+    <div class="price"><b>¥9.9</b><span> ／奶茶半杯 · 用一整年</span></div>
+    <div class="cta">评论区扣「1」上车</div>
+  </div>
+</div>
+
+<script>
+  const g = document.getElementById('c3grid');
+  for (let i = 1; i <= 30; i++) {
+    const c = document.createElement('div');
+    c.className = 'c' + (i <= 17 ? ' done' : '');
+    c.textContent = i;
+    g.appendChild(c);
+  }
+  const p = new URLSearchParams(location.search).get('c');
+  if (p) document.querySelectorAll('.cv').forEach(el => { if (el.id !== 'c' + p) el.style.display = 'none'; });
+</script>
+</body>
+</html>

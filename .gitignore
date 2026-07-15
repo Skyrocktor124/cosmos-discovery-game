@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# xiaohongshu-product: fonts are downloaded by build.sh, not committed
+xiaohongshu-product/product-src/fonts

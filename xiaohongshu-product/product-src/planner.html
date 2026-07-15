@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>自律人生 · 全能手账打卡套装 V1</title>
+<link rel="stylesheet" href="fonts/noto-sans-sc/400.css">
+<link rel="stylesheet" href="fonts/noto-sans-sc/500.css">
+<link rel="stylesheet" href="fonts/noto-sans-sc/700.css">
+<link rel="stylesheet" href="fonts/noto-serif-sc/700.css">
+<link rel="stylesheet" href="fonts/noto-serif-sc/900.css">
+<style>
+  :root{
+    --cream:#FBF7F1;
+    --ink:#3D3229;
+    --muted:#A2937F;
+    --line:#E4D9C8;
+    --accent:#C9704B;
+    --accent-soft:#F3E2D8;
+    --sage:#8A9B7C;
+    --sage-soft:#EAEFE4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:A4;margin:0}
+  body{font-family:'Noto Sans SC',sans-serif;color:var(--ink);background:#888}
+  .page{
+    width:210mm;height:297mm;background:var(--cream);
+    padding:15mm 16mm 12mm;position:relative;overflow:hidden;
+    page-break-after:always;break-after:page;margin:0 auto;
+  }
+  @media screen{.page{margin:16px auto;box-shadow:0 2px 14px rgba(0,0,0,.25)}}
+
+  /* ---------- shared ---------- */
+  .ph{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:4mm;margin-bottom:6mm}
+  .ph .cn{font-family:'Noto Serif SC',serif;font-weight:900;font-size:24pt;letter-spacing:.08em}
+  .ph .en{font-size:8pt;letter-spacing:.35em;color:var(--muted);text-transform:uppercase}
+  .pf{position:absolute;left:16mm;right:16mm;bottom:8mm;display:flex;justify-content:space-between;font-size:7pt;letter-spacing:.3em;color:var(--muted)}
+  .lbl{font-size:8.5pt;font-weight:700;letter-spacing:.25em;color:var(--accent);margin-bottom:2.5mm}
+  .lbl .sub{color:var(--muted);font-weight:400;letter-spacing:.1em;margin-left:2mm}
+  .fill{border-bottom:1px solid var(--line);height:8mm}
+  .box{border:1.2px solid var(--ink);border-radius:2.5mm;padding:4mm}
+  .soft{background:var(--accent-soft)}
+  .softg{background:var(--sage-soft)}
+
+  /* ---------- cover ---------- */
+  .cover{display:flex;flex-direction:column;justify-content:space-between;padding:22mm 18mm}
+  .cover .kicker{font-size:9pt;letter-spacing:.5em;color:var(--accent);font-weight:700}
+  .cover h1{font-family:'Noto Serif SC',serif;font-weight:900;font-size:52pt;line-height:1.25;margin:10mm 0 6mm}
+  .cover .en-title{font-size:10pt;letter-spacing:.42em;color:var(--muted);text-transform:uppercase}
+  .cover .toc{margin-top:14mm;columns:2;column-gap:12mm;font-size:10.5pt;line-height:2.3}
+  .cover .toc div{display:flex;justify-content:space-between;break-inside:avoid}
+  .cover .toc .n{color:var(--accent);font-weight:700;margin-right:4mm}
+  .cover .toc .dots{flex:1;border-bottom:1px dotted var(--line);margin:0 2mm 2mm}
+  .cover .bottom{display:flex;justify-content:space-between;align-items:flex-end;border-top:2px solid var(--ink);padding-top:5mm}
+  .cover .motto{font-family:'Noto Serif SC',serif;font-weight:700;font-size:13pt}
+  .stamp{width:22mm;height:22mm;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:700;font-size:8pt;letter-spacing:.15em;transform:rotate(-12deg);text-align:center;line-height:1.5}
+
+  /* ---------- guide ---------- */
+  .guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+  .guide-card{border:1.2px solid var(--ink);border-radius:2.5mm;padding:5mm}
+  .guide-card h3{font-family:'Noto Serif SC',serif;font-size:13pt;margin-bottom:2.5mm}
+  .guide-card p{font-size:9.5pt;line-height:1.9;color:#5C5145}
+  .guide-num{display:inline-flex;width:7mm;height:7mm;border-radius:50%;background:var(--ink);color:var(--cream);align-items:center;justify-content:center;font-size:10pt;font-weight:700;margin-bottom:2.5mm}
+  .tip{margin-top:5mm;border-left:3mm solid var(--accent);background:var(--accent-soft);padding:4mm 5mm;font-size:9.5pt;line-height:1.9}
+
+  /* ---------- year ---------- */
+  .kw3{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-bottom:6mm}
+  .kw3 .box{height:24mm;display:flex;flex-direction:column;justify-content:flex-end}
+  .kw3 .box span{font-size:8pt;color:var(--muted);letter-spacing:.2em}
+  .q4{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-bottom:6mm}
+  .q4 .box{height:44mm}
+  .q4 h4{font-family:'Noto Serif SC',serif;font-size:12pt;margin-bottom:1mm}
+  .q4 small{font-size:7.5pt;color:var(--muted);letter-spacing:.15em}
+  .q4 .ln{border-bottom:1px solid var(--line);height:7.5mm}
+  .m12{display:grid;grid-template-columns:repeat(6,1fr);gap:3mm}
+  .m12 .cell{border:1px solid var(--line);border-radius:2mm;height:20mm;padding:2mm;font-size:8pt;color:var(--muted)}
+  .m12 .cell b{display:block;color:var(--ink);font-size:9.5pt;margin-bottom:1mm}
+
+  /* ---------- month ---------- */
+  .mp-top{display:grid;grid-template-columns:2fr 1fr;gap:5mm;margin-bottom:5mm}
+  .mp-focus .ln{display:flex;align-items:center;gap:3mm;border-bottom:1px solid var(--line);height:9mm;font-size:10pt}
+  .mp-focus .ck{width:4.5mm;height:4.5mm;border:1.3px solid var(--ink);border-radius:1.2mm;flex:none}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);border:1.2px solid var(--ink);border-radius:2.5mm;overflow:hidden}
+  .cal .hd{background:var(--ink);color:var(--cream);font-size:8.5pt;text-align:center;padding:2mm 0;letter-spacing:.2em}
+  .cal .d{height:23.5mm;border-top:1px solid var(--line);border-left:1px solid var(--line);padding:1.5mm;font-size:8pt;color:var(--muted)}
+  .cal .d:nth-child(7n+1){border-left:none}
+
+  /* ---------- week ---------- */
+  .frogs{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-bottom:5mm}
+  .frogs .box{height:17mm;font-size:9pt;color:var(--muted)}
+  .wk-row{display:grid;grid-template-columns:22mm 1fr 34mm;border-left:1.2px solid var(--ink);border-right:1.2px solid var(--ink);border-bottom:1px solid var(--line)}
+  .wk-row:first-of-type{border-top:1.2px solid var(--ink);border-radius:2.5mm 2.5mm 0 0}
+  .wk-row:last-of-type{border-bottom:1.2px solid var(--ink);border-radius:0 0 2.5mm 2.5mm}
+  .wk-day{padding:2.5mm;border-right:1px solid var(--line)}
+  .wk-day b{font-family:'Noto Serif SC',serif;font-size:12pt;display:block}
+  .wk-day span{font-size:7pt;color:var(--muted);letter-spacing:.2em}
+  .wk-main{padding:2.5mm;display:flex;flex-direction:column;justify-content:space-between}
+  .wk-main .ln{border-bottom:1px dotted var(--line);height:5.8mm}
+  .wk-note{padding:2.5mm;border-left:1px solid var(--line);font-size:7.5pt;color:var(--muted)}
+
+  /* ---------- daily ---------- */
+  .day-grid{display:grid;grid-template-columns:1fr 1fr;gap:6mm}
+  .tl .slot{display:flex;border-bottom:1px solid var(--line);height:13mm;align-items:flex-start}
+  .tl .t{width:12mm;font-size:8pt;color:var(--muted);padding-top:1mm}
+  .top3 .ln{display:flex;align-items:center;gap:3mm;border-bottom:1px solid var(--line);height:10mm;font-size:10.5pt}
+  .top3 .num{font-family:'Noto Serif SC',serif;font-weight:900;color:var(--accent);font-size:13pt;width:6mm}
+  .todo .ln{display:flex;align-items:center;gap:3mm;border-bottom:1px dotted var(--line);height:8mm;font-size:9.5pt}
+  .ckc{width:4mm;height:4mm;border:1.2px solid var(--ink);border-radius:50%;flex:none}
+  .cups{display:flex;gap:2.5mm;margin-top:2mm}
+  .cup{width:7mm;height:9mm;border:1.3px solid var(--ink);border-radius:0 0 2mm 2mm;border-top:none;position:relative}
+  .cup:before{content:"";position:absolute;top:0;left:-1mm;right:-1mm;border-top:1.3px solid var(--ink)}
+  .moods{display:flex;gap:4mm;margin-top:2mm}
+  .mood{width:9mm;height:9mm;border:1.3px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10pt}
+
+  /* ---------- 100 days ---------- */
+  .d100{display:grid;grid-template-columns:repeat(10,1fr);gap:2.8mm;margin:5mm 0}
+  .d100 .c{aspect-ratio:1;border:1.3px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9pt;color:#6B5F51}
+  .d100 .ms{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+  .oath{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+
+  /* ---------- 21 days ---------- */
+  .h21{border:1.2px solid var(--ink);border-radius:2.5mm;overflow:hidden;margin-bottom:5mm}
+  .h21 .name{display:flex;align-items:center;gap:4mm;background:var(--sage-soft);padding:3mm 4mm;font-size:9.5pt;border-bottom:1px solid var(--line)}
+  .h21 .name b{letter-spacing:.2em;color:var(--sage);font-size:8.5pt}
+  .h21 .name .wl{flex:1;border-bottom:1px solid var(--sage);height:5mm}
+  .h21 .days{display:grid;grid-template-columns:repeat(21,1fr)}
+  .h21 .dc{aspect-ratio:1;border-left:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:7.5pt;color:var(--muted)}
+  .h21 .dc:first-child{border-left:none}
+  .stage{display:flex;gap:4mm;font-size:8pt;color:var(--muted);margin-bottom:6mm}
+  .stage b{color:var(--accent)}
+
+  /* ---------- pomodoro ---------- */
+  .pomo-row{display:grid;grid-template-columns:24mm 1fr 52mm 20mm;border-left:1.2px solid var(--ink);border-right:1.2px solid var(--ink);border-bottom:1px solid var(--line);height:11.5mm;align-items:center}
+  .pomo-hd{background:var(--ink);color:var(--cream);font-size:8.5pt;height:9mm;border-radius:2.5mm 2.5mm 0 0;letter-spacing:.15em}
+  .pomo-hd>div{padding:0 3mm}
+  .pomo-row>div{padding:0 3mm;font-size:9pt;color:var(--muted)}
+  .pomo-row .toms{display:flex;gap:1.8mm}
+  .tom{width:4.2mm;height:4.2mm;border:1.2px solid var(--accent);border-radius:50%}
+  .pomo-last{border-bottom:1.2px solid var(--ink);border-radius:0 0 2.5mm 2.5mm}
+
+  /* ---------- reading ---------- */
+  .book-tbl .row{display:grid;grid-template-columns:8mm 1fr 30mm 22mm 24mm;border-bottom:1px solid var(--line);height:9.5mm;align-items:center;font-size:9pt;color:var(--muted)}
+  .book-tbl .row>div{padding:0 2mm}
+  .stars{letter-spacing:.1em;color:var(--line);font-size:10pt}
+  .quote-card{border:1.2px solid var(--ink);border-radius:2.5mm;padding:4.5mm;margin-top:5mm}
+  .quote-card .qmark{font-family:'Noto Serif SC',serif;font-size:26pt;color:var(--accent);line-height:.6}
+
+  /* ---------- 52 weeks ---------- */
+  .w52{display:grid;grid-template-columns:repeat(13,1fr);gap:2.2mm;margin:5mm 0}
+  .w52 .c{aspect-ratio:1/1.6;border:1.2px solid var(--ink);border-radius:1.8mm;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm;font-size:7pt;color:var(--muted)}
+  .w52 .c b{font-size:8.5pt;color:var(--ink)}
+  .goalbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-bottom:2mm}
+
+  /* ---------- budget ---------- */
+  .bud-grid{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+  .bud .row{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line);height:8.5mm;align-items:center;font-size:9pt;color:var(--muted)}
+  .bud .row .amt{width:26mm;border-left:1px solid var(--line);height:100%;display:flex;align-items:center;padding-left:2mm;font-size:8pt}
+
+  /* ---------- mood ---------- */
+  .mood-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3.2mm;margin:5mm 0}
+  .mood-cal .c{aspect-ratio:1;border:1.3px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5pt;color:var(--muted)}
+  .legend{display:flex;gap:6mm;flex-wrap:wrap;font-size:8.5pt;color:#6B5F51}
+  .legend .sw{display:inline-block;width:4.5mm;height:4.5mm;border-radius:50%;border:1.2px solid var(--ink);vertical-align:-1mm;margin-right:2mm}
+
+  /* ---------- review ---------- */
+  .rev-q{margin-bottom:5mm}
+  .rev-q h4{font-family:'Noto Serif SC',serif;font-size:11.5pt;margin-bottom:2mm}
+  .rev-q h4 span{color:var(--accent);margin-right:2mm}
+  .energy{display:flex;gap:3mm;align-items:center}
+  .energy .dot{width:6mm;height:6mm;border:1.3px solid var(--ink);border-radius:50%}
+
+  /* ---------- wishlist ---------- */
+  .wish .row{display:grid;grid-template-columns:8mm 1fr 26mm 26mm 18mm;border-bottom:1px solid var(--line);height:10mm;align-items:center;font-size:9pt;color:var(--muted)}
+  .wish .row>div{padding:0 2mm}
+
+  /* ---------- back ---------- */
+  .back{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8mm}
+  .back h2{font-family:'Noto Serif SC',serif;font-weight:900;font-size:26pt}
+  .back .rules{font-size:9pt;line-height:2.2;color:#6B5F51;max-width:120mm;text-align:left}
+  .back .brand{font-size:8pt;letter-spacing:.4em;color:var(--muted)}
+  .thd{font-size:8.5pt;font-weight:700;letter-spacing:.15em;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ P1 封面 ═══════════ -->
+<section class="page cover" id="p1">
+  <div>
+    <div class="kicker">STAY ON TRACK · VOL.01</div>
+    <h1>自律人生<br>全能手账打卡套装</h1>
+    <div class="en-title">The All-in-One Self-Discipline Planner</div>
+    <div class="toc">
+      <div><span class="n">01</span>年度目标规划<span class="dots"></span></div>
+      <div><span class="n">02</span>月计划 · 日历总览<span class="dots"></span></div>
+      <div><span class="n">03</span>周计划 · 三只青蛙<span class="dots"></span></div>
+      <div><span class="n">04</span>每日时间轴计划<span class="dots"></span></div>
+      <div><span class="n">05</span>100天打卡挑战<span class="dots"></span></div>
+      <div><span class="n">06</span>21天习惯养成表<span class="dots"></span></div>
+      <div><span class="n">07</span>番茄钟专注记录<span class="dots"></span></div>
+      <div><span class="n">08</span>阅读记录 · 金句卡<span class="dots"></span></div>
+      <div><span class="n">09</span>52周存钱挑战<span class="dots"></span></div>
+      <div><span class="n">10</span>月度预算 · 订阅管理<span class="dots"></span></div>
+      <div><span class="n">11</span>情绪日历<span class="dots"></span></div>
+      <div><span class="n">12</span>每周复盘四问<span class="dots"></span></div>
+      <div><span class="n">13</span>心愿清单<span class="dots"></span></div>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="motto">每一天，都算数。</div>
+    <div class="stamp">DAY<br>ONE</div>
+  </div>
+</section>
+
+<!-- ═══════════ P2 使用说明 ═══════════ -->
+<section class="page" id="p2">
+  <div class="ph"><span class="cn">使用说明</span><span class="en">How to Use</span></div>
+  <div class="guide-grid">
+    <div class="guide-card">
+      <div class="guide-num">1</div>
+      <h3>打印使用（纸质党）</h3>
+      <p>所有页面均为标准 A4 尺寸。用家里或打印店的打印机，选择「实际大小 / 100%缩放」打印即可。黑白打印同样清晰，彩色更好看。需要哪页打哪页，可以无限重复打印。</p>
+    </div>
+    <div class="guide-card">
+      <div class="guide-num">2</div>
+      <h3>iPad 无纸化使用</h3>
+      <p>把 PDF 导入 GoodNotes、Notability、云记等笔记 App，用 Apple Pencil 直接书写。建议把常用页「复制页面」多份，做成自己的电子手账本。</p>
+    </div>
+    <div class="guide-card">
+      <div class="guide-num">3</div>
+      <h3>推荐搭配</h3>
+      <p>① 每年 1 张年度规划　② 每月 1 张月计划 + 情绪日历 + 预算表　③ 每周 1 张周计划 + 复盘　④ 每天 1 张日计划。打卡类（100天/21天/存钱）按挑战启动日开始。</p>
+    </div>
+    <div class="guide-card">
+      <div class="guide-num">4</div>
+      <h3>涂色打卡玩法</h3>
+      <p>打卡圆圈不只是打勾：完成就用马克笔涂满一格，坚持感会「看得见」。也可以贴贴纸、写小字记录当天状态，坚持 100 天后这张表就是你的勋章。</p>
+    </div>
+  </div>
+  <div class="tip"><b>小提示：</b>不要追求完美打卡。断了一天没关系，第二天接着涂，曲线不中断才是目的。这套表的意义是让「坚持」变得可见、可积累、可回顾。</div>
+  <div class="pf"><span>STAY ON TRACK</span><span>02 / 16</span></div>
+</section>
+
+<!-- ═══════════ P3 年度目标 ═══════════ -->
+<section class="page" id="p3">
+  <div class="ph"><span class="cn">年度目标规划</span><span class="en">My Year at a Glance</span></div>
+  <div class="lbl">YEAR 20____ <span class="sub">今年，我想成为怎样的人</span></div>
+  <div class="kw3">
+    <div class="box"><span>关键词 1</span></div>
+    <div class="box"><span>关键词 2</span></div>
+    <div class="box"><span>关键词 3</span></div>
+  </div>
+  <div class="lbl">FOUR QUARTERS <span class="sub">四个季度 · 每季一个主目标</span></div>
+  <div class="q4">
+    <div class="box"><h4>Q1 <small>1—3月</small></h4><div class="ln"></div><div class="ln"></div><div class="ln"></div><div class="ln"></div></div>
+    <div class="box"><h4>Q2 <small>4—6月</small></h4><div class="ln"></div><div class="ln"></div><div class="ln"></div><div class="ln"></div></div>
+    <div class="box"><h4>Q3 <small>7—9月</small></h4><div class="ln"></div><div class="ln"></div><div class="ln"></div><div class="ln"></div></div>
+    <div class="box"><h4>Q4 <small>10—12月</small></h4><div class="ln"></div><div class="ln"></div><div class="ln"></div><div class="ln"></div></div>
+  </div>
+  <div class="lbl">12 MILESTONES <span class="sub">每月一个里程碑</span></div>
+  <div class="m12">
+    <div class="cell"><b>1月</b></div><div class="cell"><b>2月</b></div><div class="cell"><b>3月</b></div>
+    <div class="cell"><b>4月</b></div><div class="cell"><b>5月</b></div><div class="cell"><b>6月</b></div>
+    <div class="cell"><b>7月</b></div><div class="cell"><b>8月</b></div><div class="cell"><b>9月</b></div>
+    <div class="cell"><b>10月</b></div><div class="cell"><b>11月</b></div><div class="cell"><b>12月</b></div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>03 / 16</span></div>
+</section>
+
+<!-- ═══════════ P4 月计划 ═══════════ -->
+<section class="page" id="p4">
+  <div class="ph"><span class="cn">月计划</span><span class="en">Monthly Plan · ______ 月</span></div>
+  <div class="mp-top">
+    <div class="mp-focus">
+      <div class="lbl">TOP 3 FOCUS <span class="sub">本月最重要的三件事</span></div>
+      <div class="ln"><span class="ck"></span></div>
+      <div class="ln"><span class="ck"></span></div>
+      <div class="ln"><span class="ck"></span></div>
+    </div>
+    <div>
+      <div class="lbl">HABIT <span class="sub">本月习惯</span></div>
+      <div class="box softg" style="height:27mm"></div>
+    </div>
+  </div>
+  <div class="cal">
+    <div class="hd">一</div><div class="hd">二</div><div class="hd">三</div><div class="hd">四</div><div class="hd">五</div><div class="hd">六</div><div class="hd">日</div>
+    <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+    <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+    <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+    <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+    <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:5mm">
+    <div><div class="lbl">WAITING <span class="sub">待办池 · 不急但重要</span></div><div class="fill"></div><div class="fill"></div></div>
+    <div><div class="lbl">NOTES <span class="sub">本月备忘</span></div><div class="fill"></div><div class="fill"></div></div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>04 / 16</span></div>
+</section>
+
+<!-- ═══════════ P5 周计划 ═══════════ -->
+<section class="page" id="p5">
+  <div class="ph"><span class="cn">周计划</span><span class="en">Weekly Plan · Week ____</span></div>
+  <div class="lbl">EAT THE FROGS <span class="sub">本周三只青蛙 · 最难最重要的三件事，优先解决</span></div>
+  <div class="frogs">
+    <div class="box soft">🐸 1</div>
+    <div class="box soft">🐸 2</div>
+    <div class="box soft">🐸 3</div>
+  </div>
+  <div class="wk-row"><div class="wk-day"><b>周一</b><span>MON</span></div><div class="wk-main"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div><div class="wk-note">今日一句</div></div>
+  <div class="wk-row"><div class="wk-day"><b>周二</b><span>TUE</span></div><div class="wk-main"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div><div class="wk-note">今日一句</div></div>
+  <div class="wk-row"><div class="wk-day"><b>周三</b><span>WED</span></div><div class="wk-main"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div><div class="wk-note">今日一句</div></div>
+  <div class="wk-row"><div class="wk-day"><b>周四</b><span>THU</span></div><div class="wk-main"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div><div class="wk-note">今日一句</div></div>
+  <div class="wk-row"><div class="wk-day"><b>周五</b><span>FRI</span></div><div class="wk-main"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div><div class="wk-note">今日一句</div></div>
+  <div class="wk-row"><div class="wk-day"><b>周六</b><span>SAT</span></div><div class="wk-main"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div><div class="wk-note">今日一句</div></div>
+  <div class="wk-row"><div class="wk-day"><b>周日</b><span>SUN</span></div><div class="wk-main"><div class="ln"></div><div class="ln"></div><div class="ln"></div></div><div class="wk-note">今日一句</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:5mm">
+    <div><div class="lbl">NEXT WEEK <span class="sub">下周提前准备</span></div><div class="fill"></div><div class="fill"></div></div>
+    <div>
+      <div class="lbl">WEEK HABITS <span class="sub">本周习惯 · 完成涂圈</span></div>
+      <div style="display:flex;align-items:center;gap:2.5mm;height:9mm"><span style="flex:1;border-bottom:1px solid var(--line);height:6mm"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span></div>
+      <div style="display:flex;align-items:center;gap:2.5mm;height:9mm"><span style="flex:1;border-bottom:1px solid var(--line);height:6mm"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span><span class="ckc"></span></div>
+    </div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>05 / 16</span></div>
+</section>
+
+<!-- ═══════════ P6 每日计划 ═══════════ -->
+<section class="page" id="p6">
+  <div class="ph"><span class="cn">每日计划</span><span class="en">Daily Plan · ____月____日 星期____</span></div>
+  <div class="day-grid">
+    <div class="tl">
+      <div class="lbl">TIMELINE <span class="sub">时间轴</span></div>
+      <div class="slot"><span class="t">06:00</span></div>
+      <div class="slot"><span class="t">07:00</span></div>
+      <div class="slot"><span class="t">08:00</span></div>
+      <div class="slot"><span class="t">09:00</span></div>
+      <div class="slot"><span class="t">10:00</span></div>
+      <div class="slot"><span class="t">11:00</span></div>
+      <div class="slot"><span class="t">12:00</span></div>
+      <div class="slot"><span class="t">13:00</span></div>
+      <div class="slot"><span class="t">14:00</span></div>
+      <div class="slot"><span class="t">15:00</span></div>
+      <div class="slot"><span class="t">16:00</span></div>
+      <div class="slot"><span class="t">17:00</span></div>
+      <div class="slot"><span class="t">18:00</span></div>
+      <div class="slot"><span class="t">19:00</span></div>
+      <div class="slot"><span class="t">20:00</span></div>
+      <div class="slot"><span class="t">21:00</span></div>
+      <div class="slot"><span class="t">22:00</span></div>
+      <div class="slot"><span class="t">23:00</span></div>
+    </div>
+    <div>
+      <div class="top3">
+        <div class="lbl">TOP 3 <span class="sub">今天只要做成这三件</span></div>
+        <div class="ln"><span class="num">1</span><span class="ck" style="width:4.5mm;height:4.5mm;border:1.3px solid var(--ink);border-radius:1.2mm"></span></div>
+        <div class="ln"><span class="num">2</span><span class="ck" style="width:4.5mm;height:4.5mm;border:1.3px solid var(--ink);border-radius:1.2mm"></span></div>
+        <div class="ln"><span class="num">3</span><span class="ck" style="width:4.5mm;height:4.5mm;border:1.3px solid var(--ink);border-radius:1.2mm"></span></div>
+      </div>
+      <div class="todo" style="margin-top:5mm">
+        <div class="lbl">TO-DO <span class="sub">其他待办</span></div>
+        <div class="ln"><span class="ckc"></span></div>
+        <div class="ln"><span class="ckc"></span></div>
+        <div class="ln"><span class="ckc"></span></div>
+        <div class="ln"><span class="ckc"></span></div>
+        <div class="ln"><span class="ckc"></span></div>
+        <div class="ln"><span class="ckc"></span></div>
+        <div class="ln"><span class="ckc"></span></div>
+        <div class="ln"><span class="ckc"></span></div>
+      </div>
+      <div style="margin-top:5mm">
+        <div class="lbl">WATER <span class="sub">喝水打卡</span></div>
+        <div class="cups"><div class="cup"></div><div class="cup"></div><div class="cup"></div><div class="cup"></div><div class="cup"></div><div class="cup"></div><div class="cup"></div><div class="cup"></div></div>
+      </div>
+      <div style="margin-top:5mm">
+        <div class="lbl">MOOD <span class="sub">今日心情</span></div>
+        <div class="moods"><div class="mood">😊</div><div class="mood">😌</div><div class="mood">😐</div><div class="mood">😮‍💨</div><div class="mood">😣</div></div>
+      </div>
+      <div style="margin-top:5mm">
+        <div class="lbl">ONE LINE <span class="sub">给今天写一句话</span></div>
+        <div class="fill"></div>
+      </div>
+      <div style="margin-top:5mm">
+        <div class="lbl">GRATITUDE <span class="sub">今天值得感谢的小事</span></div>
+        <div class="fill"></div>
+        <div class="fill"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>06 / 16</span></div>
+</section>
+
+<!-- ═══════════ P7 100天打卡 ═══════════ -->
+<section class="page" id="p7">
+  <div class="ph"><span class="cn">100天打卡挑战</span><span class="en">100-Day Challenge</span></div>
+  <div class="oath">
+    <div><div class="lbl">MY CHALLENGE <span class="sub">我要坚持的事</span></div><div class="fill"></div></div>
+    <div><div class="lbl">START DATE <span class="sub">启动日期 · 签名</span></div><div class="fill"></div></div>
+  </div>
+  <div class="d100" id="grid100"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm">
+    <div class="box soft" style="font-size:9pt">
+      <b style="color:var(--accent)">里程碑奖励</b>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2mm 4mm;margin-top:2.5mm;line-height:2.2">
+        <span>第 25 天：__________</span><span>第 50 天：__________</span>
+        <span>第 75 天：__________</span><span>第 100 天：_________</span>
+      </div>
+    </div>
+    <div class="box" style="font-size:9pt;line-height:1.9">
+      <b>完成后我想对自己说</b>
+      <div class="fill" style="height:7mm"></div>
+      <div class="fill" style="height:7mm"></div>
+    </div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>07 / 16</span></div>
+</section>
+
+<!-- ═══════════ P8 21天习惯 ═══════════ -->
+<section class="page" id="p8">
+  <div class="ph"><span class="cn">21天习惯养成</span><span class="en">21-Day Habit Builder</span></div>
+  <div class="stage"><span><b>1—7 天</b> 刻意提醒期</span><span>·</span><span><b>8—14 天</b> 逐渐自然期</span><span>·</span><span><b>15—21 天</b> 稳定自动期</span></div>
+  <div class="h21"><div class="name"><b>HABIT 01</b><div class="wl"></div></div><div class="days" id="h21a"></div></div>
+  <div class="h21"><div class="name"><b>HABIT 02</b><div class="wl"></div></div><div class="days" id="h21b"></div></div>
+  <div class="h21"><div class="name"><b>HABIT 03</b><div class="wl"></div></div><div class="days" id="h21c"></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:2mm">
+    <div>
+      <div class="lbl">IF-THEN 计划 <span class="sub">提前写好应对</span></div>
+      <div style="font-size:9pt;color:#6B5F51;line-height:2.4">
+        如果 ________________ ，那么我就 ________________<br>
+        如果 ________________ ，那么我就 ________________
+      </div>
+    </div>
+    <div>
+      <div class="lbl">21天后的变化 <span class="sub">完成后回来填写</span></div>
+      <div class="fill"></div><div class="fill"></div>
+    </div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>08 / 16</span></div>
+</section>
+
+<!-- ═══════════ P9 番茄钟 ═══════════ -->
+<section class="page" id="p9">
+  <div class="ph"><span class="cn">番茄钟专注记录</span><span class="en">Focus Tracker · 1🍅 = 25min</span></div>
+  <div class="pomo-row pomo-hd"><div>日期</div><div>任务</div><div>番茄数（涂一个=25分钟）</div><div>合计</div></div>
+  <div id="pomoRows"></div>
+  <div class="tip" style="margin-top:5mm"><b>用法：</b>每专注 25 分钟涂掉一个圈，然后休息 5 分钟。一天 8 个番茄 = 高质量专注 4 小时，已经超过大多数人。</div>
+  <div class="pf"><span>STAY ON TRACK</span><span>09 / 16</span></div>
+</section>
+
+<!-- ═══════════ P10 阅读记录 ═══════════ -->
+<section class="page" id="p10">
+  <div class="ph"><span class="cn">阅读记录</span><span class="en">Reading Log</span></div>
+  <div class="lbl">BOOK LIST <span class="sub">书单 · 读完涂星</span></div>
+  <div class="book-tbl">
+    <div class="row" style="color:var(--ink);font-weight:700;font-size:8.5pt"><div>#</div><div>书名 / 作者</div><div>开始—读完</div><div>评分</div><div>一句话感受</div></div>
+    <div class="row"><div>1</div><div></div><div></div><div class="stars">★★★★★</div><div></div></div>
+    <div class="row"><div>2</div><div></div><div></div><div class="stars">★★★★★</div><div></div></div>
+    <div class="row"><div>3</div><div></div><div></div><div class="stars">★★★★★</div><div></div></div>
+    <div class="row"><div>4</div><div></div><div></div><div class="stars">★★★★★</div><div></div></div>
+    <div class="row"><div>5</div><div></div><div></div><div class="stars">★★★★★</div><div></div></div>
+    <div class="row"><div>6</div><div></div><div></div><div class="stars">★★★★★</div><div></div></div>
+    <div class="row"><div>7</div><div></div><div></div><div class="stars">★★★★★</div><div></div></div>
+    <div class="row"><div>8</div><div></div><div></div><div class="stars">★★★★★</div><div></div></div>
+  </div>
+  <div class="quote-card">
+    <div class="qmark">“</div>
+    <div class="lbl" style="margin-top:2mm">GOLDEN QUOTE <span class="sub">本月最打动我的一句话</span></div>
+    <div class="fill"></div><div class="fill"></div>
+  </div>
+  <div class="quote-card">
+    <div class="lbl">ACTION <span class="sub">读完之后，我准备做的一个小改变</span></div>
+    <div class="fill"></div><div class="fill"></div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>10 / 16</span></div>
+</section>
+
+<!-- ═══════════ P11 52周存钱 ═══════════ -->
+<section class="page" id="p11">
+  <div class="ph"><span class="cn">52周存钱挑战</span><span class="en">52-Week Money Challenge</span></div>
+  <div class="goalbar">
+    <div><div class="lbl">GOAL <span class="sub">存钱目标</span></div><div class="fill"></div></div>
+    <div><div class="lbl">FOR <span class="sub">为了什么</span></div><div class="fill"></div></div>
+    <div><div class="lbl">TOTAL <span class="sub">按默认金额可存</span></div><div style="font-family:'Noto Serif SC',serif;font-weight:900;font-size:16pt;color:var(--accent);padding-top:1mm">¥13,780</div></div>
+  </div>
+  <div class="w52" id="grid52"></div>
+  <div class="tip"><b>玩法：</b>第 N 周存 N×10 元（第1周存10元…第52周存520元），存完涂掉格子。也可以自定义：每格写上你自己的金额，量力而行，重点是「每周都存」。倒着存（从520开始）前紧后松，更容易坚持到年底。</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:6mm">
+    <div class="box" style="height:42mm">
+      <div class="lbl">EXTRA <span class="sub">加餐存钱记录 · 意外之财也存起来</span></div>
+      <div class="fill"></div><div class="fill"></div><div class="fill"></div>
+    </div>
+    <div class="box softg" style="height:42mm">
+      <div class="lbl" style="color:var(--sage)">DREAM <span class="sub">存满之后，这笔钱要变成……</span></div>
+      <div class="fill"></div><div class="fill"></div><div class="fill"></div>
+    </div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>11 / 16</span></div>
+</section>
+
+<!-- ═══════════ P12 月度预算 ═══════════ -->
+<section class="page" id="p12">
+  <div class="ph"><span class="cn">月度预算</span><span class="en">Monthly Budget · ______ 月</span></div>
+  <div class="bud-grid">
+    <div class="bud">
+      <div class="lbl">INCOME <span class="sub">收入</span></div>
+      <div class="row"><span>工资 / 主业</span><span class="amt">¥</span></div>
+      <div class="row"><span>副业 / 其他</span><span class="amt">¥</span></div>
+      <div class="row" style="font-weight:700;color:var(--ink)"><span>合计</span><span class="amt">¥</span></div>
+      <div class="lbl" style="margin-top:5mm">SAVE FIRST <span class="sub">先存后花</span></div>
+      <div class="row"><span>发薪日先存（建议≥10%）</span><span class="amt">¥</span></div>
+      <div class="lbl" style="margin-top:5mm">FIXED <span class="sub">固定支出</span></div>
+      <div class="row"><span>房租 / 房贷</span><span class="amt">¥</span></div>
+      <div class="row"><span>水电网 / 通勤</span><span class="amt">¥</span></div>
+      <div class="row"><span>其他固定</span><span class="amt">¥</span></div>
+    </div>
+    <div class="bud">
+      <div class="lbl">FLEXIBLE <span class="sub">弹性支出预算</span></div>
+      <div class="row"><span>吃饭</span><span class="amt">¥</span></div>
+      <div class="row"><span>购物</span><span class="amt">¥</span></div>
+      <div class="row"><span>娱乐 / 社交</span><span class="amt">¥</span></div>
+      <div class="row"><span>学习 / 自我投资</span><span class="amt">¥</span></div>
+      <div class="row"><span>其他</span><span class="amt">¥</span></div>
+      <div class="lbl" style="margin-top:5mm">SUBSCRIPTIONS <span class="sub">订阅清单 · 每月悄悄扣钱的</span></div>
+      <div class="row"><span></span><span class="amt">¥</span></div>
+      <div class="row"><span></span><span class="amt">¥</span></div>
+      <div class="row"><span></span><span class="amt">¥</span></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:6mm">
+    <div class="box soft" style="text-align:center"><div class="lbl" style="margin-bottom:1mm">本月结余</div><div style="font-size:14pt;font-weight:700">¥</div></div>
+    <div class="box" style="text-align:center"><div class="lbl" style="margin-bottom:1mm">最意外的一笔</div><div style="font-size:10pt;color:var(--muted)">__________</div></div>
+    <div class="box softg" style="text-align:center"><div class="lbl" style="margin-bottom:1mm;color:var(--sage)">下月一个改进</div><div style="font-size:10pt;color:var(--muted)">__________</div></div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>12 / 16</span></div>
+</section>
+
+<!-- ═══════════ P13 情绪日历 ═══════════ -->
+<section class="page" id="p13">
+  <div class="ph"><span class="cn">情绪日历</span><span class="en">Mood Calendar · ______ 月</span></div>
+  <div class="lbl">COLOR YOUR DAYS <span class="sub">每晚睡前，给今天涂上一种颜色</span></div>
+  <div class="mood-cal" id="gridMood"></div>
+  <div class="legend">
+    <span><span class="sw" style="background:#F2C94C"></span>开心 · 有能量</span>
+    <span><span class="sw" style="background:#A8C6E8"></span>平静 · 安稳</span>
+    <span><span class="sw" style="background:#C9704B"></span>焦虑 · 紧绷</span>
+    <span><span class="sw" style="background:#9B8AA6"></span>低落 · 疲惫</span>
+    <span><span class="sw" style="background:#8A9B7C"></span>充实 · 满足</span>
+    <span><span class="sw"></span>自定义：______</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:6mm">
+    <div class="box" style="height:34mm"><div class="lbl">这个月，最常出现的情绪是</div><div class="fill" style="margin-top:4mm"></div><div class="fill"></div></div>
+    <div class="box" style="height:34mm"><div class="lbl">它多半和什么有关？</div><div class="fill" style="margin-top:4mm"></div><div class="fill"></div></div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>13 / 16</span></div>
+</section>
+
+<!-- ═══════════ P14 每周复盘 ═══════════ -->
+<section class="page" id="p14">
+  <div class="ph"><span class="cn">每周复盘</span><span class="en">Weekly Review · Week ____</span></div>
+  <div class="rev-q"><h4><span>Q1</span>这周做得最好的一件事？</h4><div class="fill"></div><div class="fill"></div></div>
+  <div class="rev-q"><h4><span>Q2</span>哪件事卡住了？卡在哪一步？</h4><div class="fill"></div><div class="fill"></div></div>
+  <div class="rev-q"><h4><span>Q3</span>如果重来一次，我会怎么做？</h4><div class="fill"></div><div class="fill"></div></div>
+  <div class="rev-q"><h4><span>Q4</span>下周只改进一件事，是什么？</h4><div class="fill"></div><div class="fill"></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:6mm">
+    <div class="box">
+      <div class="lbl">ENERGY <span class="sub">本周能量值</span></div>
+      <div class="energy" style="margin-top:3mm"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="font-size:8pt;color:var(--muted)">　涂满=满电</span></div>
+    </div>
+    <div class="box soft">
+      <div class="lbl">REWARD <span class="sub">给这周的自己一个奖励</span></div>
+      <div class="fill" style="margin-top:2mm"></div>
+    </div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>14 / 16</span></div>
+</section>
+
+<!-- ═══════════ P15 心愿清单 ═══════════ -->
+<section class="page" id="p15">
+  <div class="ph"><span class="cn">心愿清单</span><span class="en">Wish List</span></div>
+  <div class="lbl">THINK TWICE, BUY ONCE <span class="sub">想要的先写下来，放 7 天再决定 · 治好冲动消费</span></div>
+  <div class="wish" style="margin-top:3mm">
+    <div class="row" style="color:var(--ink);font-weight:700;font-size:8.5pt"><div>#</div><div>心愿 / 想买的东西</div><div>大约多少钱</div><div>7天后还想要吗</div><div>达成✓</div></div>
+    <div class="row"><div>1</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>2</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>3</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>4</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>5</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>6</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>7</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>8</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>9</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+    <div class="row"><div>10</div><div></div><div>¥</div><div>想 / 不想了</div><div></div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:6mm">
+    <div class="box softg" style="height:30mm"><div class="lbl" style="color:var(--sage)">体验类心愿 <span class="sub">想去的地方 · 想做的事</span></div></div>
+    <div class="box" style="height:30mm"><div class="lbl">送自己的年度大礼 <span class="sub">达成大目标时兑现</span></div></div>
+  </div>
+  <div class="pf"><span>STAY ON TRACK</span><span>15 / 16</span></div>
+</section>
+
+<!-- ═══════════ P16 封底 ═══════════ -->
+<section class="page back" id="p16">
+  <div class="stamp" style="transform:rotate(8deg)">KEEP<br>GOING</div>
+  <h2>坚持不是意志力，<br>是把想做的事变成看得见的格子。</h2>
+  <div class="rules">
+    <div class="thd">版权与使用说明</div>
+    · 本套装为原创设计的数字商品，购买后可供<b>个人</b>无限次打印、导入平板使用。<br>
+    · 请勿转售、赠送电子文件本体，或将文件用于任何商业用途。<br>
+    · 数字商品特性：文件一经发出，不支持退款，介意请谨慎下单。<br>
+    · 购买后模板迭代更新，同版本免费补发。
+  </div>
+  <div class="brand">STAY ON TRACK · SELF-DISCIPLINE PLANNER · VOL.01</div>
+</section>
+
+<script>
+  // 100-day grid
+  const g100 = document.getElementById('grid100');
+  for (let i = 1; i <= 100; i++) {
+    const c = document.createElement('div');
+    c.className = 'c' + (i % 25 === 0 ? ' ms' : '');
+    c.textContent = i;
+    g100.appendChild(c);
+  }
+  // 21-day rows
+  for (const id of ['h21a', 'h21b', 'h21c']) {
+    const el = document.getElementById(id);
+    for (let i = 1; i <= 21; i++) {
+      const c = document.createElement('div');
+      c.className = 'dc';
+      c.textContent = i;
+      el.appendChild(c);
+    }
+  }
+  // 52-week grid
+  const g52 = document.getElementById('grid52');
+  for (let i = 1; i <= 52; i++) {
+    const c = document.createElement('div');
+    c.className = 'c';
+    c.innerHTML = '<b>W' + i + '</b>¥' + i * 10;
+    g52.appendChild(c);
+  }
+  // pomodoro rows
+  const pr = document.getElementById('pomoRows');
+  for (let i = 1; i <= 16; i++) {
+    const r = document.createElement('div');
+    r.className = 'pomo-row' + (i === 16 ? ' pomo-last' : '');
+    r.innerHTML = '<div></div><div></div><div class="toms">' + '<div class="tom"></div>'.repeat(10) + '</div><div></div>';
+    pr.appendChild(r);
+  }
+  // mood calendar 31 days
+  const gm = document.getElementById('gridMood');
+  for (let i = 1; i <= 31; i++) {
+    const c = document.createElement('div');
+    c.className = 'c';
+    c.textContent = i;
+    gm.appendChild(c);
+  }
+  // single-page preview mode: planner.html?page=7
+  const p = new URLSearchParams(location.search).get('page');
+  if (p) {
+    document.querySelectorAll('.page').forEach(el => {
+      if (el.id !== 'p' + p) el.style.display = 'none';
+    });
+    document.querySelectorAll('.page').forEach(el => { el.style.margin = '0'; el.style.boxShadow = 'none'; });
+    document.body.style.background = 'var(--cream)';
+  }
+</script>
+</body>
+</html>
