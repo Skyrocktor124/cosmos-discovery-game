@@ -198,6 +198,9 @@ const App: React.FC = () => {
             <a href="../star-serpent/" className="hover:text-amber-300 transition-colors uppercase font-bold">
               ▶ Star Serpent
             </a>
+            <a href="../nebula-breaker/" className="hover:text-rose-300 transition-colors uppercase font-bold">
+              ▶ Nebula Breaker
+            </a>
           </div>
         </div>
       </div>

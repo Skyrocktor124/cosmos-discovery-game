@@ -265,6 +265,7 @@ const App: React.FC = () => {
             <a href="../" className="hover:text-cyan-300 transition-colors pointer-events-auto" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}>▶ Chroma Cosmos</a>
             <a href="../astro-merge/" className="hover:text-fuchsia-300 transition-colors pointer-events-auto" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}>▶ Astro Merge</a>
             <a href="../orbit-dash/" className="hover:text-amber-300 transition-colors pointer-events-auto" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}>▶ Orbit Dash</a>
+            <a href="../nebula-breaker/" className="hover:text-rose-300 transition-colors pointer-events-auto" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}>▶ Nebula Breaker</a>
           </div>
         </div>
       )}

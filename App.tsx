@@ -442,6 +442,13 @@ const App: React.FC = () => {
             ▶ Star Serpent
           </a>
 
+          <a
+            href="./nebula-breaker/"
+            className="text-xs text-slate-500 hover:text-rose-300 transition-colors uppercase font-bold whitespace-nowrap"
+          >
+            ▶ Nebula Breaker
+          </a>
+
           <button
             onClick={handleNewGame}
             title="Start a new expedition"
