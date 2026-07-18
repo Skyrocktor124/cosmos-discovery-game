@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
+import SoundToggle from '../shared/SoundToggle';
+import { sfx } from '../shared/sfx';
 
 const BEST_KEY = 'star-serpent-best-v1';
 
@@ -65,7 +67,7 @@ const App: React.FC = () => {
     setScore(0);
   };
 
-  const start = () => { reset(); setPhase('playing'); };
+  const start = () => { sfx.play('click'); reset(); setPhase('playing'); };
 
   const steer = (d: Dir) => {
     const g = game.current;
@@ -131,6 +133,7 @@ const App: React.FC = () => {
     window.addEventListener('resize', resize);
 
     const gameOver = () => {
+      sfx.play('crash');
       setPhase('over');
       const g = game.current;
       setBest(prev => {
@@ -152,6 +155,7 @@ const App: React.FC = () => {
       if (g.snake.some(c => c.x === nx && c.y === ny)) { gameOver(); return; }
       g.snake.unshift({ x: nx, y: ny });
       if (nx === g.food.x && ny === g.food.y) {
+        sfx.play('pickup');
         g.score += 1;
         setScore(g.score);
         g.interval = Math.max(70, 150 - g.score * 3);
@@ -230,7 +234,7 @@ const App: React.FC = () => {
       <canvas ref={canvasRef} className="absolute inset-0" />
 
       {/* HUD */}
-      <div className="absolute top-4 left-0 right-0 flex justify-center gap-3 pointer-events-none font-mono">
+      <div className="absolute top-4 left-0 right-0 flex justify-center items-center gap-3 pointer-events-none font-mono">
         <div className="bg-slate-900/70 border border-slate-700 rounded-lg px-4 py-1.5 text-center backdrop-blur-sm">
           <div className="text-[10px] uppercase text-slate-500">Stars</div>
           <div className="text-lg font-bold text-amber-300" data-testid="score">{score}</div>
@@ -239,6 +243,7 @@ const App: React.FC = () => {
           <div className="text-[10px] uppercase text-slate-500">Best</div>
           <div className="text-lg font-bold text-fuchsia-300">{best}</div>
         </div>
+        <SoundToggle />
       </div>
 
       {/* Overlays */}

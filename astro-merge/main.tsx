@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
 import { Grid, Direction, move, spawnTile, hasMoves, newGame, MAX_LEVEL, SIZE } from './game';
+import SoundToggle from '../shared/SoundToggle';
+import { sfx } from '../shared/sfx';
 
 const SAVE_KEY = 'astro-merge-save-v1';
 const BEST_KEY = 'astro-merge-best-v1';
@@ -61,13 +63,19 @@ const App: React.FC = () => {
       const result = move(prev, dir);
       if (!result.moved) return prev;
       const next = spawnTile(result.grid);
-      if (result.scoreGained) setScore(s => s + result.scoreGained);
-      if (!hasMoves(next)) setGameOver(true);
+      if (result.scoreGained) {
+        sfx.play('merge');
+        setScore(s => s + result.scoreGained);
+      } else {
+        sfx.play('blip');
+      }
+      if (!hasMoves(next)) { sfx.play('crash'); setGameOver(true); }
       return next;
     });
   }, []);
 
   const restart = () => {
+    sfx.play('click');
     setGrid(newGame());
     setScore(0);
     setGameOver(false);
@@ -186,6 +194,7 @@ const App: React.FC = () => {
           <span className="hidden sm:inline">Arrow keys / WASD to move</span>
           <span className="sm:hidden">Swipe to move</span>
           <div className="flex items-center gap-3">
+            <SoundToggle />
             <button onClick={restart} className="hover:text-slate-300 transition-colors uppercase font-bold">
               Restart
             </button>

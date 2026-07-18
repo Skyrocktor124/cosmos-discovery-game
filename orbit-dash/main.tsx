@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
+import SoundToggle from '../shared/SoundToggle';
+import { sfx } from '../shared/sfx';
 
 const BEST_KEY = 'orbit-dash-best-v1';
 
@@ -61,7 +63,9 @@ const App: React.FC = () => {
   const tap = () => {
     if (phaseRef.current === 'playing') {
       game.current.dir *= -1;
+      sfx.play('blip');
     } else {
+      sfx.play('click');
       start();
     }
   };
@@ -143,6 +147,7 @@ const App: React.FC = () => {
         });
         for (const a of g.asteroids) {
           if (Math.hypot(a.x - shipX, a.y - shipY) < a.r + g.shipR - 2) {
+            sfx.play('crash');
             setPhase('over');
             setBest(prev => {
               const nb = Math.max(prev, g.score);
@@ -157,6 +162,7 @@ const App: React.FC = () => {
         const starX = cx + Math.cos(g.star.angle) * g.orbitR;
         const starY = cy + Math.sin(g.star.angle) * g.orbitR;
         if (Math.hypot(starX - shipX, starY - shipY) < 16 + g.shipR) {
+          sfx.play('pickup');
           g.score += 1;
           setScore(g.score);
           let na = Math.random() * TAU;
@@ -238,7 +244,7 @@ const App: React.FC = () => {
       <canvas ref={canvasRef} className="absolute inset-0" />
 
       {/* HUD */}
-      <div className="absolute top-4 left-0 right-0 flex justify-center gap-3 pointer-events-none font-mono">
+      <div className="absolute top-4 left-0 right-0 flex justify-center items-center gap-3 pointer-events-none font-mono">
         <div className="bg-slate-900/70 border border-slate-700 rounded-lg px-4 py-1.5 text-center backdrop-blur-sm">
           <div className="text-[10px] uppercase text-slate-500">Score</div>
           <div className="text-lg font-bold text-cyan-300" data-testid="score">{score}</div>
@@ -247,6 +253,7 @@ const App: React.FC = () => {
           <div className="text-[10px] uppercase text-slate-500">Best</div>
           <div className="text-lg font-bold text-fuchsia-300">{best}</div>
         </div>
+        <SoundToggle />
       </div>
 
       {/* Overlays */}

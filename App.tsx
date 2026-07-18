@@ -7,6 +7,8 @@ import Starfield from './components/Starfield';
 import Visualizer from './components/Visualizer';
 import Button from './components/Button';
 import GalaxyMap from './components/GalaxyMap';
+import SoundToggle from './shared/SoundToggle';
+import { sfx } from './shared/sfx';
 
 // Icons mapping
 const TypeIcon = ({ type }: { type: DiscoveryType }) => {
@@ -139,6 +141,7 @@ const App: React.FC = () => {
     }
 
     setIsProcessing(true);
+    sfx.play('warp');
     setPlayer(p => ({ ...p, fuel: p.fuel - FUEL_COST_WARP }));
     addLog("Charging Hyperdrive... Jumping to new sector.", 'info');
     setCurrentBody(null);
@@ -166,6 +169,7 @@ const App: React.FC = () => {
     }
 
     setIsProcessing(true);
+    sfx.play('blip');
     setPlayer(p => ({ ...p, fuel: p.fuel - FUEL_COST_TRAVEL }));
     addLog(`Traveling to unknown signal (${node.color})...`, 'info');
 
@@ -188,6 +192,7 @@ const App: React.FC = () => {
         science: p.science + SCIENCE_REWARD_BASE,
       }));
 
+      sfx.play('pickup');
       addLog(`Discovered ${discovery.name}.`, 'success');
       setViewMode('SYSTEM');
 
@@ -200,6 +205,7 @@ const App: React.FC = () => {
 
   const handleRefuel = () => {
     if (player.science >= 100) {
+      sfx.play('merge');
       setPlayer(p => ({ ...p, science: p.science - 100, fuel: p.fuel + 50 }));
       addLog("Synthesized fuel from science data.", 'success');
     } else {
@@ -212,6 +218,7 @@ const App: React.FC = () => {
   const isStranded = player.fuel < FUEL_COST_TRAVEL && player.science < 100;
 
   const handleEmergencySails = () => {
+    sfx.play('click');
     setPlayer(p => ({ ...p, fuel: p.fuel + 15 }));
     addLog("Emergency solar sails deployed. Trickle-charging fuel reserves.", 'warning');
   };
@@ -232,7 +239,8 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex gap-6 text-sm font-mono w-full sm:w-auto justify-between sm:justify-end px-2">
+        <div className="flex gap-6 text-sm font-mono w-full sm:w-auto justify-between sm:justify-end px-2 items-center">
+           <SoundToggle />
            <div className="flex flex-col items-end">
              <span className="text-slate-400 text-xs uppercase">Sector</span>
              <span className="text-cyan-400 font-bold">{player.currentSector}</span>
