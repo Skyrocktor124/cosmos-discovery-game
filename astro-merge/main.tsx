@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import '../index.css';
 import { Grid, Direction, move, spawnTile, hasMoves, newGame, MAX_LEVEL, SIZE } from './game';
 import SoundToggle from '../shared/SoundToggle';
+import ShareButton from '../shared/ShareButton';
 import { sfx } from '../shared/sfx';
 
 const SAVE_KEY = 'astro-merge-save-v1';
@@ -179,6 +180,7 @@ const App: React.FC = () => {
               <div className="text-sm text-slate-400">
                 Score {score} · Highest: {TILES[highest].icon} {TILES[highest].name}
               </div>
+              <ShareButton text={`I reached ${TILES[highest].icon} ${TILES[highest].name} in Astro Merge! Can you beat ${score}?`} />
               <button
                 onClick={restart}
                 className="px-6 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 font-bold text-sm uppercase tracking-wider transition-colors"
