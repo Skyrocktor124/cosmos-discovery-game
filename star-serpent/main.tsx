@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
 import SoundToggle from '../shared/SoundToggle';
+import ShareButton from '../shared/ShareButton';
 import { sfx } from '../shared/sfx';
 
 const BEST_KEY = 'star-serpent-best-v1';
@@ -253,9 +254,12 @@ const App: React.FC = () => {
             STAR SERPENT
           </h1>
           {phase === 'over' ? (
-            <div className="text-center">
-              <div className="text-xl font-bold text-white mb-1" data-testid="gameover">SERPENT DOWN</div>
-              <div className="text-sm text-slate-400">Stars {score} · Best {best}</div>
+            <div className="text-center flex flex-col items-center gap-3">
+              <div>
+                <div className="text-xl font-bold text-white mb-1" data-testid="gameover">SERPENT DOWN</div>
+                <div className="text-sm text-slate-400">Stars {score} · Best {best}</div>
+              </div>
+              <ShareButton text={`My star serpent ate ${score} stars 🐍✨ Can you beat it?`} />
             </div>
           ) : (
             <p className="text-sm text-slate-300 max-w-xs text-center leading-relaxed">

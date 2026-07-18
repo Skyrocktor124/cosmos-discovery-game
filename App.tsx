@@ -8,6 +8,7 @@ import Visualizer from './components/Visualizer';
 import Button from './components/Button';
 import GalaxyMap from './components/GalaxyMap';
 import SoundToggle from './shared/SoundToggle';
+import ShareButton from './shared/ShareButton';
 import { sfx } from './shared/sfx';
 
 // Icons mapping
@@ -343,6 +344,10 @@ const App: React.FC = () => {
                           <span className="block text-[10px] uppercase text-slate-500 mb-1">Resources</span>
                           <span className="text-sm text-fuchsia-200 truncate">{currentBody.resources[0]}</span>
                         </div>
+                      </div>
+
+                      <div className="flex justify-center mt-4">
+                        <ShareButton text={`I discovered ${currentBody.name} in Chroma Cosmos 🚀 Explore the infinite universe:`} />
                       </div>
                   </div>
                </div>
