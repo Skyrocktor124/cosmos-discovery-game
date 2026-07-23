@@ -1,7 +1,7 @@
 ---
 name: baokuan
 description: 抖音爆款内容生产线——扫描英文互联网新鲜爆点（radar）、核实资料、生成60秒9拍英文口播和完整发布包（script）、发布后尸检复盘与模型迭代（autopsy/review）。适用于"七克英语成长"账号。当用户说"找选题/扫热点"、"写口播/写脚本"、"复盘数据"、"迭代模型"时使用。
-argument-hint: "[radar | find | script <人物名> | review <数据> | autopsy | plan | status]"
+argument-hint: "[radar | find | script <人物名> | pipeline <人物名> | review <数据> | autopsy | plan | status]"
 ---
 
 # 爆款生产线（baokuan）
@@ -13,7 +13,8 @@ argument-hint: "[radar | find | script <人物名> | review <数据> | autopsy |
 百万爆款是概率事件：系统提高命中率和发射次数，评价看6条以上趋势，不看单条（playbook 第-1节）。
 
 所有方法论细节在 `references/playbook.md`，人物库在 `references/candidates.md`，
-历史数据在 `references/data-log.md`，发布排期在 `references/calendar.md`。
+历史数据在 `references/data-log.md`，发布排期在 `references/calendar.md`，
+全流程作业书在 `references/pipeline.md`。
 **执行任何子命令前，先读相关文件**——它们是持续迭代的活文档，比你记忆中的任何版本都新。
 
 根据用户参数进入对应流程。用户没给参数时，读 data-log.md 和 candidates.md
@@ -60,6 +61,21 @@ argument-hint: "[radar | find | script <人物名> | review <数据> | autopsy |
    封面文案、话题标签、置顶评论（教观众怎么搜到资产）、评论区预埋回复、
    发布与运营检查清单、**本条实验变量声明**（相对上条改了哪一个主变量）。
 6. 在 candidates.md 中把该人物标记为"已写稿"，注明日期。
+
+## /baokuan pipeline <人物名> —— 全流程流水线（选人→炼化→口播→豆包→终审）
+
+先读 `references/pipeline.md`（作业书）。这是人机接力流水线，Claude 不能代按外部工具
+（Hermes、Nuwa/女娲、豆包），每个外部环节 Claude 给"投喂prompt+回收格式"，用户跑完带回。
+按阶段推进，每步做完明确交回给谁：
+1. **阶段0 选人（Claude）**：radar/榜单/用户给名 → 核实真人+事实 → 出「事实卡」（含事实红线）。
+2. **阶段1 炼化（用户跑 Hermes+Nuwa）**：Claude 产出炼化prompt（提逐字金句/方法/资产/反差，留出处），
+   用户带回结果。产物仍待核实。
+3. **阶段2 口播初稿（Claude）**：套 Alisa 母版+过全部 gate（代入/干货密度/六道工序/两级漏斗/事实红线）。
+4. **阶段3 豆包brief（Claude 写→用户跑豆包专业版）**：brief 硬性要求——2秒跳出<35%钩子、
+   干货留扣子不全给、合时宜的干式幽默(不尬不损不冲淡情绪)、抖音算法友好、守账号内核、
+   附事实红线明令豆包不得加料。
+5. **阶段4 事实终审（Claude，保险丝）**：逐条比对事实卡，豆包新增/改动的数字头衔事件无出处一律删，
+   软化未证实精确数。定稿+登记 data-log 实验变量。
 
 ## /baokuan autopsy —— 上一条视频尸检（发布满48小时必做）
 
