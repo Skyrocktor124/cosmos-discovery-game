@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>提示词手册 · Prompt Booklet</title>
+<meta name="description" content="10 条精选高质量 AI 提示词,分 5 大类,支持搜索、分类浏览、一键复制与离线导出。">
+<meta name="theme-color" content="#0B0B0C">
+</head>
+<body>
+<style id="app-style">
+/* ============================================================
+   提示词手册 — 单文件交互电子册
+   零依赖:无 CDN、无框架、无网络请求。双击即可打开,离线可用。
+   ============================================================ */
+
+:root{
+  color-scheme: dark;
+  --bg:#0B0B0C;
+  --bg-soft:#121214;
+  --surface:#141417;
+  --surface-hi:#1A1A1E;
+  --line:rgba(255,255,255,.09);
+  --line-hi:rgba(255,255,255,.18);
+  --text:#EDEDEF;
+  --text-dim:#A1A1AA;
+  --muted:#71717A;
+  --accent-a:#8B5CF6;
+  --accent-b:#3B82F6;
+  --accent-soft:rgba(139,92,246,.14);
+  --code-bg:#0E0E10;
+  --shadow:0 24px 60px -20px rgba(0,0,0,.8);
+  --radius:16px;
+}
+
+:root[data-theme="light"]{
+  color-scheme: light;
+  --bg:#FBFBFC;
+  --bg-soft:#F4F4F6;
+  --surface:#FFFFFF;
+  --surface-hi:#FFFFFF;
+  --line:rgba(9,9,11,.09);
+  --line-hi:rgba(9,9,11,.18);
+  --text:#18181B;
+  --text-dim:#52525B;
+  --muted:#8A8A93;
+  --accent-soft:rgba(139,92,246,.10);
+  --code-bg:#F7F7F9;
+  --shadow:0 24px 60px -28px rgba(9,9,11,.28);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",
+    "PingFang SC","HarmonyOS Sans SC","Hiragino Sans GB","Microsoft YaHei",
+    "Noto Sans SC",system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+
+/* 背景的两团极淡辉光 —— 唯一的"颜色",其余全部靠留白 */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(720px 420px at 12% -6%, rgba(139,92,246,.13), transparent 62%),
+    radial-gradient(620px 420px at 92% 4%, rgba(59,130,246,.10), transparent 60%);
+}
+:root[data-theme="light"] body::before{
+  background:
+    radial-gradient(720px 420px at 12% -6%, rgba(139,92,246,.10), transparent 62%),
+    radial-gradient(620px 420px at 92% 4%, rgba(59,130,246,.08), transparent 60%);
+}
+
+.wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:0 20px 140px}
+
+/* ---------- 顶部 ---------- */
+.top{display:flex;justify-content:space-between;align-items:center;padding:22px 0 0}
+.brand{display:flex;align-items:center;gap:9px;font-size:12px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted)}
+.brand .dot{width:6px;height:6px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent-a),var(--accent-b));
+  box-shadow:0 0 12px rgba(139,92,246,.9)}
+
+.icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:38px;height:38px;border-radius:11px;
+  background:transparent;border:1px solid var(--line);
+  color:var(--text-dim);cursor:pointer;
+  transition:border-color .18s ease,color .18s ease,background .18s ease;
+}
+.icon-btn:hover{color:var(--text);border-color:var(--line-hi);background:var(--surface)}
+.icon-btn:focus-visible{outline:2px solid var(--accent-a);outline-offset:2px}
+
+/* ---------- 大标题 ---------- */
+header.hero{padding:44px 0 32px}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 12px;border-radius:999px;
+  border:1px solid var(--line-hi);background:var(--accent-soft);
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);
+}
+h1{
+  margin:20px 0 0;font-size:clamp(34px,8.4vw,60px);line-height:1.06;
+  font-weight:600;letter-spacing:-.035em;
+  background:linear-gradient(120deg,var(--text) 30%,var(--accent-a) 78%,var(--accent-b));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.sub{margin:16px 0 0;max-width:52ch;color:var(--text-dim);font-size:16px}
+.stats{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:26px;
+  font-size:13px;color:var(--muted)}
+.stats b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---------- 工具栏(吸顶) ---------- */
+.toolbar{
+  position:sticky;top:0;z-index:20;margin:0 -20px;padding:12px 20px 10px;
+  background:var(--bg);
+  background:color-mix(in srgb,var(--bg) 86%,transparent);
+  backdrop-filter:saturate(180%) blur(16px);
+  -webkit-backdrop-filter:saturate(180%) blur(16px);
+  border-bottom:1px solid transparent;transition:border-color .2s ease;
+}
+.toolbar.stuck{border-bottom-color:var(--line)}
+
+.search{position:relative;display:flex;align-items:center}
+.search .lead{position:absolute;left:15px;color:var(--muted);display:flex;pointer-events:none}
+#q{
+  width:100%;padding:13px 44px 13px 44px;
+  background:var(--surface);color:var(--text);
+  border:1px solid var(--line);border-radius:13px;
+  font:inherit;font-size:15px;outline:none;
+  transition:border-color .18s ease,box-shadow .18s ease;
+}
+#q::placeholder{color:var(--muted)}
+#q::-webkit-search-decoration,#q::-webkit-search-cancel-button,
+#q::-webkit-search-results-button{-webkit-appearance:none;appearance:none;display:none}
+#q:focus{border-color:var(--accent-a);box-shadow:0 0 0 4px var(--accent-soft)}
+#clear{position:absolute;right:8px;width:30px;height:30px;border-radius:8px;
+  display:none;border:0;background:transparent;color:var(--muted);cursor:pointer}
+#clear:hover{color:var(--text);background:var(--surface-hi)}
+#clear.on{display:inline-flex;align-items:center;justify-content:center}
+.kbd{position:absolute;right:14px;font-size:11px;color:var(--muted);
+  border:1px solid var(--line);border-radius:5px;padding:1px 6px;pointer-events:none}
+@media (max-width:700px){.kbd{display:none}}
+
+/* ---------- 分类标签 ---------- */
+.tabs{
+  display:flex;gap:8px;margin-top:12px;padding-bottom:2px;
+  overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:999px;white-space:nowrap;
+  border:1px solid var(--line);background:transparent;
+  color:var(--text-dim);font:inherit;font-size:13.5px;cursor:pointer;
+  transition:color .18s ease,border-color .18s ease,background .18s ease;
+}
+.tab:hover{color:var(--text);border-color:var(--line-hi)}
+.tab:focus-visible{outline:2px solid var(--accent-a);outline-offset:2px}
+.tab[aria-selected="true"]{
+  color:#fff;border-color:transparent;
+  background:linear-gradient(120deg,var(--accent-a),var(--accent-b));
+  box-shadow:0 6px 20px -8px rgba(99,102,241,.9);
+}
+.tab .n{font-size:11px;opacity:.65;font-variant-numeric:tabular-nums}
+
+/* ---------- 卡片 ---------- */
+.count{margin:24px 0 12px;font-size:12.5px;color:var(--muted);
+  letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;gap:12px}
+
+.card{
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--surface);overflow:hidden;
+  transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease;
+}
+.card:hover{border-color:var(--line-hi)}
+.card.open{border-color:var(--line-hi);box-shadow:var(--shadow)}
+
+.card-head{
+  width:100%;display:flex;gap:14px;align-items:flex-start;
+  padding:18px 18px;background:transparent;border:0;
+  color:inherit;font:inherit;text-align:left;cursor:pointer;
+}
+.card-head:focus-visible{outline:2px solid var(--accent-a);outline-offset:-2px;border-radius:var(--radius)}
+.num{
+  flex:0 0 auto;width:30px;height:30px;margin-top:1px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);background:var(--bg-soft);
+  font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
+}
+.card.open .num{
+  border-color:transparent;color:#fff;
+  background:linear-gradient(135deg,var(--accent-a),var(--accent-b));
+}
+.head-main{flex:1 1 auto;min-width:0}
+.card h2{margin:0;font-size:16.5px;font-weight:600;letter-spacing:-.012em;line-height:1.4}
+.card .en{margin:2px 0 0;font-size:12px;color:var(--muted);letter-spacing:.02em}
+.card p.desc{margin:8px 0 0;color:var(--text-dim);font-size:14px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.tag{
+  font-size:11.5px;color:var(--muted);padding:2.5px 8px;
+  border:1px solid var(--line);border-radius:6px;background:var(--bg-soft);
+}
+.chev{flex:0 0 auto;margin-top:4px;color:var(--muted);display:flex;
+  transition:transform .24s cubic-bezier(.4,0,.2,1)}
+.card.open .chev{transform:rotate(180deg);color:var(--text)}
+
+.panel{display:none;padding:0 18px 18px}
+.card.open .panel{display:block;animation:reveal .26s cubic-bezier(.4,0,.2,1)}
+@keyframes reveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+.code-wrap{border:1px solid var(--line);border-radius:12px;background:var(--code-bg);overflow:hidden}
+.code-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 10px 9px 14px;border-bottom:1px solid var(--line);
+}
+.code-bar .lbl{flex:0 1 auto;min-width:0;font-size:11px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.code-bar .lbl-short{display:none}
+@media (max-width:560px){
+  .code-bar .lbl-full{display:none}
+  .code-bar .lbl-short{display:inline}
+}
+.copy{
+  flex:0 0 auto;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 12px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line-hi);background:transparent;
+  color:var(--text-dim);font:inherit;font-size:12.5px;
+  transition:all .18s ease;
+}
+.copy:hover{color:var(--text);background:var(--surface-hi);border-color:var(--text-dim)}
+.copy:focus-visible{outline:2px solid var(--accent-a);outline-offset:2px}
+.copy.done{
+  color:#fff;border-color:transparent;
+  background:linear-gradient(120deg,var(--accent-a),var(--accent-b));
+}
+pre{
+  margin:0;padding:16px 16px 18px;max-height:min(56vh,520px);overflow:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  font-size:13px;line-height:1.72;color:var(--text-dim);
+  white-space:pre-wrap;word-break:break-word;-webkit-overflow-scrolling:touch;
+}
+pre::-webkit-scrollbar{width:10px}
+pre::-webkit-scrollbar-thumb{background:var(--line-hi);border-radius:99px;
+  border:3px solid var(--code-bg)}
+.hint{display:flex;gap:9px;margin:12px 0 0;padding:11px 13px;
+  border-left:2px solid var(--accent-a);background:var(--bg-soft);
+  border-radius:0 9px 9px 0;font-size:13px;color:var(--text-dim)}
+.hint b{color:var(--text);font-weight:600}
+
+.empty{padding:70px 20px;text-align:center;color:var(--muted)}
+.empty svg{opacity:.4;margin-bottom:14px}
+.empty p{margin:0;font-size:14px}
+
+/* ---------- 悬浮导出 ---------- */
+.fab{
+  position:fixed;right:max(20px,env(safe-area-inset-right));
+  bottom:calc(20px + env(safe-area-inset-bottom));z-index:40;
+  display:inline-flex;align-items:center;gap:9px;
+  padding:13px 18px;border-radius:999px;border:1px solid var(--line-hi);
+  background:var(--surface);
+  background:color-mix(in srgb,var(--surface) 88%,transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;
+  box-shadow:var(--shadow);transition:transform .18s ease,border-color .18s ease;
+}
+.fab:hover{transform:translateY(-2px);border-color:var(--accent-a)}
+.fab:focus-visible{outline:2px solid var(--accent-a);outline-offset:3px}
+@media (max-width:520px){.fab span{display:none}.fab{padding:14px;border-radius:50%}}
+
+/* ---------- 吐司 ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));
+  z-index:60;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  display:flex;align-items:center;gap:9px;
+  padding:11px 18px;border-radius:999px;
+  border:1px solid var(--line-hi);background:var(--surface-hi);
+  color:var(--text);font-size:13.5px;box-shadow:var(--shadow);
+  transition:opacity .22s ease,transform .22s cubic-bezier(.4,0,.2,1);
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast .ok{color:#4ADE80;display:flex}
+
+footer{margin-top:56px;padding-top:26px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:12.5px}
+footer p{margin:0 0 6px}
+footer b{color:var(--text-dim);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><i class="dot"></i>Prompt Booklet</div>
+    <button class="icon-btn" id="theme" type="button" aria-label="切换浅色 / 深色主题"></button>
+  </div>
+
+  <header class="hero">
+    <div class="badge" id="badge">Booklet Version 1.0</div>
+    <h1>提示词手册</h1>
+    <p class="sub">10 条经过打磨的高质量提示词,覆盖内容、增长、效率、思考与开发。
+      每一条都可以整段复制,直接粘进任意 AI 对话框使用。</p>
+    <div class="stats">
+      <div><b id="s-count">10</b> 条提示词</div>
+      <div><b id="s-cat">5</b> 个分类</div>
+      <div><b>1</b> 个文件 · 离线可用</div>
+    </div>
+  </header>
+
+  <div class="toolbar" id="toolbar">
+    <div class="search">
+      <i class="lead" id="ico-search"></i>
+      <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="搜索标题、场景、标签或提示词正文…" aria-label="搜索提示词">
+      <kbd class="kbd">/</kbd>
+      <button id="clear" type="button" aria-label="清空搜索"></button>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="提示词分类"></div>
+  </div>
+
+  <p class="count" id="count"></p>
+  <main class="list" id="list"></main>
+
+  <footer>
+    <p><b>怎么用:</b>点开任意卡片 → 点「复制提示词」→ 粘进 Claude / ChatGPT / 豆包 的对话框 → 再补一句你的具体需求。</p>
+    <p><b>离线保存:</b>点右下角按钮,把整本手册存成一个 HTML 文件,断网也能打开。</p>
+    <p style="margin-top:14px">© <span id="year"></span> Prompt Booklet · 单文件构建,无追踪、无网络请求。</p>
+  </footer>
+</div>
+
+<button class="fab" id="export" type="button" aria-label="导出离线 HTML 文件">
+  <i id="ico-dl"></i><span>导出离线版</span>
+</button>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script id="app-script">
+(function () {
+  'use strict';
+
+  /* ==========================================================
+     1) 内容区 —— 要换成你自己的提示词,只改下面这两个数组即可。
+        CATEGORIES: 分类(id / 中文名 / 图标名)
+        PROMPTS:    每条提示词(cat 必须对应上面的分类 id)
+     ========================================================== */
+
+  var CATEGORIES = [
+    { id: 'content', name: '内容创作', icon: 'pen' },
+    { id: 'growth',  name: '增长变现', icon: 'trend' },
+    { id: 'work',    name: '效率提速', icon: 'zap' },
+    { id: 'think',   name: '思维成长', icon: 'bulb' },
+    { id: 'build',   name: '设计开发', icon: 'code' }
+  ];
+
+  var PROMPTS = [
+    {
+      cat: 'content',
+      title: '爆款短视频脚本官',
+      en: 'Viral Short-Form Video Scriptwriter',
+      desc: '45–60 秒的黄金结构脚本:3 秒钩子、每 7 秒一个节奏点、结尾只留一个能骗到评论的动作。给三版钩子并标出最强的一版。',
+      tags: ['短视频', '抖音', '脚本', '选题'],
+      tip: '把「话题 + 人群」一起给它,例如:话题=副业做小游戏,人群=想赚第一笔钱的上班族。',
+      prompt: `You are a top-tier short-form video scriptwriter whose scripts have accumulated over 100 million views on TikTok, Reels, and Douyin.
+
+I will give you a TOPIC and an AUDIENCE. Produce a 45-60 second script.
+
+Rules:
+1. Open with a hook in the first 3 seconds. Write 3 alternative hooks and mark the strongest one. Never open with a greeting or a self-introduction.
+2. Structure the body as: Hook -> Tension (why the viewer is stuck or wrong) -> Turn (the insight) -> Proof (a concrete number, story, or demo) -> Payoff (what they can do today).
+3. Write in spoken language: short sentences, second person, no jargon, no filler adjectives. Apply the read-aloud test - if a sentence takes more than one breath, cut it.
+4. Insert a pattern interrupt every 7-10 seconds (a question, a cut, a prop, a number on screen).
+5. End with a single call to action that earns a comment, not a plea for likes.
+
+Output format:
+- SCRIPT: timestamped lines, with [visual direction] in brackets
+- CAPTION: under 100 characters, plus 5 hashtags
+- TITLE OPTIONS: 3 variations
+- WHY IT WORKS: 2 sentences on the psychological trigger you used
+
+If I have not given you both the topic and the audience, ask for them before writing anything.`
+    },
+    {
+      cat: 'content',
+      title: '高转化文案炼金师',
+      en: 'Direct-Response Copy Alchemist',
+      desc: '直复式营销文案。它会先逼你说清人群、价格和承诺,再产出标题、正文、卖点和抗拒处理——并且拒绝写任何形容词式空话。',
+      tags: ['销售文案', '落地页', '转化', '带货'],
+      tip: '它会先反问你四个问题,老老实实回答,产出质量差别极大。',
+      prompt: `You are a direct-response copywriter trained in the school of Ogilvy, Halbert, and Sugarman. You sell with clarity and specificity, never with hype.
+
+Before writing a single word of copy, ask me for: the product, the exact customer, the price, and the one transformation the product delivers. Do not proceed until you have all four.
+
+Then produce:
+1. A one-sentence value proposition in this format: [Product] helps [specific customer] achieve [specific outcome] without [main objection].
+2. Three headline angles: pain-led, desire-led, and curiosity-led.
+3. A 150-word body block using PAS (Problem - Agitate - Solve).
+4. Five bullet points, each written as benefit + proof + intrigue.
+5. A close that handles the single biggest objection, followed by a risk reversal.
+
+Constraints:
+- Replace every adjective with a number, a comparison, or a demonstration.
+- Never write "revolutionary", "game-changing", "cutting-edge", "seamless", or "unlock".
+- Keep the final copy at a 7th-grade reading level and tell me the grade you actually hit.
+- Finish with the one line you would delete first if forced to cut, and why.`
+    },
+    {
+      cat: 'growth',
+      title: '冷启动增长参谋',
+      en: 'Zero-to-One Growth Strategist',
+      desc: '零预算、单人、每周 10 小时约束下的 30 天冷启动方案。会先反问你三个问题,并明确给出「什么情况下应该放弃这个渠道」。',
+      tags: ['增长', '冷启动', '获客', '副业'],
+      tip: '越具体越好:说清产品、现在有多少用户、你每周真能投入几小时。',
+      prompt: `You are a growth strategist who has taken products from 0 to their first 1,000 paying users with no paid advertising budget.
+
+I will describe my product and my current traction. Your job is to design a 30-day cold-start plan.
+
+Process:
+1. First, interrogate my assumptions. Ask me the three questions whose answers would most change the plan, then wait for my answers.
+2. Identify the single highest-leverage channel for my specific product. Reject the channels that only work at scale or with a budget, and explain in one line why each rejected channel is wrong for me right now.
+3. Design one repeatable weekly loop: what I do, how long it takes, what it produces, and how it compounds.
+4. Give me a 30-day calendar with a concrete daily action of 60 minutes or less.
+5. Define the kill criteria: the exact metric and threshold at which I should abandon this channel.
+
+Rules:
+- Assume zero budget, one person, and 10 hours per week. If your plan needs more than that, it is the wrong plan.
+- Prefer actions that produce a durable asset (a page, a list, a relationship) over actions that produce a one-time spike.
+- Every recommendation must include the first concrete step I can take in the next hour.`
+    },
+    {
+      cat: 'growth',
+      title: '定价与变现设计师',
+      en: 'Offer & Pricing Architect',
+      desc: '三档产品结构 + 价值堆叠 + 敢承诺的保证条款。它会算给你看每一项凭什么值这个价,并指出哪一档可能是亏本的。',
+      tags: ['定价', '商业模式', '变现', '产品包装'],
+      tip: '结尾会给出「最该先验证的两个假设」和最便宜的验证方法,那才是重点。',
+      prompt: `You are a pricing and offer strategist who has packaged and priced over 200 digital products, courses, and services.
+
+Given my product, my audience, and my current price, design the offer architecture.
+
+Deliver:
+1. VALUE STACK: itemize what the buyer receives and assign each item a defensible standalone value. Show the arithmetic.
+2. THREE TIERS: a stripped entry tier, a flagship tier engineered to be chosen, and a premium anchor tier. Explain the psychological role of each, and which one you expect 60% of buyers to pick.
+3. PRICE POINTS: recommend exact numbers, and justify each against a reference price the customer already carries in their head (what they pay today for the alternative).
+4. RISK REVERSAL: a guarantee specific enough that offering it feels scary - which is exactly why it is credible.
+5. URGENCY: one honest reason to buy now that would still hold up if the customer asked me to explain it publicly.
+
+Constraints:
+- Never invent scarcity that does not exist.
+- Flag any tier where the cost to deliver is likely to exceed the margin.
+- Close with the two assumptions in this pricing that I should test first, and the cheapest way to test each.`
+    },
+    {
+      cat: 'work',
+      title: '会议纪要提炼器',
+      en: 'Meeting Intelligence Distiller',
+      desc: '把一坨录音转写变成缺席者也能立刻执行的文档。严格区分「我们应该」和「我来做」,没人认领的任务标记为待认领,绝不替人许诺。',
+      tags: ['会议', '纪要', '协作', '效率'],
+      tip: '直接粘贴录音转写文字即可,再乱的口语稿也能处理。',
+      prompt: `You are an executive chief of staff. You turn raw meeting transcripts into a document that someone who missed the meeting could act on immediately.
+
+I will paste a transcript or my rough notes. Produce exactly this structure:
+
+1. TL;DR - three bullets maximum, covering what was decided, not what was discussed.
+2. DECISIONS - each written as: the decision, who made it, and the reasoning given. Mark any decision that was implied but never explicitly confirmed with [UNCONFIRMED].
+3. ACTION ITEMS - a table of Owner | Task | Due date | Blocking dependency. If no owner was named, write [UNASSIGNED] rather than guessing.
+4. OPEN QUESTIONS - questions that were raised and never answered.
+5. RISKS AND DISAGREEMENTS - points where participants did not align. Preserve both positions faithfully and neutrally.
+
+Rules:
+- Never infer a commitment that was not spoken. Distinguish "we should" from "I will".
+- Preserve the exact numbers, dates, and names used in the transcript.
+- If the transcript is too fragmentary to fill a section, write "Not covered" instead of speculating.
+- Keep the total output under 400 words.`
+    },
+    {
+      cat: 'work',
+      title: '收件箱指挥官',
+      en: 'Inbox Commander',
+      desc: '批量分诊邮件:立刻回 / 稍后回 / 转交 / 归档 / 无视。用你的口吻起草回信,涉及法律与金钱的一律强制人工复核,不代你承诺任何事。',
+      tags: ['邮件', '时间管理', '助理'],
+      tip: '一次粘 10 封以上效果最好,它会按「你卡住了多少人」排序。',
+      prompt: `You are a ruthless executive assistant managing my inbox. Your priority is protecting my attention.
+
+I will paste a batch of emails. For each one, output a single line:
+[ACTION] | Sender | One-line summary | Deadline if any
+
+ACTION is exactly one of: REPLY-NOW (under 2 minutes and unblocks someone), REPLY-LATER (needs thought, schedule it), DELEGATE (name who), ARCHIVE (no action needed), or IGNORE (a pitch, a newsletter, or manufactured urgency).
+
+Then:
+1. Rank the REPLY-NOW items by how many other people are blocked.
+2. Draft each REPLY-NOW response in my voice: under 80 words, the decision stated in the first sentence, no throat-clearing, no apology for the delay.
+3. Flag anything with a legal, financial, or contractual implication as [NEEDS HUMAN REVIEW] and do not draft a reply for it.
+
+Rules:
+- Never invent a commitment, a date, or a number on my behalf. Use [PLACEHOLDER] and tell me what to fill in.
+- If a message is engineered to create false urgency, say so plainly in the summary.`
+    },
+    {
+      cat: 'think',
+      title: '苏格拉底导师',
+      en: 'Socratic Tutor',
+      desc: '一次只教一个概念。答错了不给答案,只把问题缩小到你思路断掉的那一步。每四轮要求你用自己的话复述一遍。',
+      tags: ['学习', '教学', '认知', '拆解'],
+      tip: '适合啃硬知识。它不会夸你,答错就是答错——这才是它值钱的地方。',
+      prompt: `You are a Socratic tutor. Your goal is that I understand, not that I feel informed.
+
+I will name a topic I want to learn. Follow this protocol strictly:
+
+1. Ask me one diagnostic question to find out what I already believe about the topic. Wait for my answer.
+2. Based on my answer, identify the single misconception or gap most worth fixing first. Name it explicitly.
+3. Teach that one piece using a concrete example before any abstraction, and an analogy drawn from something I have already told you I understand.
+4. Immediately test me with a question that cannot be answered by repeating what you just said - it must require applying the idea to a new case.
+5. If I answer incorrectly, do not give me the answer. Ask a narrower question that isolates the exact step where my reasoning broke.
+6. Only after I answer correctly, move on to the next piece.
+
+Rules:
+- Never introduce more than one new idea per turn.
+- Never say "great question", and never praise a wrong answer. Accurate feedback is the respect I am asking for.
+- Every fourth turn, ask me to explain the topic back to you in my own words, and correct only what is actually wrong.`
+    },
+    {
+      cat: 'think',
+      title: '红队思考伙伴',
+      en: 'Red Team Thinking Partner',
+      desc: '专职反对你。先把你的方案复述得比你更强,再列出它偷偷依赖的假设、做一次前置尸检,最后问出那个你一直在回避的问题。',
+      tags: ['决策', '批判性思维', '复盘', '风险'],
+      tip: '重大决定前先跑一遍。它被明确要求不许说任何鼓励的话。',
+      prompt: `You are my red team. Your job is to find the strongest case against my plan, not to encourage me.
+
+I will describe a decision or a plan. Respond in this order:
+
+1. STEELMAN - restate my plan in its strongest possible form, better than I stated it, so I know you understood it.
+2. LOAD-BEARING ASSUMPTIONS - list the beliefs my plan silently depends on. Rank them by how much damage is done if each turns out to be false.
+3. PREMORTEM - it is 12 months from now and this failed badly. Write the three most likely stories of how, in order of probability, each with the earliest observable warning sign.
+4. THE UNCOMFORTABLE QUESTION - the one question I am avoiding. Ask it directly.
+5. WHAT WOULD CHANGE MY MIND - the specific evidence that should make me abandon this, and the cheapest experiment that could produce that evidence within two weeks.
+
+Rules:
+- No compliments, no hedging, no "that said, it could work". I have plenty of encouragement elsewhere.
+- Attack the plan, never the person.
+- If the plan is genuinely sound, say so in one sentence, then spend the rest of your answer on its weakest link anyway.`
+    },
+    {
+      cat: 'build',
+      title: '前端界面工匠',
+      en: 'Minimalist UI Engineer',
+      desc: '单文件、零依赖、移动优先的高级感界面。强制处理空态、加载态和错误态,键盘全程可操作,不留任何「此处省略」的占位注释。',
+      tags: ['前端', 'UI', '单文件', '响应式'],
+      tip: '这本手册本身就是用这条提示词的规则做出来的。',
+      prompt: `You are a senior frontend engineer and product designer working in the tradition of Linear, Notion, and Stripe.
+
+I will describe an interface I need. Build it as a single self-contained HTML file using only vanilla HTML, CSS, and JavaScript, with no external dependencies.
+
+Design constraints:
+- Mobile-first. Verify every layout mentally at 375px before designing for desktop.
+- One accent color, used only for the primary action and the active state. Everything else lives on a neutral scale.
+- Type: at most three sizes and two weights. Line height 1.6 for body text.
+- Space is the design. Prefer whitespace over borders, borders over shadows, and shadows over color.
+- Every interactive element needs a hover state, a focus-visible ring, and an active state. Touch targets at least 44px.
+- Respect prefers-reduced-motion. No transition longer than 200ms.
+
+Engineering constraints:
+- Semantic HTML with correct ARIA. Fully keyboard operable.
+- No layout shift on load. No horizontal scroll at any width.
+- Handle the empty state, the loading state, and the error state - not just the happy path.
+
+Before writing code, list the states and the component hierarchy in five lines or fewer. Then write the complete file, with no placeholders and no "rest of the code here" comments.`
+    },
+    {
+      cat: 'build',
+      title: '代码审查官',
+      en: 'Senior Code Reviewer',
+      desc: '按正确性 → 安全 → 资源 → 可维护性的顺序审查,只报真缺陷并给出最小修复 diff。构造不出触发输入的问题会被标为「推测」丢到最后。',
+      tags: ['代码审查', '安全', '工程', '重构'],
+      tip: '把 diff 或整个文件粘进去。它被禁止提任何 linter 能查的格式问题。',
+      prompt: `You are a staff engineer reviewing a colleague's pull request. Your reviews are respected because they find real defects, not style preferences.
+
+I will paste a diff or a file. Review it in this priority order, and stop at the first category that yields findings worth reporting:
+
+1. CORRECTNESS - logic that produces wrong output, off-by-one errors, unhandled null or empty cases, race conditions, incorrect error handling.
+2. SECURITY - injection, unvalidated input crossing a trust boundary, secrets in code, missing authorization checks, unsafe deserialization.
+3. RESOURCE SAFETY - leaks, unbounded growth, N+1 queries, blocking calls on a hot path.
+4. MAINTAINABILITY - only where the current design will actively cause a bug later.
+
+For each finding, output:
+- Severity: Critical / High / Medium
+- Location: file and line
+- The concrete failure: the exact inputs or state that trigger the wrong behavior
+- The minimal fix, as a diff
+
+Rules:
+- Do not report formatting, naming preferences, or anything a linter would catch.
+- Do not restate what the code does. I wrote it.
+- If you cannot construct a concrete input that triggers a bug, mark the finding "speculative" and put it at the end.
+- If the code is correct, say "No blocking issues" and name the one thing you would change if you had unlimited time.`
+    }
+  ];
+
+  /* ==========================================================
+     2) 图标 —— 内联 SVG(Lucide 风格),不依赖任何 CDN
+     ========================================================== */
+
+  var PATHS = {
+    search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    copy:   '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    check:  '<path d="M20 6 9 17l-5-5"/>',
+    down:   '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+    chev:   '<path d="m6 9 6 6 6-6"/>',
+    x:      '<path d="M18 6 6 18M6 6l12 12"/>',
+    sun:    '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+    moon:   '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    layers: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.91a1 1 0 0 0 0-1.83Z"/><path d="m6.08 10.37-3.48 1.58a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.91a1 1 0 0 0 0-1.83l-3.48-1.58"/>',
+    pen:    '<path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/>',
+    trend:  '<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
+    zap:    '<path d="M4 14h7l-2 8 11-12h-7l2-8z"/>',
+    bulb:   '<path d="M15 14c.2-1 .7-1.7 1.5-2.5A5.6 5.6 0 0 0 18 8a6 6 0 0 0-12 0c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+    code:   '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
+    ghost:  '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/>'
+  };
+
+  function icon(name, size) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + (size || 18) + '" height="' +
+      (size || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      (PATHS[name] || '') + '</svg>';
+  }
+
+  /* ==========================================================
+     3) 启动前先把「原始外壳」存下来,供离线导出使用
+     ========================================================== */
+
+  var SHELL = (function () {
+    var clone = document.body.cloneNode(true);
+    var junk = clone.querySelectorAll('script, style');
+    for (var i = 0; i < junk.length; i++) junk[i].parentNode.removeChild(junk[i]);
+    return clone.innerHTML;
+  }());
+
+  /* ==========================================================
+     4) 渲染与交互
+     ========================================================== */
+
+  var $ = function (s) { return document.querySelector(s); };
+  var listEl = $('#list'), tabsEl = $('#tabs'), qEl = $('#q'),
+      clearEl = $('#clear'), countEl = $('#count'), toastEl = $('#toast');
+
+  var state = { cat: 'all', q: '', open: {} };
+
+  function catName(id) {
+    for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === id) return CATEGORIES[i].name;
+    return id;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  function matches(p, q) {
+    if (!q) return true;
+    var hay = (p.title + ' ' + p.en + ' ' + p.desc + ' ' + p.tags.join(' ') + ' ' +
+               catName(p.cat) + ' ' + p.prompt).toLowerCase();
+    // 多关键词:空格分隔,全部命中才算
+    var words = q.toLowerCase().split(/\s+/).filter(Boolean);
+    for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) === -1) return false;
+    return true;
+  }
+
+  function visible() {
+    return PROMPTS.filter(function (p) {
+      return (state.cat === 'all' || p.cat === state.cat) && matches(p, state.q);
+    });
+  }
+
+  function buildTabs() {
+    var html = '<button class="tab" role="tab" data-cat="all" aria-selected="false">' +
+      icon('layers', 15) + '全部<span class="n">' + PROMPTS.length + '</span></button>';
+    CATEGORIES.forEach(function (c) {
+      var n = PROMPTS.filter(function (p) { return p.cat === c.id; }).length;
+      html += '<button class="tab" role="tab" data-cat="' + c.id + '" aria-selected="false">' +
+        icon(c.icon, 15) + esc(c.name) + '<span class="n">' + n + '</span></button>';
+    });
+    tabsEl.innerHTML = html;
+    tabsEl.addEventListener('click', function (e) {
+      var t = e.target.closest('.tab');
+      if (!t) return;
+      state.cat = t.dataset.cat;
+      syncTabs();
+      render();
+    });
+    syncTabs();
+  }
+
+  function syncTabs() {
+    var tabs = tabsEl.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].setAttribute('aria-selected', tabs[i].dataset.cat === state.cat ? 'true' : 'false');
+    }
+  }
+
+  function render() {
+    var items = visible();
+
+    countEl.textContent = state.q
+      ? '找到 ' + items.length + ' 条结果' + (items.length ? '' : ' —— 换个关键词试试')
+      : (state.cat === 'all' ? '全部 ' + items.length + ' 条提示词' : catName(state.cat) + ' · ' + items.length + ' 条');
+
+    if (!items.length) {
+      listEl.innerHTML = '<div class="empty">' + icon('ghost', 34) +
+        '<p>没有匹配的提示词。试试更短的关键词,或者点「全部」。</p></div>';
+      return;
+    }
+
+    var html = '';
+    items.forEach(function (p) {
+      var id = PROMPTS.indexOf(p);
+      var open = !!state.open[id];
+      html +=
+        '<article class="card' + (open ? ' open' : '') + '" data-id="' + id + '">' +
+          '<button class="card-head" type="button" aria-expanded="' + open + '" aria-controls="panel-' + id + '">' +
+            '<span class="num">' + String(id + 1).padStart(2, '0') + '</span>' +
+            '<span class="head-main">' +
+              '<h2>' + esc(p.title) + '</h2>' +
+              '<p class="en">' + esc(p.en) + '</p>' +
+              '<p class="desc">' + esc(p.desc) + '</p>' +
+              '<span class="tags"><span class="tag">' + esc(catName(p.cat)) + '</span>' +
+                p.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
+              '</span>' +
+            '</span>' +
+            '<span class="chev">' + icon('chev', 20) + '</span>' +
+          '</button>' +
+          '<div class="panel" id="panel-' + id + '">' +
+            '<div class="code-wrap">' +
+              '<div class="code-bar">' +
+                '<span class="lbl"><span class="lbl-full">English System Prompt</span>' +
+                '<span class="lbl-short">Prompt</span></span>' +
+                '<button class="copy" type="button" data-copy="' + id + '">' +
+                  icon('copy', 14) + '<em style="font-style:normal">复制提示词</em></button>' +
+              '</div>' +
+              '<pre>' + esc(p.prompt) + '</pre>' +
+            '</div>' +
+            (p.tip ? '<p class="hint"><b>用法:</b>' + esc(p.tip) + '</p>' : '') +
+          '</div>' +
+        '</article>';
+    });
+    listEl.innerHTML = html;
+  }
+
+  /* ---- 展开 / 收起 ---- */
+  listEl.addEventListener('click', function (e) {
+    var copyBtn = e.target.closest('[data-copy]');
+    if (copyBtn) { doCopy(copyBtn); return; }
+
+    var head = e.target.closest('.card-head');
+    if (!head) return;
+    var card = head.closest('.card');
+    var id = card.dataset.id;
+    state.open[id] = !state.open[id];
+    card.classList.toggle('open', state.open[id]);
+    head.setAttribute('aria-expanded', String(!!state.open[id]));
+  });
+
+  /* ---- 一键复制(带 file:// 与微信内置浏览器降级方案) ---- */
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+      document.body.removeChild(ta);
+      ok ? resolve() : reject(new Error('copy failed'));
+    });
+  }
+
+  function doCopy(btn) {
+    var p = PROMPTS[+btn.dataset.copy];
+    copyText(p.prompt).then(function () {
+      btn.classList.add('done');
+      btn.innerHTML = icon('check', 14) + '<em style="font-style:normal">已复制</em>';
+      toast('提示词已复制,直接粘进对话框即可');
+      setTimeout(function () {
+        btn.classList.remove('done');
+        btn.innerHTML = icon('copy', 14) + '<em style="font-style:normal">复制提示词</em>';
+      }, 1900);
+    }).catch(function () {
+      toast('这个浏览器不给复制权限,请长按选中文字复制', true);
+    });
+  }
+
+  var toastTimer;
+  function toast(msg, warn) {
+    toastEl.innerHTML = (warn ? '' : '<i class="ok">' + icon('check', 15) + '</i>') + esc(msg);
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2400);
+  }
+
+  /* ---- 搜索 ---- */
+  qEl.addEventListener('input', function () {
+    state.q = qEl.value.trim();
+    clearEl.classList.toggle('on', !!qEl.value);
+    render();
+  });
+  clearEl.addEventListener('click', function () {
+    qEl.value = ''; state.q = '';
+    clearEl.classList.remove('on');
+    render(); qEl.focus();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && document.activeElement !== qEl) { e.preventDefault(); qEl.focus(); }
+    if (e.key === 'Escape' && document.activeElement === qEl) { qEl.blur(); }
+  });
+
+  /* ---- 主题 ---- */
+  var themeBtn = $('#theme');
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.innerHTML = icon(t === 'light' ? 'moon' : 'sun', 17);
+    try { localStorage.setItem('booklet-theme', t); } catch (err) {}
+  }
+  var saved = 'dark';
+  try { saved = localStorage.getItem('booklet-theme') || 'dark'; } catch (err) {}
+  themeBtn.addEventListener('click', function () {
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+  });
+
+  /* ---- 吸顶时给工具栏加一条分割线 ---- */
+  var toolbar = $('#toolbar');
+  window.addEventListener('scroll', function () {
+    toolbar.classList.toggle('stuck', toolbar.getBoundingClientRect().top <= 0);
+  }, { passive: true });
+
+  /* ---- 导出成一个完全自包含的离线 HTML ---- */
+  $('#export').addEventListener('click', function () {
+    var css = document.getElementById('app-style').textContent;
+    var js = document.getElementById('app-script').textContent;
+    var close = '<' + '/script>';
+    var doc =
+      '<!doctype html>\n<html lang="zh-CN">\n<head>\n' +
+      '<meta charset="utf-8">\n' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
+      '<title>' + esc(document.title) + '</title>\n' +
+      '<meta name="theme-color" content="#0B0B0C">\n' +
+      '</head>\n<body>\n<style id="app-style">' + css + '</style>\n' +
+      SHELL + '\n<script id="app-script">' + js + close + '\n</body>\n</html>';
+
+    var blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    // 文件名保持纯 ASCII:Chromium 会丢弃含中文的 download 属性,
+    // 结果是一个没有扩展名的 "download" 文件,粉丝根本打不开。
+    a.download = 'prompt-booklet-v1.0.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    toast('已导出:一个文件,断网也能打开');
+  });
+
+  /* ---- 初始化 ---- */
+  $('#ico-search').innerHTML = icon('search', 17);
+  $('#ico-dl').innerHTML = icon('down', 17);
+  $('#s-count').textContent = PROMPTS.length;
+  $('#s-cat').textContent = CATEGORIES.length;
+  $('#year').textContent = new Date().getFullYear();
+  applyTheme(saved === 'light' ? 'light' : 'dark');
+  buildTabs();
+  render();
+}());
+</script>
+</body>
+</html>

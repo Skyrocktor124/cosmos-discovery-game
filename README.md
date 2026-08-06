@@ -19,6 +19,12 @@ server or API cost. Free to play, no download, no sign-up.
 这是一个零运行成本的网页宇宙探索游戏,已配置好自动部署和多平台上架条件。
 **变现步骤请看:[docs/被动收入行动指南.md](docs/被动收入行动指南.md)**
 
+## 提示词手册(附赠)
+
+`booklet/index.html` 是一个零依赖的单文件交互电子小册子(搜索 / 分类 / 一键复制 /
+离线导出),可以直接发给粉丝,也会随构建发布到 `/booklet/`。
+换成你自己的提示词只需改一个数组,见 [booklet/README.md](booklet/README.md)。
+
 ## Development
 
 Prerequisites: Node.js 18+
