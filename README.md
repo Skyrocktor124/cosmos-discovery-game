@@ -14,6 +14,14 @@ server or API cost. Free to play, no download, no sign-up.
 - 📱 Responsive layout, works on desktop and mobile
 - 💸 **Zero running cost** — no API keys, no backend, pure static files
 
+## Also in this repo
+
+**[Wanderpass](trip-wallet/)** (`/trip-wallet/`) — an offline ticket wallet for
+European trips. Import the PDF vouchers museums, tour sellers and rail operators
+email you; it finds the barcode, reads the date and venue off the page, and
+shows the code full-screen at the gate with no signal required. Same zero-cost
+static-hosting model as the games, and nothing ever leaves the device.
+
 ## 中文说明
 
 这是一个零运行成本的网页宇宙探索游戏,已配置好自动部署和多平台上架条件。
