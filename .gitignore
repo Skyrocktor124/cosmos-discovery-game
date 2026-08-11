@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# castle-growth 中间产物
+castle-growth/out/frames/
+castle-growth/out/timeline.json
+castle-growth/out/track.wav
+castle-growth/out/probe-*.jpg
