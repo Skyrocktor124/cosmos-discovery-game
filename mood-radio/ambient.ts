@@ -7,7 +7,11 @@
 //   bed   — optional rain or ocean texture made from filtered white noise
 
 export interface AudioProfile {
-  /** Tonic frequency in Hz. */
+  /**
+   * Tonic in Hz. Voices are stacked an octave or more above it: phone and
+   * laptop speakers roll off steeply below ~500 Hz, so a station voiced at
+   * its true root is inaudible on the devices most people listen on.
+   */
   root: number;
   /** Semitone offsets the lead voice may pick from. */
   scale: number[];
@@ -26,7 +30,7 @@ export interface AudioProfile {
   volume: number;
 }
 
-const FADE_IN = 3;
+const FADE_IN = 1.4;
 const FADE_OUT = 1.6;
 
 const noteHz = (root: number, semitones: number): number => root * Math.pow(2, semitones / 12);
@@ -46,6 +50,7 @@ export class AmbientRadio {
   private master: GainNode | null = null;
   private filter: BiquadFilterNode | null = null;
   private wet: GainNode | null = null;
+  private meter: AnalyserNode | null = null;
   private voices: AudioScheduledSourceNode[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private profile: AudioProfile | null = null;
@@ -80,8 +85,25 @@ export class AmbientRadio {
       const master = ctx.createGain();
       master.gain.setValueAtTime(0.0001, t0);
       master.gain.linearRampToValueAtTime(this.target(), t0 + FADE_IN);
-      master.connect(ctx.destination);
       this.master = master;
+
+      // Voices swell independently and occasionally line up; the compressor
+      // keeps those moments from clipping so the station can run loud enough
+      // to be heard on a phone speaker.
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -14;
+      comp.knee.value = 20;
+      comp.ratio.value = 4;
+      comp.attack.value = 0.02;
+      comp.release.value = 0.5;
+      master.connect(comp).connect(ctx.destination);
+
+      // Tapped for the on-screen level meter — the honest answer to "is this
+      // thing even playing?" when a device is muted or the volume is down.
+      const meter = ctx.createAnalyser();
+      meter.fftSize = 1024;
+      comp.connect(meter);
+      this.meter = meter;
 
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
@@ -120,6 +142,7 @@ export class AmbientRadio {
     this.master = null;
     this.filter = null;
     this.wet = null;
+    this.meter = null;
     this.voices = [];
     if (!ctx || !master) return;
     try {
@@ -132,6 +155,18 @@ export class AmbientRadio {
       }
       setTimeout(() => { try { master.disconnect(); } catch { /* gone */ } }, (FADE_OUT + 0.3) * 1000);
     } catch { /* best effort */ }
+  }
+
+  /** Current output loudness, 0..1 — drives the on-screen level meter. */
+  getLevel(): number {
+    const an = this.meter;
+    if (!an || !this.playing) return 0;
+    const buf = new Float32Array(an.fftSize);
+    an.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (const v of buf) sum += v * v;
+    const rms = Math.sqrt(sum / buf.length);
+    return Math.min(1, rms * 6);
   }
 
   setVolume(v: number): void {
@@ -151,19 +186,21 @@ export class AmbientRadio {
   /** Detuned drone stack, swelling on the breath LFO. */
   private buildPad(ctx: AudioContext, out: AudioNode, p: AudioProfile, t0: number): void {
     const swell = ctx.createGain();
-    swell.gain.value = 0.16;
+    swell.gain.value = 0.22;
     swell.connect(out);
 
     const lfo = ctx.createOscillator();
     lfo.frequency.value = 1 / p.breath;
     const lfoDepth = ctx.createGain();
-    lfoDepth.gain.value = 0.09;
+    lfoDepth.gain.value = 0.12;
     lfo.connect(lfoDepth).connect(swell.gain);
     lfo.start(t0);
     this.voices.push(lfo);
 
-    // Root, root an octave up, and the fifth — detuned a few cents for movement.
-    for (const [semi, detune, gain] of [[0, -6, 1], [12, 5, 0.5], [7, 3, 0.35]] as const) {
+    // Voiced from an octave above the root up: octave, two octaves, the fifth
+    // between them, and a quiet third octave for air. Detuned a few cents each
+    // so the stack breathes instead of sitting still.
+    for (const [semi, detune, gain] of [[12, -6, 1], [24, 5, 0.42], [19, 3, 0.3], [36, -3, 0.14]] as const) {
       const osc = ctx.createOscillator();
       osc.type = p.padWave;
       osc.frequency.value = noteHz(p.root, semi);
@@ -189,7 +226,7 @@ export class AmbientRadio {
     bp.Q.value = isRain ? 0.7 : 1.2;
 
     const g = ctx.createGain();
-    g.gain.value = isRain ? 0.035 : 0.05;
+    g.gain.value = isRain ? 0.06 : 0.085;
 
     // Waves breathe in and out; rain just varies slightly in density.
     const lfo = ctx.createOscillator();
@@ -213,7 +250,9 @@ export class AmbientRadio {
 
       try {
         const t0 = ctx.currentTime;
-        const semi = pick(p.scale) + 12 * pick([1, 1, 2]);
+        // Two to three octaves up — roughly 400–1600 Hz, where small speakers
+        // are actually loudest, and where a soft note still reads as gentle.
+        const semi = pick(p.scale) + 12 * pick([2, 2, 3]);
         const osc = ctx.createOscillator();
         osc.type = p.leadWave;
         osc.frequency.value = noteHz(p.root, semi);
@@ -221,7 +260,7 @@ export class AmbientRadio {
         const g = ctx.createGain();
         const len = p.noteLength;
         g.gain.setValueAtTime(0.0001, t0);
-        g.gain.linearRampToValueAtTime(0.13, t0 + len * 0.35);   // slow bloom
+        g.gain.linearRampToValueAtTime(0.3, t0 + len * 0.35);    // slow bloom
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);   // long tail
 
         osc.connect(g);

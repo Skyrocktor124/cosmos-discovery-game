@@ -64,8 +64,22 @@ const Playlist: React.FC<{ mood: Mood }> = ({ mood }) => (
 const Station: React.FC<{ match: MoodMatch; intense: boolean; onBack: () => void }> = ({ match, intense, onBack }) => {
   const { mood, hits, guessed } = match;
   const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.7);
+  const [volume, setVolume] = useState(0.85);
+  const [level, setLevel] = useState(0);
   const profile = useMemo(() => tune(mood.audio, intense), [mood, intense]);
+
+  // Live output meter: if these bars move but you hear nothing, the problem is
+  // the device (muted, silent switch, wrong output) rather than the station.
+  useEffect(() => {
+    if (!playing) { setLevel(0); return; }
+    let raf = 0;
+    const tick = () => {
+      setLevel(radio.getLevel());
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing]);
 
   // Reached by a tap, so audio usually starts straight away — but a cold
   // shared link has no gesture, and the browser will keep it suspended.
@@ -141,20 +155,46 @@ const Station: React.FC<{ match: MoodMatch; intense: boolean; onBack: () => void
         </span>
       </button>
 
-      <div className="flex w-full max-w-xs items-center gap-3">
-        <span className="text-xs text-slate-500">🔈</span>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={e => onVolume(Number(e.target.value))}
-          aria-label="音量"
-          className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-white"
-          style={{ accentColor: mood.accent }}
-        />
-        <span className="text-xs text-slate-500">🔊</span>
+      <div className="flex w-full max-w-xs flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-500">🔈</span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={e => onVolume(Number(e.target.value))}
+            aria-label="音量"
+            className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-white"
+            style={{ accentColor: mood.accent }}
+          />
+          <span className="text-xs text-slate-500">🔊</span>
+        </div>
+
+        {/* Output meter */}
+        <div className="flex items-center gap-2" data-testid="meter" data-level={level.toFixed(3)}>
+          <span className="flex h-3 flex-1 items-end gap-[3px]">
+            {Array.from({ length: 14 }, (_, i) => (
+              <span
+                key={i}
+                className="h-full flex-1 rounded-sm transition-opacity duration-75"
+                style={{
+                  background: mood.accent,
+                  opacity: level * 14 > i ? 0.9 : 0.12,
+                }}
+              />
+            ))}
+          </span>
+          <span className="w-24 shrink-0 text-right text-[10px] text-slate-500">
+            {playing ? '正在播放' : '已暂停'}
+          </span>
+        </div>
+        {playing && (
+          <p className="text-center text-[10px] leading-relaxed text-slate-600">
+            音景很轻,建议戴耳机。看得到上面的条在动却听不见,请检查手机静音键和音量。
+          </p>
+        )}
       </div>
 
       <p className="max-w-md rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-center text-sm leading-relaxed text-slate-300">

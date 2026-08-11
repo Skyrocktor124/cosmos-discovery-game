@@ -49,7 +49,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 146.83, scale: [0, 2, 4, 7, 9], padWave: 'sine', leadWave: 'sine',
-      cutoff: 900, noteEvery: [3.5, 7], noteLength: 5, breath: 12, bed: 'waves', volume: 0.5,
+      cutoff: 3200, noteEvery: [3.5, 7], noteLength: 5, breath: 12, bed: 'waves', volume: 0.85,
     },
   },
   {
@@ -76,7 +76,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 130.81, scale: [0, 3, 5, 7, 10], padWave: 'triangle', leadWave: 'sine',
-      cutoff: 750, noteEvery: [4, 8], noteLength: 6, breath: 14, bed: 'rain', volume: 0.5,
+      cutoff: 2800, noteEvery: [4, 8], noteLength: 6, breath: 14, bed: 'rain', volume: 0.85,
     },
   },
   {
@@ -103,7 +103,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 164.81, scale: [0, 2, 5, 7, 9], padWave: 'sine', leadWave: 'triangle',
-      cutoff: 800, noteEvery: [4, 8], noteLength: 6, breath: 13, bed: 'waves', volume: 0.45,
+      cutoff: 3000, noteEvery: [4, 8], noteLength: 6, breath: 13, bed: 'waves', volume: 0.8,
     },
   },
   {
@@ -130,7 +130,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 155.56, scale: [0, 2, 3, 7, 9], padWave: 'triangle', leadWave: 'sine',
-      cutoff: 850, noteEvery: [3, 6.5], noteLength: 5.5, breath: 12, bed: 'rain', volume: 0.5,
+      cutoff: 3000, noteEvery: [3, 6.5], noteLength: 5.5, breath: 12, bed: 'rain', volume: 0.85,
     },
   },
   {
@@ -157,7 +157,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 138.59, scale: [0, 5, 7, 10, 12], padWave: 'sawtooth', leadWave: 'triangle',
-      cutoff: 620, noteEvery: [2.5, 5.5], noteLength: 4.5, breath: 10, bed: 'waves', volume: 0.42,
+      cutoff: 2400, noteEvery: [2.5, 5.5], noteLength: 4.5, breath: 10, bed: 'waves', volume: 0.78,
     },
   },
   {
@@ -184,7 +184,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 174.61, scale: [0, 2, 4, 7, 9], padWave: 'sine', leadWave: 'sine',
-      cutoff: 1100, noteEvery: [3.5, 7], noteLength: 5, breath: 11, bed: 'none', volume: 0.5,
+      cutoff: 3600, noteEvery: [3.5, 7], noteLength: 5, breath: 11, bed: 'none', volume: 0.85,
     },
   },
   {
@@ -211,7 +211,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 196.0, scale: [0, 2, 4, 7, 9, 12], padWave: 'triangle', leadWave: 'sine',
-      cutoff: 1600, noteEvery: [2, 4.5], noteLength: 3.5, breath: 9, bed: 'none', volume: 0.45,
+      cutoff: 4800, noteEvery: [2, 4.5], noteLength: 3.5, breath: 9, bed: 'none', volume: 0.8,
     },
   },
   {
@@ -238,7 +238,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 146.83, scale: [0, 2, 3, 7, 9], padWave: 'sine', leadWave: 'triangle',
-      cutoff: 780, noteEvery: [4, 8], noteLength: 6, breath: 13, bed: 'rain', volume: 0.48,
+      cutoff: 2900, noteEvery: [4, 8], noteLength: 6, breath: 13, bed: 'rain', volume: 0.82,
     },
   },
   {
@@ -265,7 +265,7 @@ export const MOODS: Mood[] = [
     ],
     audio: {
       root: 110.0, scale: [0, 3, 7, 10, 12], padWave: 'sine', leadWave: 'sine',
-      cutoff: 600, noteEvery: [5, 10], noteLength: 7, breath: 16, bed: 'rain', volume: 0.42,
+      cutoff: 2200, noteEvery: [5, 10], noteLength: 7, breath: 16, bed: 'rain', volume: 0.78,
     },
   },
 ];
