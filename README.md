@@ -31,12 +31,16 @@ Vite config:
 
 Type how you feel (Chinese or English) and it tunes a station for you:
 
-- **Real-time soundscape** — an ambient pad, sparse notes from a mood-specific
-  scale, and a rain/ocean bed, all synthesised with the Web Audio API. No audio
-  files, no streaming, no bandwidth cost.
-- **Breathing ring** paced to the station's own swell, doubling as play/pause.
+- **A generated piece per mood, playing in-page** — chord progression, bass,
+  an improvised melody, arpeggio and a soft pulse, arranged over four sections
+  (起 / 承 / 转 / 合) that cycle with a fresh melody each time. All of it is
+  synthesised from oscillators and noise with the Web Audio API: no audio
+  files, no streaming, no bandwidth cost, and nothing to license.
+- **Breathing ring** paced to the station's own swell, doubling as play/pause,
+  plus a live output meter so a muted device is obvious.
 - **A 6-track playlist** of real healing songs per mood, linking out to search
-  on YouTube / Spotify / 网易云 — links instead of embeds, so nothing to license.
+  on YouTube / Spotify / 网易云 — those are commercial recordings, so the page
+  links to them rather than serving them.
 - 9 moods (焦虑 / 难过 / 疲惫 / 孤独 / 愤怒 / 平静 / 开心 / 思念 / 睡不着), matched by an
   in-browser keyword dictionary — no API key, works offline after first load.
 - `?mood=<id>` deep links, so a shared station opens straight on that frequency.

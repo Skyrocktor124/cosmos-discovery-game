@@ -2,7 +2,7 @@
 // Everything here is static data: the "recommendation engine" is keyword
 // matching in the browser, so the station costs nothing to run and works offline.
 
-import type { AudioProfile } from './ambient';
+import { CHORDS, type MusicProfile } from './music';
 
 export interface Song {
   title: string;
@@ -19,9 +19,10 @@ export interface Mood {
   intent: string;     // 这个频率想为你做什么
   intentEn: string;
   care: string;       // 一句陪伴的话 / 呼吸提示
+  track: string;      // 这首生成曲的名字
   keywords: string[]; // matched as substrings against the raw input
   songs: Song[];
-  audio: AudioProfile;
+  audio: MusicProfile;
 }
 
 export const MOODS: Mood[] = [
@@ -47,9 +48,11 @@ export const MOODS: Mood[] = [
       { title: '贝加尔湖畔', artist: '李健' },
       { title: 'Watermark', artist: 'Enya' },
     ],
+    track: '《把心跳调慢》',
     audio: {
-      root: 146.83, scale: [0, 2, 4, 7, 9], padWave: 'sine', leadWave: 'sine',
-      cutoff: 3200, noteEvery: [3.5, 7], noteLength: 5, breath: 12, bed: 'waves', volume: 0.85,
+      root: 146.83, scale: [0, 2, 4, 7, 9], progression: [CHORDS.Isus2, CHORDS.IVmaj7, CHORDS.Imaj7, CHORDS.V7sus],
+      bpm: 62, barsPerChord: 2, padWave: 'sine', leadWave: 'sine', brightness: 3200,
+      melodyDensity: 0.45, pluckEvery: 4, perc: false, bed: 'waves', breath: 12, volume: 0.85,
     },
   },
   {
@@ -74,9 +77,11 @@ export const MOODS: Mood[] = [
       { title: '突然好想你', artist: '五月天' },
       { title: '好久不见', artist: '陈奕迅' },
     ],
+    track: '《陪你把它听完》',
     audio: {
-      root: 130.81, scale: [0, 3, 5, 7, 10], padWave: 'triangle', leadWave: 'sine',
-      cutoff: 2800, noteEvery: [4, 8], noteLength: 6, breath: 14, bed: 'rain', volume: 0.85,
+      root: 130.81, scale: [0, 3, 5, 7, 10], progression: [CHORDS.i7, CHORDS.bVI, CHORDS.bIII, CHORDS.bVII],
+      bpm: 58, barsPerChord: 2, padWave: 'triangle', leadWave: 'sine', brightness: 2800,
+      melodyDensity: 0.4, pluckEvery: 4, perc: false, bed: 'rain', breath: 14, volume: 0.85,
     },
   },
   {
@@ -101,9 +106,11 @@ export const MOODS: Mood[] = [
       { title: 'Spiegel im Spiegel', artist: 'Arvo Pärt' },
       { title: '稻香', artist: '周杰伦' },
     ],
+    track: '《先把电充回来》',
     audio: {
-      root: 164.81, scale: [0, 2, 5, 7, 9], padWave: 'sine', leadWave: 'triangle',
-      cutoff: 3000, noteEvery: [4, 8], noteLength: 6, breath: 13, bed: 'waves', volume: 0.8,
+      root: 164.81, scale: [0, 2, 5, 7, 9], progression: [CHORDS.Imaj7, CHORDS.IVmaj7, CHORDS.ii7, CHORDS.V7sus],
+      bpm: 64, barsPerChord: 1, padWave: 'sine', leadWave: 'triangle', brightness: 3000,
+      melodyDensity: 0.45, pluckEvery: 4, perc: false, bed: 'waves', breath: 13, volume: 0.8,
     },
   },
   {
@@ -128,9 +135,11 @@ export const MOODS: Mood[] = [
       { title: 'Bridge Over Troubled Water', artist: 'Simon & Garfunkel' },
       { title: 'Holocene', artist: 'Bon Iver' },
     ],
+    track: '《房间里多一盏灯》',
     audio: {
-      root: 155.56, scale: [0, 2, 3, 7, 9], padWave: 'triangle', leadWave: 'sine',
-      cutoff: 3000, noteEvery: [3, 6.5], noteLength: 5.5, breath: 12, bed: 'rain', volume: 0.85,
+      root: 155.56, scale: [0, 2, 3, 7, 9], progression: [CHORDS.i7, CHORDS.bIII, CHORDS.bVII, CHORDS.iv7],
+      bpm: 66, barsPerChord: 1, padWave: 'triangle', leadWave: 'sine', brightness: 3000,
+      melodyDensity: 0.55, pluckEvery: 2, perc: true, bed: 'rain', breath: 12, volume: 0.85,
     },
   },
   {
@@ -155,9 +164,11 @@ export const MOODS: Mood[] = [
       { title: '怒放的生命', artist: '汪峰' },
       { title: 'Rise Up', artist: 'Andra Day' },
     ],
+    track: '《先烧完再降温》',
     audio: {
-      root: 138.59, scale: [0, 5, 7, 10, 12], padWave: 'sawtooth', leadWave: 'triangle',
-      cutoff: 2400, noteEvery: [2.5, 5.5], noteLength: 4.5, breath: 10, bed: 'waves', volume: 0.78,
+      root: 138.59, scale: [0, 5, 7, 10, 12], progression: [CHORDS.i, CHORDS.iv, CHORDS.bVII, CHORDS.bVI],
+      bpm: 72, barsPerChord: 1, padWave: 'sawtooth', leadWave: 'triangle', brightness: 2400,
+      melodyDensity: 0.6, pluckEvery: 2, perc: true, bed: 'waves', breath: 10, volume: 0.78,
     },
   },
   {
@@ -182,9 +193,11 @@ export const MOODS: Mood[] = [
       { title: '我想和你虚度时光', artist: '程璧' },
       { title: 'Merry Christmas Mr. Lawrence', artist: '坂本龍一' },
     ],
+    track: '《把安静调得更深》',
     audio: {
-      root: 174.61, scale: [0, 2, 4, 7, 9], padWave: 'sine', leadWave: 'sine',
-      cutoff: 3600, noteEvery: [3.5, 7], noteLength: 5, breath: 11, bed: 'none', volume: 0.85,
+      root: 174.61, scale: [0, 2, 4, 7, 9], progression: [CHORDS.Imaj7, CHORDS.vi7, CHORDS.IVmaj7, CHORDS.V7sus],
+      bpm: 70, barsPerChord: 1, padWave: 'sine', leadWave: 'sine', brightness: 3600,
+      melodyDensity: 0.5, pluckEvery: 2, perc: false, bed: 'none', breath: 11, volume: 0.85,
     },
   },
   {
@@ -209,9 +222,11 @@ export const MOODS: Mood[] = [
       { title: '恋爱ing', artist: '五月天' },
       { title: 'Best Day of My Life', artist: 'American Authors' },
     ],
+    track: '《晒久一点》',
     audio: {
-      root: 196.0, scale: [0, 2, 4, 7, 9, 12], padWave: 'triangle', leadWave: 'sine',
-      cutoff: 4800, noteEvery: [2, 4.5], noteLength: 3.5, breath: 9, bed: 'none', volume: 0.8,
+      root: 196.0, scale: [0, 2, 4, 7, 9, 12], progression: [CHORDS.I, CHORDS.V, CHORDS.vi7, CHORDS.IV],
+      bpm: 92, barsPerChord: 1, padWave: 'triangle', leadWave: 'sine', brightness: 4800,
+      melodyDensity: 0.7, pluckEvery: 1, perc: true, bed: 'none', breath: 9, volume: 0.8,
     },
   },
   {
@@ -236,9 +251,11 @@ export const MOODS: Mood[] = [
       { title: '大鱼', artist: '周深' },
       { title: "One Summer's Day (千与千寻)", artist: '久石讓' },
     ],
+    track: '《让想念落下来》',
     audio: {
-      root: 146.83, scale: [0, 2, 3, 7, 9], padWave: 'sine', leadWave: 'triangle',
-      cutoff: 2900, noteEvery: [4, 8], noteLength: 6, breath: 13, bed: 'rain', volume: 0.82,
+      root: 146.83, scale: [0, 2, 3, 7, 9], progression: [CHORDS.vi7, CHORDS.IVmaj7, CHORDS.Imaj7, CHORDS.V],
+      bpm: 68, barsPerChord: 1, padWave: 'sine', leadWave: 'triangle', brightness: 2900,
+      melodyDensity: 0.45, pluckEvery: 4, perc: false, bed: 'rain', breath: 13, volume: 0.82,
     },
   },
   {
@@ -263,9 +280,11 @@ export const MOODS: Mood[] = [
       { title: '晚安', artist: '颜人中' },
       { title: '月半小夜曲', artist: '李克勤' },
     ],
+    track: '《不催你睡》',
     audio: {
-      root: 110.0, scale: [0, 3, 7, 10, 12], padWave: 'sine', leadWave: 'sine',
-      cutoff: 2200, noteEvery: [5, 10], noteLength: 7, breath: 16, bed: 'rain', volume: 0.78,
+      root: 110.0, scale: [0, 3, 7, 10, 12], progression: [CHORDS.i7, CHORDS.iv7, CHORDS.i7, CHORDS.bVI],
+      bpm: 50, barsPerChord: 2, padWave: 'sine', leadWave: 'sine', brightness: 2200,
+      melodyDensity: 0.3, pluckEvery: 8, perc: false, bed: 'rain', breath: 16, volume: 0.78,
     },
   },
 ];

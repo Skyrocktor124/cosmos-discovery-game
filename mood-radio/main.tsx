@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
 import ShareButton from '../shared/ShareButton';
-import { radio } from './ambient';
-import type { AudioProfile } from './ambient';
+import { radio, SECTION_NAMES } from './music';
+import type { MusicProfile } from './music';
 import { MOODS, MOOD_BY_ID, matchMood, isIntense, songLink, type Mood, type MoodMatch } from './moods';
 
 const LAST_KEY = 'mood-radio-last-v1';
@@ -13,15 +13,17 @@ const PLATFORMS = [
   { id: 'netease', label: '网易云' },
 ] as const;
 
-/** Strong feelings get a slower, quieter station — less to process. */
-const tune = (profile: AudioProfile, intense: boolean): AudioProfile => {
+/** Strong feelings get a slower, sparser, quieter piece — less to process. */
+const tune = (profile: MusicProfile, intense: boolean): MusicProfile => {
   if (!intense) return profile;
   return {
     ...profile,
+    bpm: Math.round(profile.bpm * 0.88),
     breath: profile.breath * 1.2,
-    noteEvery: [profile.noteEvery[0] * 1.3, profile.noteEvery[1] * 1.3],
-    volume: profile.volume * 0.88,
-    cutoff: profile.cutoff * 0.85,
+    melodyDensity: profile.melodyDensity * 0.7,
+    perc: false,
+    volume: profile.volume * 0.92,
+    brightness: profile.brightness * 0.85,
   };
 };
 
@@ -66,6 +68,7 @@ const Station: React.FC<{ match: MoodMatch; intense: boolean; onBack: () => void
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(0.85);
   const [level, setLevel] = useState(0);
+  const [section, setSection] = useState(0);
   const profile = useMemo(() => tune(mood.audio, intense), [mood, intense]);
 
   // Live output meter: if these bars move but you hear nothing, the problem is
@@ -75,6 +78,7 @@ const Station: React.FC<{ match: MoodMatch; intense: boolean; onBack: () => void
     let raf = 0;
     const tick = () => {
       setLevel(radio.getLevel());
+      setSection(radio.position.section);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -155,6 +159,13 @@ const Station: React.FC<{ match: MoodMatch; intense: boolean; onBack: () => void
         </span>
       </button>
 
+      <div className="-mt-4 flex flex-col items-center gap-1 text-center">
+        <span className="text-sm font-semibold text-white" data-testid="track-name">{mood.track}</span>
+        <span className="text-[10px] text-slate-500">
+          为这个心情实时演奏 · {profile.bpm} BPM · {mood.audio.bed === 'rain' ? '雨声' : mood.audio.bed === 'waves' ? '海浪' : '无环境声'}
+        </span>
+      </div>
+
       <div className="flex w-full max-w-xs flex-col gap-3">
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500">🔈</span>
@@ -186,13 +197,14 @@ const Station: React.FC<{ match: MoodMatch; intense: boolean; onBack: () => void
               />
             ))}
           </span>
-          <span className="w-24 shrink-0 text-right text-[10px] text-slate-500">
-            {playing ? '正在播放' : '已暂停'}
+          <span data-testid="status" className="w-28 shrink-0 text-right text-[10px] text-slate-500">
+            {playing ? `正在播放 · ${SECTION_NAMES[section]}` : '已暂停'}
           </span>
         </div>
         {playing && (
           <p className="text-center text-[10px] leading-relaxed text-slate-600">
-            音景很轻,建议戴耳机。看得到上面的条在动却听不见,请检查手机静音键和音量。
+            本曲由浏览器实时演奏,每次都不一样,可以一直听下去。<br />
+            条在动却听不见,请检查手机静音键和音量。
           </p>
         )}
       </div>
@@ -203,9 +215,9 @@ const Station: React.FC<{ match: MoodMatch; intense: boolean; onBack: () => void
 
       <section className="w-full">
         <h2 className="mb-3 flex items-baseline gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
-          今日歌单
+          延伸歌单
           <span className="text-[10px] normal-case tracking-normal text-slate-600">
-            {mood.songs.length} 首 · 点平台名去听
+            听完这首,还可以听这 {mood.songs.length} 首 · 点平台名跳转
           </span>
         </h2>
         <Playlist mood={mood} />
