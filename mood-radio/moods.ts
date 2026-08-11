@@ -50,9 +50,12 @@ export const MOODS: Mood[] = [
     ],
     track: '《把心跳调慢》',
     audio: {
-      root: 146.83, scale: [0, 2, 4, 7, 9], progression: [CHORDS.Isus2, CHORDS.IVmaj7, CHORDS.Imaj7, CHORDS.V7sus],
-      bpm: 62, barsPerChord: 2, padWave: 'sine', leadWave: 'sine', brightness: 3200,
-      melodyDensity: 0.45, pluckEvery: 4, perc: false, bed: 'waves', breath: 12, volume: 0.85,
+      root: 146.83, scale: [0, 2, 4, 7, 9], progression: [CHORDS.Isus2, CHORDS.IVadd9, CHORDS.Isus2, CHORDS.V7sus],
+      bpm: 56, barsPerChord: 2,
+      pad: 'glass', melody: 'glass', arp: 'harp',
+      melodyLow: 2, melodyRange: 2, melodySlots: [0, 6, 11], melodyDensity: 0.5,
+      contour: 'hover', bass: 'pedal', arpEvery: 6, swing: 0, perc: false,
+      brightness: 3000, bed: 'waves', breath: 12, volume: 0.85,
     },
   },
   {
@@ -80,8 +83,11 @@ export const MOODS: Mood[] = [
     track: '《陪你把它听完》',
     audio: {
       root: 130.81, scale: [0, 3, 5, 7, 10], progression: [CHORDS.i7, CHORDS.bVI, CHORDS.bIII, CHORDS.bVII],
-      bpm: 58, barsPerChord: 2, padWave: 'triangle', leadWave: 'sine', brightness: 2800,
-      melodyDensity: 0.4, pluckEvery: 4, perc: false, bed: 'rain', breath: 14, volume: 0.85,
+      bpm: 52, barsPerChord: 2,
+      pad: 'strings', melody: 'felt', arp: 'felt',
+      melodyLow: 2, melodyRange: 2, melodySlots: [0, 5, 10, 14], melodyDensity: 0.5,
+      contour: 'fall', bass: 'sparse', arpEvery: 8, swing: 0, perc: false,
+      brightness: 2600, bed: 'rain', breath: 14, volume: 0.85,
     },
   },
   {
@@ -109,8 +115,11 @@ export const MOODS: Mood[] = [
     track: '《先把电充回来》',
     audio: {
       root: 164.81, scale: [0, 2, 5, 7, 9], progression: [CHORDS.Imaj7, CHORDS.IVmaj7, CHORDS.ii7, CHORDS.V7sus],
-      bpm: 64, barsPerChord: 1, padWave: 'sine', leadWave: 'triangle', brightness: 3000,
-      melodyDensity: 0.45, pluckEvery: 4, perc: false, bed: 'waves', breath: 13, volume: 0.8,
+      bpm: 66, barsPerChord: 1,
+      pad: 'air', melody: 'air', arp: 'harp',
+      melodyLow: 2, melodyRange: 2, melodySlots: [0, 6, 12], melodyDensity: 0.45,
+      contour: 'fall', bass: 'pedal', arpEvery: 4, swing: 0.08, perc: false,
+      brightness: 2600, bed: 'waves', breath: 13, volume: 0.8,
     },
   },
   {
@@ -137,9 +146,12 @@ export const MOODS: Mood[] = [
     ],
     track: '《房间里多一盏灯》',
     audio: {
-      root: 155.56, scale: [0, 2, 3, 7, 9], progression: [CHORDS.i7, CHORDS.bIII, CHORDS.bVII, CHORDS.iv7],
-      bpm: 66, barsPerChord: 1, padWave: 'triangle', leadWave: 'sine', brightness: 3000,
-      melodyDensity: 0.55, pluckEvery: 2, perc: true, bed: 'rain', breath: 12, volume: 0.85,
+      root: 155.56, scale: [0, 2, 3, 7, 9], progression: [CHORDS.i9, CHORDS.bIII, CHORDS.bVII, CHORDS.iv7],
+      bpm: 70, barsPerChord: 1,
+      pad: 'glass', melody: 'bell', arp: 'harp',
+      melodyLow: 2, melodyRange: 2, melodySlots: [0, 4, 8, 12], melodyDensity: 0.55,
+      contour: 'arc', bass: 'root13', arpEvery: 4, swing: 0, perc: true,
+      brightness: 3400, bed: 'rain', breath: 12, volume: 0.85,
     },
   },
   {
@@ -167,8 +179,11 @@ export const MOODS: Mood[] = [
     track: '《先烧完再降温》',
     audio: {
       root: 138.59, scale: [0, 5, 7, 10, 12], progression: [CHORDS.i, CHORDS.iv, CHORDS.bVII, CHORDS.bVI],
-      bpm: 72, barsPerChord: 1, padWave: 'sawtooth', leadWave: 'triangle', brightness: 2400,
-      melodyDensity: 0.6, pluckEvery: 2, perc: true, bed: 'waves', breath: 10, volume: 0.78,
+      bpm: 84, barsPerChord: 1,
+      pad: 'reed', melody: 'reed', arp: 'reed',
+      melodyLow: 1, melodyRange: 2, melodySlots: [0, 2, 4, 6, 8, 10, 12, 14], melodyDensity: 0.6,
+      contour: 'leap', bass: 'root13', arpEvery: 2, swing: 0, perc: true,
+      brightness: 3800, bed: 'waves', breath: 10, volume: 0.74,
     },
   },
   {
@@ -196,8 +211,11 @@ export const MOODS: Mood[] = [
     track: '《把安静调得更深》',
     audio: {
       root: 174.61, scale: [0, 2, 4, 7, 9], progression: [CHORDS.Imaj7, CHORDS.vi7, CHORDS.IVmaj7, CHORDS.V7sus],
-      bpm: 70, barsPerChord: 1, padWave: 'sine', leadWave: 'sine', brightness: 3600,
-      melodyDensity: 0.5, pluckEvery: 2, perc: false, bed: 'none', breath: 11, volume: 0.85,
+      bpm: 72, barsPerChord: 1,
+      pad: 'strings', melody: 'felt', arp: 'harp',
+      melodyLow: 2, melodyRange: 2, melodySlots: [0, 4, 8, 11, 14], melodyDensity: 0.5,
+      contour: 'arc', bass: 'root13', arpEvery: 4, swing: 0, perc: false,
+      brightness: 3600, bed: 'none', breath: 11, volume: 0.85,
     },
   },
   {
@@ -225,8 +243,11 @@ export const MOODS: Mood[] = [
     track: '《晒久一点》',
     audio: {
       root: 196.0, scale: [0, 2, 4, 7, 9, 12], progression: [CHORDS.I, CHORDS.V, CHORDS.vi7, CHORDS.IV],
-      bpm: 92, barsPerChord: 1, padWave: 'triangle', leadWave: 'sine', brightness: 4800,
-      melodyDensity: 0.7, pluckEvery: 1, perc: true, bed: 'none', breath: 9, volume: 0.8,
+      bpm: 104, barsPerChord: 1,
+      pad: 'strings', melody: 'kalimba', arp: 'kalimba',
+      melodyLow: 2, melodyRange: 2, melodySlots: [0, 2, 3, 6, 8, 10, 11, 14], melodyDensity: 0.7,
+      contour: 'rise', bass: 'walk', arpEvery: 2, swing: 0.14, perc: true,
+      brightness: 5200, bed: 'none', breath: 9, volume: 0.78,
     },
   },
   {
@@ -253,9 +274,12 @@ export const MOODS: Mood[] = [
     ],
     track: '《让想念落下来》',
     audio: {
-      root: 146.83, scale: [0, 2, 3, 7, 9], progression: [CHORDS.vi7, CHORDS.IVmaj7, CHORDS.Imaj7, CHORDS.V],
-      bpm: 68, barsPerChord: 1, padWave: 'sine', leadWave: 'triangle', brightness: 2900,
-      melodyDensity: 0.45, pluckEvery: 4, perc: false, bed: 'rain', breath: 13, volume: 0.82,
+      root: 146.83, scale: [0, 2, 3, 7, 9], progression: [CHORDS.vi7, CHORDS.IVmaj7, CHORDS.Iadd9, CHORDS.V],
+      bpm: 62, barsPerChord: 1,
+      pad: 'strings', melody: 'bell', arp: 'felt',
+      melodyLow: 2, melodyRange: 2, melodySlots: [0, 3, 8, 11], melodyDensity: 0.45,
+      contour: 'fall', bass: 'sparse', arpEvery: 4, swing: 0, perc: false,
+      brightness: 2800, bed: 'rain', breath: 13, volume: 0.82,
     },
   },
   {
@@ -283,8 +307,11 @@ export const MOODS: Mood[] = [
     track: '《不催你睡》',
     audio: {
       root: 110.0, scale: [0, 3, 7, 10, 12], progression: [CHORDS.i7, CHORDS.iv7, CHORDS.i7, CHORDS.bVI],
-      bpm: 50, barsPerChord: 2, padWave: 'sine', leadWave: 'sine', brightness: 2200,
-      melodyDensity: 0.3, pluckEvery: 8, perc: false, bed: 'rain', breath: 16, volume: 0.78,
+      bpm: 44, barsPerChord: 2,
+      pad: 'glass', melody: 'glass', arp: 'bell',
+      melodyLow: 2, melodyRange: 2, melodySlots: [0, 8], melodyDensity: 0.6,
+      contour: 'fall', bass: 'pedal', arpEvery: 8, swing: 0, perc: false,
+      brightness: 1800, bed: 'rain', breath: 16, volume: 0.8,
     },
   },
 ];

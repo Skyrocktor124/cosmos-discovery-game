@@ -36,6 +36,11 @@ Type how you feel (Chinese or English) and it tunes a station for you:
   (起 / 承 / 转 / 合) that cycle with a fresh melody each time. All of it is
   synthesised from oscillators and noise with the Web Audio API: no audio
   files, no streaming, no bandwidth cost, and nothing to license.
+- **Stations differ on four axes, not just major vs minor** — instrument
+  (felt piano, bell, kalimba, reed, glass, breath, strings), register, rhythmic
+  grid, and the direction the melodic line tends to move. `improvise()` in
+  `music.ts` is exported pure so that last one can be measured directly:
+  falling stations run about −0.6 direction bias, the joyful one about +0.6.
 - **Breathing ring** paced to the station's own swell, doubling as play/pause,
   plus a live output meter so a muted device is obvious.
 - **A 6-track playlist** of real healing songs per mood, linking out to search

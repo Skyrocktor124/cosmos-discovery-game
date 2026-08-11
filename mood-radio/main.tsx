@@ -3,10 +3,32 @@ import ReactDOM from 'react-dom/client';
 import '../index.css';
 import ShareButton from '../shared/ShareButton';
 import { radio, SECTION_NAMES } from './music';
-import type { MusicProfile } from './music';
+import type { MusicProfile, Contour } from './music';
+import type { InstrumentName } from './instruments';
 import { MOODS, MOOD_BY_ID, matchMood, isIntense, songLink, type Mood, type MoodMatch } from './moods';
 
 const LAST_KEY = 'mood-radio-last-v1';
+
+// Naming what the listener is hearing makes the differences between stations
+// legible instead of merely felt.
+const INSTRUMENT_LABEL: Record<InstrumentName, string> = {
+  glass: '玻璃音',
+  felt: '毡槌钢琴',
+  harp: '拨弦',
+  kalimba: '卡林巴',
+  bell: '铃',
+  reed: '簧管',
+  air: '气声',
+  strings: '弦乐',
+};
+
+const CONTOUR_LABEL: Record<Contour, string> = {
+  fall: '旋律下行',
+  rise: '旋律上行',
+  arc: '旋律起落',
+  hover: '旋律盘旋',
+  leap: '旋律跳进',
+};
 const PLATFORMS = [
   { id: 'youtube', label: 'YouTube' },
   { id: 'spotify', label: 'Spotify' },
@@ -162,7 +184,8 @@ const Station: React.FC<{ match: MoodMatch; intense: boolean; onBack: () => void
       <div className="-mt-4 flex flex-col items-center gap-1 text-center">
         <span className="text-sm font-semibold text-white" data-testid="track-name">{mood.track}</span>
         <span className="text-[10px] text-slate-500">
-          为这个心情实时演奏 · {profile.bpm} BPM · {mood.audio.bed === 'rain' ? '雨声' : mood.audio.bed === 'waves' ? '海浪' : '无环境声'}
+          {INSTRUMENT_LABEL[mood.audio.melody]} · {profile.bpm} BPM · {CONTOUR_LABEL[mood.audio.contour]}
+          {mood.audio.bed !== 'none' && ` · ${mood.audio.bed === 'rain' ? '雨声' : '海浪'}`}
         </span>
       </div>
 
