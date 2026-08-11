@@ -14,6 +14,33 @@ server or API cost. Free to play, no download, no sign-up.
 - 📱 Responsive layout, works on desktop and mobile
 - 💸 **Zero running cost** — no API keys, no backend, pure static files
 
+## Apps in this repo
+
+Each folder is an independent, zero-cost static entry point built by the same
+Vite config:
+
+| Path | What it is |
+| --- | --- |
+| `/` | **Chroma Cosmos** — infinite procedural universe explorer |
+| `/astro-merge/` | **Astro Merge** — merge puzzle |
+| `/orbit-dash/` | **Orbit Dash** — one-touch orbit runner |
+| `/star-serpent/` | **Star Serpent** — space snake arcade |
+| `/mood-radio/` | **心情电台 Mood Radio** — type a mood, get a healing station |
+
+### 心情电台 Mood Radio 🎧
+
+Type how you feel (Chinese or English) and it tunes a station for you:
+
+- **Real-time soundscape** — an ambient pad, sparse notes from a mood-specific
+  scale, and a rain/ocean bed, all synthesised with the Web Audio API. No audio
+  files, no streaming, no bandwidth cost.
+- **Breathing ring** paced to the station's own swell, doubling as play/pause.
+- **A 6-track playlist** of real healing songs per mood, linking out to search
+  on YouTube / Spotify / 网易云 — links instead of embeds, so nothing to license.
+- 9 moods (焦虑 / 难过 / 疲惫 / 孤独 / 愤怒 / 平静 / 开心 / 思念 / 睡不着), matched by an
+  in-browser keyword dictionary — no API key, works offline after first load.
+- `?mood=<id>` deep links, so a shared station opens straight on that frequency.
+
 ## 中文说明
 
 这是一个零运行成本的网页宇宙探索游戏,已配置好自动部署和多平台上架条件。

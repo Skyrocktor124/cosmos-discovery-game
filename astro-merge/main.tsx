@@ -209,6 +209,9 @@ const App: React.FC = () => {
             <a href="../star-serpent/" className="hover:text-amber-300 transition-colors uppercase font-bold">
               ▶ Star Serpent
             </a>
+            <a href="../mood-radio/" className="hover:text-violet-300 transition-colors uppercase font-bold">
+              ▶ 心情电台
+            </a>
           </div>
         </div>
       </div>

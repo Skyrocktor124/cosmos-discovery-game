@@ -455,6 +455,13 @@ const App: React.FC = () => {
             ▶ Star Serpent
           </a>
 
+          <a
+            href="./mood-radio/"
+            className="text-xs text-slate-500 hover:text-violet-300 transition-colors uppercase font-bold whitespace-nowrap"
+          >
+            ▶ 心情电台
+          </a>
+
           <button
             onClick={handleNewGame}
             title="Start a new expedition"
