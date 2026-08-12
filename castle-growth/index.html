@@ -27,7 +27,19 @@
    整帧（含排版）都画在 canvas 上，便于逐帧导出为视频。
    ══════════════════════════════════════════════════════════════════ */
 
-const W = 1600, H = 900, FPS = 30, DUR = 14.0;
+const W = 1600, H = 900, FPS = 30, DUR = 17.0;
+const STAGE_X = 812, STAGE_Y = 494;
+
+/* ── 相机：绕 Y 轴缓慢环绕的正交转台 ─────────────────────────── */
+const CAM = {
+  from: -105,        // 起始方位角：接近正立面，看的是夯土基座
+  to  :  -45,        // 终止方位角：经典四分之三视角
+  bias:  1.9,        // >1 把转动前移，末段慢慢停稳在成品视角
+  phi :  30,         // 俯角
+  yEx :  0.90,       // 竖向夸张
+};
+const SINP = Math.sin(CAM.phi*Math.PI/180);
+const YSC  = CAM.yEx/Math.SQRT2;    // 与原固定视角的方块比例保持一致
 
 /* ── 阶段表 ───────────────────────────────────────────────────── */
 const PHASES = [
@@ -321,8 +333,10 @@ function buildModel(seed){
     v.sz = v.z + (v.z/rr)*dist*0.55 + Math.sin(a)*dist*0.75;
   }
 
-  /* 画家算法排序（按最终位置） */
-  list.sort((a,b)=> (a.x+a.y+a.z) - (b.x+b.y+b.z));
+  /* 画家算法：格点顺序只取决于相机所在象限，四种预排一次即可 */
+  const orders = {};
+  for(const sx of [1,-1]) for(const sz of [1,-1])
+    orders[sx+','+sz] = [...list].sort((a,b)=>(sx*a.x+sz*a.z+a.y)-(sx*b.x+sz*b.z+b.y));
 
   /* 预计算面色 */
   for(const v of list){
@@ -342,24 +356,27 @@ function buildModel(seed){
   makeFlag(1,48,0,9,6,'x',hsl2rgb(4,58,40),hsl2rgb(43,60,55),12.05);
   for(const [cx,cz] of TC) makeFlag(cx+1,35,cz,5,3,'x',hsl2rgb(4,55,38),hsl2rgb(40,55,52),12.30);
 
-  return { list, flags };
+  return { list, orders, flags };
 }
 
 /* ══════════════════════════════════════════════════════════════════
    投影 / 自适应取景
    ══════════════════════════════════════════════════════════════════ */
 function fit(list){
-  let S=1;
-  const proj=(x,y,z,s)=>[(x-z)*s, (x+z)*s*0.5 - y*s*0.9];
-  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
-  for(const v of list){
-    const [px,py]=proj(v.x,v.y,v.z,1);
-    if(px<x0)x0=px; if(px>x1)x1=px; if(py<y0)y0=py; if(py>y1)y1=py;
+  // 模型在 x/z 上关于原点对称，横向只需取最大半宽；纵向取整段环绕的并集
+  let hw=0, y0=1e9, y1=-1e9, STEPS=40;
+  for(let i=0;i<STEPS;i++){
+    const th=(CAM.from+(CAM.to-CAM.from)*i/(STEPS-1))*Math.PI/180;
+    const c=Math.cos(th), sn=Math.sin(th);
+    for(const v of list){
+      const rx=v.x*c+v.z*sn, py=(-v.x*sn+v.z*c)*SINP - v.y*YSC;
+      if(Math.abs(rx)>hw) hw=Math.abs(rx);
+      if(py<y0)y0=py; if(py>y1)y1=py;
+    }
   }
-  const targetH = 496, targetW = 590;
-  S = Math.min(targetH/(y1-y0), targetW/(x1-x0));
-  const cx = (x0+x1)/2*S, cy=(y0+y1)/2*S;
-  return { S, ox: 812 - cx, oy: 500 - cy, bbox:[x0*S,y0*S,x1*S,y1*S] };
+  const targetH = 500, targetW = 620;
+  const S = Math.min(targetH/(y1-y0), targetW/(2*hw));
+  return { S, ox: STAGE_X, oy: STAGE_Y - (y0+y1)/2*S, hw, y0, y1 };
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -395,28 +412,50 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 let MODEL = buildModel(2024);
 let VIEW  = fit(MODEL.list);
 
-function cube(px,py,S,HV,k,cT,cR,cL){
-  const s=S*k, hv=HV*k, h1=(s+hv)/2;
-  const ax=px, ay=py-h1;
-  const bx=px+s, by=py+s/2-h1;
-  const cx=px,   cy=py+s-h1;
-  const dx=px-s, dy=by;
-  const cby=py+h1;
-  const bby=py+s/2+hv-h1;
-  // 顶面
-  ctx.fillStyle=cT; ctx.beginPath();
-  ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.lineTo(cx,cy); ctx.lineTo(dx,dy); ctx.fill();
-  // 右面
-  ctx.fillStyle=cR; ctx.beginPath();
-  ctx.moveTo(bx,by); ctx.lineTo(cx,cy); ctx.lineTo(cx,cby); ctx.lineTo(bx,bby); ctx.fill();
-  // 左面
-  ctx.fillStyle=cL; ctx.beginPath();
-  ctx.moveTo(dx,dy); ctx.lineTo(cx,cy); ctx.lineTo(cx,cby); ctx.lineTo(dx,bby); ctx.fill();
+/* 正交投影下所有立方体的顶点偏移都相同，每帧只算一次 */
+const CORNER=[];
+for(const dy of [0.5,-0.5]) for(const dx of [-0.5,0.5]) for(const dz of [-0.5,0.5]) CORNER.push([dx,dy,dz]);
+const F_TOP=[0,2,3,1], F_XP=[2,3,7,6], F_XN=[0,1,5,4], F_ZP=[1,3,7,5], F_ZN=[0,2,6,4];
+const PX=new Float64Array(8), PY=new Float64Array(8);
+let FACE=[[F_TOP,'cT'],[F_XP,'cR'],[F_ZP,'cL']];
+
+function camAt(t){
+  const p=clamp(t/DUR,0,1);
+  const sm=p*p*p*(p*(p*6-15)+10);                // smootherstep：起停都柔和
+  const e=1-Math.pow(1-sm,CAM.bias);             // 前移，末段留出停稳时间
+  return (CAM.from+(CAM.to-CAM.from)*e)*Math.PI/180;
+}
+function setCam(th){
+  const S=VIEW.S*1.02, c=Math.cos(th), sn=Math.sin(th);
+  for(let i=0;i<8;i++){
+    const q=CORNER[i];
+    PX[i]=(q[0]*c+q[2]*sn)*S;
+    PY[i]=((-q[0]*sn+q[2]*c)*SINP - q[1]*YSC)*S;
+  }
+  const px = sn<0, pz = c>0;                     // 朝向相机的两个侧面
+  const xf = px?F_XP:F_XN, zf = pz?F_ZP:F_ZN;
+  const xs = (px?0.5:-0.5)*c, zs = (pz?0.5:-0.5)*sn;   // 谁落在屏幕右侧就给亮面
+  FACE = xs>zs ? [[F_TOP,'cT'],[xf,'cR'],[zf,'cL']]
+               : [[F_TOP,'cT'],[xf,'cL'],[zf,'cR']];
+  return [c,sn];
+}
+function cube(cx,cy,k,v){
+  for(let f=0;f<3;f++){
+    const q=FACE[f][0];
+    ctx.fillStyle=v[FACE[f][1]];
+    ctx.beginPath();
+    ctx.moveTo(cx+PX[q[0]]*k, cy+PY[q[0]]*k);
+    ctx.lineTo(cx+PX[q[1]]*k, cy+PY[q[1]]*k);
+    ctx.lineTo(cx+PX[q[2]]*k, cy+PY[q[2]]*k);
+    ctx.lineTo(cx+PX[q[3]]*k, cy+PY[q[3]]*k);
+    ctx.fill();
+  }
 }
 
 function drawBuilding(t){
-  const {S,ox,oy}=VIEW, HV=S*0.9, EX=1.04;
-  const list=MODEL.list;
+  const {S,ox,oy}=VIEW;
+  const [c,sn]=setCam(camAt(t));
+  const list=MODEL.orders[(sn<0?1:-1)+','+(c>0?1:-1)];
   let placed=0, flying=0;
 
   for(let i=0;i<list.length;i++){
@@ -439,24 +478,24 @@ function drawBuilding(t){
       k=1-q*0.55; a=1-q;
     } else placed++;
 
-    const px=ox+(x-z)*S, py=oy+(x+z)*S*0.5 - y*HV;
+    const px=ox+(x*c+z*sn)*S, py=oy+((-x*sn+z*c)*SINP - y*YSC)*S;
     if(px<-40||px>W+40||py<-40||py>H+40) continue;
-    if(a<1){ ctx.globalAlpha=a; cube(px,py,S*EX,HV*EX,k,v.cT,v.cR,v.cL); ctx.globalAlpha=1; }
-    else cube(px,py,S*EX,HV*EX,k,v.cT,v.cR,v.cL);
+    if(a<1){ ctx.globalAlpha=a; cube(px,py,k,v); ctx.globalAlpha=1; }
+    else cube(px,py,k,v);
   }
 
   /* 旗帜 */
   for(const f of MODEL.flags){
     if(t<f.t0) continue;
     const ap=clamp((t-f.t0)/0.5,0,1);
-    for(const c of f.cells){
-      if(c.u/f.w > ap) continue;
-      const ph=c.u*0.85 - t*5.2;
-      const zoff=Math.sin(ph)*0.9*(c.u/f.w)*2;
-      const yoff=Math.sin(ph*0.8+1)*0.45*(c.u/f.w)*2;
-      const x=f.ax+c.u, y=f.ay-c.v+yoff, z=f.az+zoff;
-      const px=ox+(x-z)*S, py=oy+(x+z)*S*0.5 - y*HV;
-      cube(px,py,S*EX,HV*EX,1,c.cT,c.cR,c.cL);
+    for(const cell of f.cells){
+      if(cell.u/f.w > ap) continue;
+      const ph=cell.u*0.85 - t*5.2;
+      const zoff=Math.sin(ph)*0.9*(cell.u/f.w)*2;
+      const yoff=Math.sin(ph*0.8+1)*0.45*(cell.u/f.w)*2;
+      const x=f.ax+cell.u, y=f.ay-cell.v+yoff, z=f.az+zoff;
+      const px=ox+(x*c+z*sn)*S, py=oy+((-x*sn+z*c)*SINP - y*YSC)*S;
+      cube(px,py,1,cell);
     }
   }
   return {placed, flying, total:list.length};
@@ -509,6 +548,8 @@ function drawChrome(t, stats){
   ctx.textAlign='left'; ctx.letterSpacing='2.4px';
   ctx.fillStyle=SUB; ctx.font='500 10px '+FM;
   ctx.fillText('FRAME / '+String(Math.round(t*FPS)).padStart(3,'0'), LX, 268);
+  const az=((camAt(t)*180/Math.PI)%360+360)%360;
+  ctx.fillText('AZIMUTH / '+az.toFixed(1).padStart(5,'0')+'°', LX, 286);
 
   ctx.letterSpacing='2px';
   ctx.fillStyle=INK; ctx.font='700 52px '+FCJK_S;
@@ -519,7 +560,7 @@ function drawChrome(t, stats){
   ctx.beginPath(); ctx.moveTo(LX,368); ctx.lineTo(LX+92,368); ctx.stroke();
 
   ctx.fillStyle='#4c4a45'; ctx.font='400 12.5px '+FCJK_H; ctx.letterSpacing='1.1px';
-  const quote=['“镜头固定不变。','砖、木、瓦从散落状态','向结构位置快速汇聚，','由下至上完成装配。”'];
+  const quote=['“镜头缓慢环绕。','砖、木、瓦从散落状态','向结构位置快速汇聚，','由下至上完成装配。”'];
   quote.forEach((s,i)=>ctx.fillText(s, LX, 404+i*21));
   ctx.strokeStyle=LINE;
   ctx.beginPath(); ctx.moveTo(LX,500); ctx.lineTo(LX+150,500); ctx.stroke();
@@ -561,7 +602,7 @@ function drawChrome(t, stats){
     const label = P.cn+'  /  '+P.en;
     ctx.font='500 11.5px '+FCJK_H; ctx.letterSpacing='2px'; ctx.textAlign='center';
     const wdt = ctx.measureText(label).width + 34;
-    const bx = 812, by = 800;
+    const bx = STAGE_X, by = 806;
     const app = clamp((t-P.t0)/0.35,0,1);
     ctx.globalAlpha = app;
     ctx.fillStyle='rgba(255,255,255,.82)'; ctx.strokeStyle=LINE; ctx.lineWidth=1;
@@ -575,7 +616,7 @@ function drawChrome(t, stats){
   if(t>=13.0){
     const q=clamp((t-13.0)/1.0,0,1);
     ctx.globalAlpha=(1-q)*0.5; ctx.strokeStyle=REDC; ctx.lineWidth=1.4;
-    ctx.beginPath(); ctx.arc(812,470,318+q*130,0,7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(STAGE_X,STAGE_Y,320+q*130,0,7); ctx.stroke();
     ctx.globalAlpha=1;
   }
 
@@ -599,33 +640,33 @@ function drawChrome(t, stats){
 /* 舞台背景 */
 function drawStage(t){
   ctx.fillStyle=PAPER; ctx.fillRect(0,0,W,H);
-  const g=ctx.createRadialGradient(812,470,40,812,470,540);
+  const g=ctx.createRadialGradient(STAGE_X,STAGE_Y,40,STAGE_X,STAGE_Y,540);
   g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(1,'rgba(255,255,255,0)');
   ctx.fillStyle=g; ctx.fillRect(200,120,1230,760);
 
   const rr=clamp((t-0.15)/0.9,0,1), e=easeOutCubic(rr);
   ctx.strokeStyle='rgba(120,116,108,.28)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.arc(812,470,318,-Math.PI/2,-Math.PI/2+Math.PI*2*e); ctx.stroke();
+  ctx.beginPath(); ctx.arc(STAGE_X,STAGE_Y,320,-Math.PI/2,-Math.PI/2+Math.PI*2*e); ctx.stroke();
   ctx.strokeStyle='rgba(120,116,108,.14)';
-  ctx.beginPath(); ctx.arc(812,470,352,-Math.PI/2,-Math.PI/2+Math.PI*2*e); ctx.stroke();
+  ctx.beginPath(); ctx.arc(STAGE_X,STAGE_Y,354,-Math.PI/2,-Math.PI/2+Math.PI*2*e); ctx.stroke();
 
   // 地面接触阴影
   const sp=clamp((t-0.8)/1.6,0,1);
   ctx.save(); ctx.globalAlpha=0.16*sp;
-  const sg=ctx.createRadialGradient(812,690,10,812,690,250);
+  const gy=VIEW.oy + 5.5*YSC*VIEW.S, gr=VIEW.hw*VIEW.S*1.02;
+  const sg=ctx.createRadialGradient(STAGE_X,gy,10,STAGE_X,gy,gr);
   sg.addColorStop(0,'rgba(60,55,48,.95)'); sg.addColorStop(1,'rgba(60,55,48,0)');
-  ctx.fillStyle=sg; ctx.translate(812,690); ctx.scale(1,0.30); ctx.translate(-812,-690);
-  ctx.beginPath(); ctx.arc(812,690,250,0,7); ctx.fill(); ctx.restore();
+  ctx.fillStyle=sg; ctx.translate(STAGE_X,gy); ctx.scale(1,0.30); ctx.translate(-STAGE_X,-gy);
+  ctx.beginPath(); ctx.arc(STAGE_X,gy,gr,0,7); ctx.fill(); ctx.restore();
 }
 
 function render(t){
   t = clamp(t,0,DUR);
   drawStage(t);
   const stats = drawBuilding(t);
-  const gx=-7, gz=21, gy=-6;                       // 岩基前的地面
-  drawFigure(VIEW.ox + (gx-gz)*VIEW.S,
-             VIEW.oy + (gx+gz)*VIEW.S*0.5 - gy*VIEW.S*0.9,
-             VIEW.S*5.4, t);
+  drawFigure(VIEW.ox - 25.5*VIEW.S,                // 固定在岩基前左侧
+             VIEW.oy + (19*SINP + 6*YSC)*VIEW.S,
+             VIEW.S*3.9, t);
   ctx.save(); ctx.globalCompositeOperation='multiply'; ctx.globalAlpha=0.05;
   ctx.fillStyle=grain; ctx.fillRect(0,0,W,H); ctx.restore();
   drawChrome(t, stats);
