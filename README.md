@@ -14,7 +14,7 @@ server or API cost. Free to play, no download, no sign-up.
 | Astro Merge | `/astro-merge/` | Space-themed 2048-style merge puzzle |
 | Orbit Dash | `/orbit-dash/` | One-button orbital arcade run |
 | Star Serpent | `/star-serpent/` | Classic snake in deep space |
-| Mossling Wander 苔灵漫游 | `/mossling/` | **3D** cozy exploration — five regions, no fail state (three.js) |
+| Mossling Wander 苔灵漫游 | `/mossling/` | **3D** cozy exploration — six regions, no fail state (three.js) |
 
 ## Features
 

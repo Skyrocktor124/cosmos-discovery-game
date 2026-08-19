@@ -6,8 +6,8 @@ import SoundToggle from '../shared/SoundToggle';
 import ShareButton from '../shared/ShareButton';
 import { sfx } from '../shared/sfx';
 import {
-  createGlowTexture, createMossling, createPlantingRing, createSeed, createTree, flat, makeSway,
-  Mossling, rand, updateMossling,
+  createGlowTexture, createMossling, createPlantingRing, createRainbow, createSeed, createTree,
+  flat, makeSway, Mossling, rand, updateMossling,
 } from './models';
 import {
   buildWorld, DISCOVERIES, dominantRegion, isWater, PLANT_SPOTS, Region, REGIONS,
@@ -61,11 +61,14 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<{ icon: string; title: string; note: string } | null>(null);
   const [prompt, setPrompt] = useState<Prompt>(null);
   const [codexOpen, setCodexOpen] = useState(false);
+  const [sitting, setSitting] = useState(false);
   const fadeRef = useRef<HTMLDivElement>(null);
 
   const startedRef = useRef(false);
   startedRef.current = started;
-  const controls = useRef<{ interact: () => void; jump: () => void }>({ interact: () => {}, jump: () => {} });
+  const controls = useRef<{ interact: () => void; jump: () => void; sit: () => void }>({
+    interact: () => {}, jump: () => {}, sit: () => {},
+  });
 
   const persist = useCallback(() => {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(saved.current)); } catch { /* ignore */ }
@@ -256,6 +259,10 @@ const App: React.FC = () => {
     rain.frustumCulled = false;
     scene.add(rain);
 
+    // --- Rainbow ----------------------------------------------------------
+    const rainbow = createRainbow();
+    scene.add(rainbow);
+
     // --- Leaf burst for planting -----------------------------------------
     const leafGeo = new THREE.TetrahedronGeometry(0.2);
     const leafMats = [new THREE.MeshToonMaterial({ color: 0x8fd06a }), new THREE.MeshToonMaterial({ color: 0xe0b545 })];
@@ -284,6 +291,7 @@ const App: React.FC = () => {
       x: 0, z: 14, y: 0, vy: 0, airborne: false,
       facing: Math.PI, camYaw: Math.PI, moving: false, turn: 0,
       napT: 0, napping: false, napFlipped: false, fade: 0,
+      sitting: false, sitT: 0, wetness: 0, rainbowT: 0,
       nightT: saved.current.night ? 1 : 0,
       time: 0,
     };
@@ -347,19 +355,29 @@ const App: React.FC = () => {
       }
     };
 
+    const sit = () => {
+      if (!startedRef.current || P.napping) return;
+      P.sitting = !P.sitting;
+      P.sitT = 0;
+      sfx.play('click');
+      setSitting(P.sitting);
+    };
+
     const jump = () => {
       if (!startedRef.current || P.airborne || P.napping) return;
+      if (P.sitting) { P.sitting = false; setSitting(false); return; }
       P.vy = JUMP_V;
       P.airborne = true;
       sfx.play('blip');
     };
-    controls.current = { interact, jump };
+    controls.current = { interact, jump, sit };
 
     // --- Input ------------------------------------------------------------
     const onKeyDown = (e: KeyboardEvent) => {
       keys.add(e.key.toLowerCase());
       if (e.key === ' ') { e.preventDefault(); jump(); }
       if (e.key.toLowerCase() === 'e' || e.key === 'Enter') { e.preventDefault(); interact(); }
+      if (e.key.toLowerCase() === 'c') { e.preventDefault(); sit(); }
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
 
@@ -454,7 +472,9 @@ const App: React.FC = () => {
         if (joy.active) { mx += joy.dx; mz += joy.dy; }
       }
       const mag = Math.hypot(mx, mz);
-      P.moving = mag > 0.15;
+      if (P.sitting && mag > 0.15) { P.sitting = false; setSitting(false); }
+      P.moving = mag > 0.15 && !P.sitting;
+      if (P.sitting) { mx = 0; mz = 0; P.sitT += dt; }
       if (P.moving) {
         const nx = mx / mag;
         const nz = mz / mag;
@@ -530,6 +550,23 @@ const App: React.FC = () => {
       const rainAmount = REGIONS.reduce((acc, r, i) => acc + r.rain * weights[i], 0);
       rainMat.opacity = rainAmount * 0.45;
 
+      // Walking out of the rain into daylight hangs a rainbow over the valley.
+      P.wetness = rainAmount > 0.45
+        ? Math.min(1, P.wetness + dt * 0.5)
+        : Math.max(0, P.wetness - dt * 0.06);
+      const wantRainbow = P.wetness > 0.35 && rainAmount < 0.2 && P.nightT < 0.3;
+      P.rainbowT = THREE.MathUtils.clamp(P.rainbowT + (wantRainbow ? dt * 0.4 : -dt * 0.5), 0, 1);
+      rainbow.visible = P.rainbowT > 0.01;
+      if (rainbow.visible) {
+        // The arch always stands out ahead of the camera, like the real thing:
+        // its plane is square to the view, so it reads as an arc, not an edge.
+        rainbow.position.set(P.x + Math.sin(P.camYaw) * 170, 1.5, P.z + Math.cos(P.camYaw) * 170);
+        rainbow.rotation.set(0, P.camYaw, 0);
+        rainbow.children.forEach(band => {
+          ((band as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.3 * P.rainbowT;
+        });
+      }
+
       // --- Rain particles (only stepped when it is actually raining) ---
       if (rainAmount > 0.02) {
         for (let i = 0; i < DROPS; i++) {
@@ -564,7 +601,7 @@ const App: React.FC = () => {
       mossling.group.rotation.y = P.facing;
       updateMossling(mossling, dt, t, {
         moving: P.moving, airborne: P.airborne, vy: P.vy, turn: P.turn,
-        raining: rainAmount > 0.35, napping: P.napping,
+        raining: rainAmount > 0.35, napping: P.napping, sitting: P.sitting,
       });
       shadow.position.set(P.x, groundY + 0.06, P.z);
       const lift = Math.max(0, P.y - groundY);
@@ -580,7 +617,8 @@ const App: React.FC = () => {
         while (d < -Math.PI) d += Math.PI * 2;
         P.camYaw += d * Math.min(1, dt * 0.9);
       }
-      const camDist = 11;
+      // Sitting eases the camera back and a little lower, like settling in.
+      const camDist = P.sitting ? 11 + Math.min(4.5, P.sitT * 1.6) : 11;
       const camX = P.x - Math.sin(P.camYaw) * camDist;
       const camZ = P.z - Math.cos(P.camYaw) * camDist;
       const camY = Math.max(terrainHeight(camX, camZ) + 2.6, P.y + 4.6);
@@ -857,6 +895,26 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Sit down and rest */}
+      {started && !prompt && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <button
+            data-testid="sit"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={() => controls.current.sit()}
+            className="px-5 py-2.5 rounded-2xl bg-emerald-900/50 border border-emerald-200/30 text-emerald-50 text-sm font-bold tracking-wide backdrop-blur-sm hover:bg-emerald-800/60 transition-colors"
+          >
+            {sitting ? '起来走走 (C)' : '坐下歇会儿 (C)'}
+          </button>
+        </div>
+      )}
+
+      {sitting && (
+        <div className="absolute bottom-24 left-0 right-0 text-center pointer-events-none">
+          <p className="text-emerald-50/80 text-sm animate-in fade-in">风在竹子和稻子中间来回走。什么都不用做。</p>
+        </div>
+      )}
+
       {/* Mobile helpers */}
       {started && (
         <button
@@ -905,13 +963,14 @@ const App: React.FC = () => {
           </h1>
           <p className="text-emerald-100/70 text-xs uppercase tracking-[0.3em]">Mossling Wander</p>
           <p className="text-sm text-emerald-50/90 max-w-sm leading-relaxed">
-            一只背上长着苔藓和小蘑菇的森林精灵,住在一片有五种风景的山谷里。<br />
+            一只背上长着苔藓和小蘑菇的森林精灵,住在一片有六种风景的山谷里。<br />
             没有敌人,没有计时,也不会失败 —— 走走看看,捡起会发光的种子,把它们种回土里。
           </p>
           <div className="text-xs text-emerald-100/70 leading-relaxed">
             <span className="text-lime-200 font-bold">WASD / 方向键</span> 走路 ·
             <span className="text-lime-200 font-bold"> 空格</span> 跳 ·
             <span className="text-lime-200 font-bold"> E</span> 互动 ·
+            <span className="text-lime-200 font-bold"> C</span> 坐下 ·
             <span className="text-lime-200 font-bold"> 拖动鼠标 / Q R</span> 转视角<br />
             手机:左半屏拖动走路,右半屏拖动转视角
           </div>

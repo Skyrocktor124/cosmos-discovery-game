@@ -2,8 +2,9 @@
 // into one another, and the landmarks scattered through them.
 import * as THREE from 'three';
 import {
-  createBush, createButterfly, createDragonfly, createFence, createGreatTree, createLantern,
-  createMushroomCluster, createRock, createScarecrow, createSteppingStone, createTree,
+  createBamboo, createBridge, createBush, createButterfly, createDragonfly, createFarmhouse,
+  createFence, createGreatTree, createLantern, createMushroomCluster, createPowerPole, createRock,
+  createScarecrow, createStoneSteps, createSteppingStone, createTree,
   flat, makeSway, rand, toon, TreePalette,
 } from './models';
 
@@ -55,6 +56,13 @@ export const REGIONS: Region[] = [
     trees: { trunk: 0x66503a, leaves: [0x468a63, 0x57a06f] }, grass: 0x74a878, density: 22,
   },
   {
+    id: 'bamboo', name: 'Bamboo Grove', nameZh: '竹林小径',
+    blurb: '风从竹子中间穿过去的时候,整片林子都在轻轻响。',
+    x: -70, z: 78, radius: 52,
+    skyTop: 0x6f9fbe, skyBottom: 0xdcecd8, fog: 0xc8ddcb, ground: 0x6f8f52, rain: 0.15,
+    trees: { trunk: 0x6b5945, leaves: [0x7fa84e, 0x6f9a45] }, grass: 0x86a85e, density: 8,
+  },
+  {
     id: 'meadow', name: 'Flower Slope', nameZh: '花田山坡',
     blurb: '躺下来的话,能听见蝴蝶翅膀擦过花瓣。',
     x: 70, z: -85, radius: 58,
@@ -65,6 +73,15 @@ export const REGIONS: Region[] = [
 
 // --- Terrain -----------------------------------------------------------
 const POND = { x: 95, z: 25, r: 24, floor: -1.2 };
+// A stream runs west out of the pond; the plank bridge crosses it.
+const STREAM = { ax: 74, az: 20, bx: 30, bz: 44, width: 3.4, floor: -1.0 };
+
+const distToSegment = (x: number, z: number, ax: number, az: number, bx: number, bz: number): number => {
+  const dx = bx - ax;
+  const dz = bz - az;
+  const t = THREE.MathUtils.clamp(((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz), 0, 1);
+  return Math.hypot(x - (ax + dx * t), z - (az + dz * t));
+};
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
@@ -79,11 +96,16 @@ export const terrainHeight = (x: number, z: number): number => {
   // The hollow that holds the pond.
   const pond = 1 - smoothstep(POND.r * 0.55, POND.r * 1.25, Math.hypot(x - POND.x, z - POND.z));
   h = THREE.MathUtils.lerp(h, POND.floor, pond);
+  // The stream channel.
+  const stream = 1 - smoothstep(STREAM.width, STREAM.width * 2.6,
+    distToSegment(x, z, STREAM.ax, STREAM.az, STREAM.bx, STREAM.bz));
+  h = THREE.MathUtils.lerp(h, STREAM.floor, stream * 0.9);
   return h;
 };
 
 export const isWater = (x: number, z: number): boolean =>
-  Math.hypot(x - POND.x, z - POND.z) < POND.r * 0.82 && terrainHeight(x, z) < -0.35;
+  (Math.hypot(x - POND.x, z - POND.z) < POND.r * 0.82 && terrainHeight(x, z) < -0.35) ||
+  distToSegment(x, z, STREAM.ax, STREAM.az, STREAM.bx, STREAM.bz) < STREAM.width * 0.85;
 
 // Influence of each region at a point, normalised so the weights sum to 1.
 export const regionWeights = (x: number, z: number): number[] => {
@@ -124,6 +146,11 @@ export const DISCOVERIES: Discovery[] = [
   { id: 'fireflies', icon: '✨', name: '萤火虫', note: '它们只在夜里出来。站着别动,就会有几只停在你头上的芽上。', x: 100, z: 30, radius: 12 },
   { id: 'lantern', icon: '🏮', name: '苔藓石灯', note: '灯里的火不知道是谁点的,但从来没灭过。', x: 112, z: 6, radius: 6 },
   { id: 'butterflies', icon: '🦋', name: '蝴蝶花海', note: '花开得太密了,风一吹分不清哪些是花瓣哪些是翅膀。', x: 70, z: -85, radius: 12 },
+  { id: 'bamboo', icon: '🎋', name: '竹林小径', note: '抬头只看得见一条细细的天。风穿过来的时候,竹子会一起点头。', x: -70, z: 78, radius: 14 },
+  { id: 'bridge', icon: '🌉', name: '小木桥', note: '桥板被踩得发亮。站在中间往下看,水里有云在走。', x: 52, z: 32, radius: 7 },
+  { id: 'farmhouse', icon: '🏡', name: '山边的老房子', note: '没有人在,但廊下扫得很干净。坐一会儿也没关系。', x: 34, z: 66, radius: 10 },
+  { id: 'poles', icon: '🪵', name: '田埂上的电线杆', note: '一根接着一根走到很远的地方,电线上停着看不清的小鸟。', x: -34, z: -58, radius: 9 },
+  { id: 'steps', icon: '🪜', name: '长苔的石阶', note: '不知道通向哪里,但每一级都有人踩过的凹痕。', x: -84, z: 52, radius: 7 },
 ];
 
 // --- Seeds & planting spots -------------------------------------------
@@ -152,6 +179,8 @@ export interface World {
   sway: { value: number }[];
   rice: THREE.InstancedMesh | null;
   flowers: THREE.InstancedMesh[];
+  bridge: THREE.Group;
+  farmhouse: THREE.Group;
   butterflies: THREE.Group[];
   dragonflies: THREE.Group[];
   lanternGlow: THREE.Mesh[];
@@ -355,6 +384,43 @@ export const buildWorld = (): World => {
   const lantern = createLantern();
   place(lantern, 112, 6);
 
+  // Bamboo grove: dense stalks, thicker toward the middle of the region.
+  const bambooRegion = REGIONS.find(r => r.id === 'bamboo')!;
+  for (let i = 0; i < 190; i++) {
+    const a = rand(0, Math.PI * 2);
+    const r = Math.sqrt(Math.random()) * bambooRegion.radius * 0.85;
+    const x = bambooRegion.x + Math.sin(a) * r;
+    const z = bambooRegion.z + Math.cos(a) * r;
+    place(createBamboo(), x, z);
+  }
+  place(createStoneSteps(9), -84, 52);
+
+  // The stream, the bridge over it, and the farmhouse on the near bank.
+  // The plane is laid flat in its own geometry, then yawed to follow the
+  // channel — rotating x and z on the mesh would twist it instead.
+  const streamAngle = Math.atan2(STREAM.bz - STREAM.az, STREAM.bx - STREAM.ax);
+  const streamGeo = new THREE.PlaneGeometry(
+    Math.hypot(STREAM.bx - STREAM.ax, STREAM.bz - STREAM.az) + 14, STREAM.width * 2.1, 1, 1);
+  streamGeo.rotateX(-Math.PI / 2);
+  const stream = new THREE.Mesh(streamGeo, new THREE.MeshLambertMaterial({
+    color: 0x6fb0c4, transparent: true, opacity: 0.75,
+  }));
+  stream.rotation.y = -streamAngle;
+  stream.position.set((STREAM.ax + STREAM.bx) / 2, -0.42, (STREAM.az + STREAM.bz) / 2);
+  group.add(stream);
+
+  const bridge = createBridge();
+  bridge.rotation.y = -streamAngle;
+  bridge.position.set(52, -0.75, 32);
+  group.add(bridge);
+
+  const farmhouse = createFarmhouse();
+  farmhouse.rotation.y = -0.5;
+  place(farmhouse, 34, 66);
+
+  // Power poles marching along the paddy edge.
+  for (let i = 0; i < 6; i++) place(createPowerPole(), -34 + i * 15, -58 - i * 6);
+
   // Pond + stepping stones.
   const pond = new THREE.Mesh(
     new THREE.CircleGeometry(POND.r * 0.85, 56),
@@ -408,7 +474,7 @@ export const buildWorld = (): World => {
   }
 
   return {
-    group, sway, rice, flowers: [stems, blossoms], butterflies, dragonflies,
+    group, sway, rice, flowers: [stems, blossoms], bridge, farmhouse, butterflies, dragonflies,
     lanternGlow: [lantern.userData.glow as THREE.Mesh],
     pond, ripples, swing,
   };

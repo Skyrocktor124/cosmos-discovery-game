@@ -216,7 +216,7 @@ export const updateMossling = (
   m: Mossling,
   dt: number,
   t: number,
-  st: { moving: boolean; airborne: boolean; vy: number; turn: number; raining: boolean; napping: boolean },
+  st: { moving: boolean; airborne: boolean; vy: number; turn: number; raining: boolean; napping: boolean; sitting?: boolean },
 ): void => {
   if (st.napping) {
     // Curled up asleep: slow breathing, ears drooped.
@@ -228,6 +228,24 @@ export const updateMossling = (
     m.eyeL.scale.y = m.eyeR.scale.y = 0.12;
     m.armL.rotation.x = m.armR.rotation.x = 0.5;
     m.hat.visible = false;
+    return;
+  }
+
+  if (st.sitting) {
+    // Sitting down: settles onto its haunches and just breathes.
+    m.body.scale.set(1.08, 0.94 + Math.sin(t * 1.8) * 0.02, 1.0);
+    m.body.position.y = THREE.MathUtils.lerp(m.body.position.y, 0.86, dt * 4);
+    m.armL.position.y = m.armR.position.y = THREE.MathUtils.lerp(m.armL.position.y, 0.8, dt * 4);
+    m.armL.rotation.x = m.armR.rotation.x = THREE.MathUtils.lerp(m.armL.rotation.x, 0.35, dt * 4);
+    m.earL.rotation.z = THREE.MathUtils.lerp(m.earL.rotation.z, -0.12, dt * 3);
+    m.earR.rotation.z = THREE.MathUtils.lerp(m.earR.rotation.z, 0.12, dt * 3);
+    m.sprout.rotation.z = Math.sin(t * 1.4) * 0.2;
+    m.group.rotation.z = THREE.MathUtils.lerp(m.group.rotation.z, 0, dt * 4);
+    m.blink -= dt;
+    m.eyeL.scale.y = m.eyeR.scale.y = m.blink < 0.13 ? 0.12 : 1;
+    if (m.blink < 0) m.blink = rand(2.4, 6);
+    m.hat.visible = st.raining;
+    if (st.raining) m.hat.position.y = 2.2 + Math.sin(t * 2.2) * 0.05;
     return;
   }
 
@@ -511,5 +529,162 @@ export const createLantern = (): THREE.Group => {
   roof.rotation.y = Math.PI / 4;
   g.add(base, shaft, house, glow, roof);
   g.userData.glow = glow;
+  return g;
+};
+
+// --- Countryside vignettes ---------------------------------------------
+// A stalk of bamboo: segmented culm plus a few leaf sprays near the top.
+export const createBamboo = (): THREE.Group => {
+  const g = new THREE.Group();
+  const h = rand(7, 13);
+  const culm = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.17, h, 7), toon(0x8fae5c));
+  culm.position.y = h / 2;
+  g.add(culm);
+  // Node rings.
+  for (let y = 1.2; y < h; y += rand(1.4, 2.2)) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.028, 5, 8), toon(0x6f8f45));
+    ring.position.y = y;
+    ring.rotation.x = Math.PI / 2;
+    g.add(ring);
+  }
+  const leafGeo = new THREE.SphereGeometry(0.5, 8, 5);
+  for (let i = 0; i < 5; i++) {
+    const spray = new THREE.Mesh(leafGeo, flat(0x77a84a));
+    spray.scale.set(rand(0.8, 1.6), 0.2, rand(0.5, 0.9));
+    const a = rand(0, Math.PI * 2);
+    spray.position.set(Math.sin(a) * 0.6, h - rand(0.4, 3), Math.cos(a) * 0.6);
+    spray.rotation.set(rand(-0.3, 0.3), a, rand(-0.4, 0.4));
+    g.add(spray);
+  }
+  g.rotation.z = rand(-0.06, 0.06);
+  return g;
+};
+
+// A plank bridge with handrails, for crossing the stream.
+export const createBridge = (): THREE.Group => {
+  const g = new THREE.Group();
+  const wood = toon(0x9c7a4f);
+  const dark = toon(0x7a5c39);
+  for (let i = 0; i < 9; i++) {
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.13, 0.52), wood);
+    plank.position.set(0, 0.9 + Math.sin((i / 8) * Math.PI) * 0.35, (i - 4) * 0.62);
+    g.add(plank);
+  }
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 5; i++) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 1.1, 6), dark);
+      post.position.set(side * 1.15, 1.3 + Math.sin((i / 4) * Math.PI) * 0.3, (i - 2) * 1.24);
+      g.add(post);
+    }
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 5.6), dark);
+    rail.position.set(side * 1.15, 1.95, 0);
+    g.add(rail);
+  }
+  return g;
+};
+
+// An old farmhouse with a wooden veranda you can sit on.
+export const createFarmhouse = (): THREE.Group => {
+  const g = new THREE.Group();
+  const wall = toon(0xd8c9a8);
+  const beam = toon(0x6b4f36);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(7, 3.2, 5.4), wall);
+  body.position.y = 1.9;
+  g.add(body);
+
+  // Thatched roof: two slabs meeting in a ridge.
+  const roofMat = toon(0x8a7448);
+  for (const side of [-1, 1]) {
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.5, 3.9), roofMat);
+    slab.position.set(0, 4.5, side * 1.65);
+    slab.rotation.x = side * 0.42;
+    g.add(slab);
+  }
+  const ridge = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.42, 0.6), toon(0x6f5c38));
+  ridge.position.y = 5.35;
+  g.add(ridge);
+
+  // Veranda (engawa) along the front.
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.22, 1.6), toon(0xb99a66));
+  deck.position.set(0, 0.95, 3.4);
+  g.add(deck);
+  for (const x of [-3.2, 0, 3.2]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.95, 6), beam);
+    leg.position.set(x, 0.47, 4.05);
+    g.add(leg);
+  }
+  // Paper doors.
+  for (const x of [-1.7, 0, 1.7]) {
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.1, 0.1), toon(0xf1ead6));
+    door.position.set(x, 2, 2.72);
+    g.add(door);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.68, 0.07, 0.13), beam);
+    frame.position.set(x, 2, 2.75);
+    g.add(frame);
+  }
+  // Corner posts.
+  for (const [x, z] of [[-3.5, 2.7], [3.5, 2.7], [-3.5, -2.7], [3.5, -2.7]] as const) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.4, 0.28), beam);
+    post.position.set(x, 1.9, z);
+    g.add(post);
+  }
+  return g;
+};
+
+// Wooden power pole with a couple of crossarms — the shape that says
+// "country road" more than any amount of grass.
+export const createPowerPole = (): THREE.Group => {
+  const g = new THREE.Group();
+  const wood = toon(0x8a6f4d);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.19, 8.5, 7), wood);
+  pole.position.y = 4.25;
+  g.add(pole);
+  for (const y of [7.4, 6.6]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 0.12), wood);
+    arm.position.y = y;
+    g.add(arm);
+    for (const x of [-0.75, 0.75]) {
+      const insulator = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.18, 6), toon(0xe2e8ea));
+      insulator.position.set(x, y + 0.14, 0);
+      g.add(insulator);
+    }
+  }
+  return g;
+};
+
+// A rainbow that hangs over the valley once the rain has passed.
+export const createRainbow = (): THREE.Group => {
+  const g = new THREE.Group();
+  const bands = [0xff9b8a, 0xffca7a, 0xfff09a, 0x9fe0a0, 0x93c9f0, 0xc0a8ee];
+  bands.forEach((color, i) => {
+    const band = new THREE.Mesh(
+      new THREE.TorusGeometry(74 - i * 2.1, 1.05, 6, 64, Math.PI),
+      new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity: 0.32, depthWrite: false, fog: false, side: THREE.DoubleSide,
+      }),
+    );
+    band.renderOrder = -1;
+    g.add(band);
+  });
+  g.visible = false;
+  return g;
+};
+
+// Mossy stone steps climbing the slope — somewhere to go up.
+export const createStoneSteps = (count = 7): THREE.Group => {
+  const g = new THREE.Group();
+  const stone = flat(0x8d9099);
+  const moss = flat(0x5f8a4a);
+  for (let i = 0; i < count; i++) {
+    const step = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.3, 0.9), stone);
+    step.position.set(rand(-0.12, 0.12), i * 0.34, -i * 0.95);
+    g.add(step);
+    if (Math.random() < 0.6) {
+      const patch = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 0), moss);
+      patch.scale.set(rand(0.6, 1.4), 0.25, rand(0.5, 1));
+      patch.position.set(rand(-1, 1), i * 0.34 + 0.16, -i * 0.95 + rand(-0.3, 0.3));
+      g.add(patch);
+    }
+  }
   return g;
 };
