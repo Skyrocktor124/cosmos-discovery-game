@@ -209,8 +209,8 @@ const App: React.FC = () => {
             <a href="../star-serpent/" className="hover:text-amber-300 transition-colors uppercase font-bold">
               ▶ Star Serpent
             </a>
-            <a href="../forest-spirit/" className="hover:text-emerald-300 transition-colors uppercase font-bold">
-              ▶ Forest Spirit Run
+            <a href="../mossling/" className="hover:text-emerald-300 transition-colors uppercase font-bold">
+              ▶ Mossling Wander 3D
             </a>
           </div>
         </div>

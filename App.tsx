@@ -456,10 +456,10 @@ const App: React.FC = () => {
           </a>
 
           <a
-            href="./forest-spirit/"
+            href="./mossling/"
             className="text-xs text-slate-500 hover:text-emerald-300 transition-colors uppercase font-bold whitespace-nowrap"
           >
-            ▶ Forest Spirit Run
+            ▶ 苔灵漫游 3D
           </a>
 
           <button

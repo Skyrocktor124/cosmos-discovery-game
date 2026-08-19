@@ -19,7 +19,7 @@ export default defineConfig({
         astroMerge: path.resolve(__dirname, 'astro-merge/index.html'),
         orbitDash: path.resolve(__dirname, 'orbit-dash/index.html'),
         starSerpent: path.resolve(__dirname, 'star-serpent/index.html'),
-        forestSpirit: path.resolve(__dirname, 'forest-spirit/index.html'),
+        mossling: path.resolve(__dirname, 'mossling/index.html'),
       },
     },
   },

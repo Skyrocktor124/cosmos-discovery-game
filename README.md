@@ -14,7 +14,7 @@ server or API cost. Free to play, no download, no sign-up.
 | Astro Merge | `/astro-merge/` | Space-themed 2048-style merge puzzle |
 | Orbit Dash | `/orbit-dash/` | One-button orbital arcade run |
 | Star Serpent | `/star-serpent/` | Classic snake in deep space |
-| Forest Spirit Run | `/forest-spirit/` | **3D** rainy-forest endless runner (three.js) |
+| Mossling Wander 苔灵漫游 | `/mossling/` | **3D** cozy exploration — five regions, no fail state (three.js) |
 
 ## Features
 
@@ -22,7 +22,7 @@ server or API cost. Free to play, no download, no sign-up.
 - 💾 Auto-save — progress persists across browser sessions
 - ⛽ Fuel/science resource loop with a soft-lock escape hatch (solar sails)
 - 📱 Responsive layout, works on desktop and mobile
-- 🌲 A full 3D game (three.js) with procedurally modelled characters — no art assets to load
+- 🌲 A full 3D cozy explorer (three.js) with procedurally modelled world and characters — no art assets to load
 - 💸 **Zero running cost** — no API keys, no backend, pure static files
 
 ## 中文说明

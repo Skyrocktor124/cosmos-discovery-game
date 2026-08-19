@@ -1,7 +1,7 @@
 // Tiny WebAudio synth for UI/game sound effects.
 // No audio assets: every sound is generated from oscillators at play time.
 
-export type SfxName = 'blip' | 'pickup' | 'merge' | 'crash' | 'warp' | 'click';
+export type SfxName = 'blip' | 'pickup' | 'merge' | 'crash' | 'warp' | 'click' | 'chime';
 
 const MUTE_KEY = 'cosmos-sfx-muted';
 
@@ -20,6 +20,7 @@ const RECIPES: Record<SfxName, Recipe> = {
   crash:  { type: 'sawtooth', from: 200, to: 45, duration: 0.3, volume: 0.25 },
   warp:   { type: 'sine',     from: 130, to: 780, duration: 0.4, volume: 0.18 },
   click:  { type: 'square',   from: 240, to: 240, duration: 0.035, volume: 0.1 },
+  chime:  { type: 'sine',     from: 520, to: 1040, duration: 0.55, volume: 0.16 },
 };
 
 class Sfx {
