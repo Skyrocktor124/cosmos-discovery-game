@@ -6,12 +6,23 @@ server or API cost. Free to play, no download, no sign-up.
 
 **Play it** (after enabling GitHub Pages): `https://skyrocktor124.github.io/cosmos-discovery-game/`
 
+## Games
+
+| Game | Path | What it is |
+| --- | --- | --- |
+| Chroma Cosmos | `/` | Infinite procedural universe explorer |
+| Astro Merge | `/astro-merge/` | Space-themed 2048-style merge puzzle |
+| Orbit Dash | `/orbit-dash/` | One-button orbital arcade run |
+| Star Serpent | `/star-serpent/` | Classic snake in deep space |
+| Forest Spirit Run | `/forest-spirit/` | **3D** rainy-forest endless runner (three.js) |
+
 ## Features
 
 - 🌌 Infinite procedurally generated sectors, discoveries themed by color
 - 💾 Auto-save — progress persists across browser sessions
 - ⛽ Fuel/science resource loop with a soft-lock escape hatch (solar sails)
 - 📱 Responsive layout, works on desktop and mobile
+- 🌲 A full 3D game (three.js) with procedurally modelled characters — no art assets to load
 - 💸 **Zero running cost** — no API keys, no backend, pure static files
 
 ## 中文说明

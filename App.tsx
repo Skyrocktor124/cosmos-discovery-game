@@ -455,6 +455,13 @@ const App: React.FC = () => {
             ▶ Star Serpent
           </a>
 
+          <a
+            href="./forest-spirit/"
+            className="text-xs text-slate-500 hover:text-emerald-300 transition-colors uppercase font-bold whitespace-nowrap"
+          >
+            ▶ Forest Spirit Run
+          </a>
+
           <button
             onClick={handleNewGame}
             title="Start a new expedition"
