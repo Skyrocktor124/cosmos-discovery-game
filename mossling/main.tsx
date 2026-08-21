@@ -1,13 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import '../index.css';
 import SoundToggle from '../shared/SoundToggle';
 import ShareButton from '../shared/ShareButton';
 import { sfx } from '../shared/sfx';
 import {
   createGlowTexture, createMossling, createPlantingRing, createRainbow, createSeed, createTree,
-  flat, makeSway, Mossling, rand, updateMossling,
+  flat, makeSway, Mossling, rand, shadeBlade, updateMossling,
 } from './models';
 import {
   buildWorld, DISCOVERIES, dominantRegion, isWater, PLANT_SPOTS, Region, REGIONS,
@@ -42,6 +47,9 @@ const loadSave = (): SaveData => {
 };
 
 const NIGHT = { top: 0x0d1730, bottom: 0x2a3d55, fog: 0x203247 };
+// ?hq=1 pins full quality — useful when capturing stills on a machine whose
+// frame rate would otherwise trip the degradation watchdog.
+const hq = new URLSearchParams(location.search).has('hq');
 const WALK_SPEED = 9.5;
 const GRAVITY = -30;
 const JUMP_V = 10;
@@ -79,9 +87,15 @@ const App: React.FC = () => {
     if (!mount) return;
 
     // --- Renderer, scene, camera ----------------------------------------
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    // Filmic response instead of raw linear output: highlights roll off
+    // instead of clipping to white, which is most of the "cheap render" look.
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.28;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -92,13 +106,31 @@ const App: React.FC = () => {
     const skyMat = new THREE.ShaderMaterial({
       side: THREE.BackSide,
       depthWrite: false,
-      uniforms: { uTop: { value: new THREE.Color(0x5f97c9) }, uBottom: { value: new THREE.Color(0xcfe6ea) } },
+      uniforms: {
+        uTop: { value: new THREE.Color(0x5f97c9) },
+        uBottom: { value: new THREE.Color(0xcfe6ea) },
+        uSunDir: { value: new THREE.Vector3(0.5, 0.55, 0.35).normalize() },
+        uSunColor: { value: new THREE.Color(0xffe9c4) },
+        uNight: { value: 0 },
+      },
       vertexShader: 'varying vec3 vP;\nvoid main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: `varying vec3 vP;
-        uniform vec3 uTop; uniform vec3 uBottom;
+        uniform vec3 uTop; uniform vec3 uBottom; uniform vec3 uSunColor; uniform vec3 uSunDir;
+        uniform float uNight;
         void main(){
-          float h = normalize(vP).y * 0.5 + 0.5;
-          gl_FragColor = vec4(mix(uBottom, uTop, smoothstep(0.42, 0.96, h)), 1.0);
+          vec3 dir = normalize(vP);
+          float h = dir.y * 0.5 + 0.5;
+          // Three stops: haze at the horizon, mid band, deeper zenith.
+          vec3 mid = mix(uBottom, uTop, 0.55);
+          vec3 col = mix(uBottom, mid, smoothstep(0.44, 0.62, h));
+          col = mix(col, uTop, smoothstep(0.6, 0.98, h));
+          // Broad glow around the sun, plus a tighter core.
+          float sd = max(dot(dir, normalize(uSunDir)), 0.0);
+          col += uSunColor * pow(sd, 6.0) * 0.35 * (1.0 - uNight);
+          col += uSunColor * pow(sd, 90.0) * 0.9 * (1.0 - uNight);
+          // Ordered dither breaks up gradient banding on wide skies.
+          float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+          gl_FragColor = vec4(col + dither * 0.006, 1.0);
         }`,
     });
     const sky = new THREE.Mesh(new THREE.SphereGeometry(320, 24, 16), skyMat);
@@ -114,39 +146,95 @@ const App: React.FC = () => {
       starPos.set([Math.sin(a) * r * 290, y * 290, Math.cos(a) * r * 290], i * 3);
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 2.6, sizeAttenuation: false, transparent: true, opacity: 0 });
+    const starMat = new THREE.PointsMaterial({
+      color: 0xfff6e0, size: 2.4, sizeAttenuation: false, transparent: true, opacity: 0, fog: false,
+    });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    const hemi = new THREE.HemisphereLight(0xd6ecf5, 0x4a5c3a, 2.0);
+    // Three-light rig: warm key that casts, cool sky fill, cool rim from
+    // behind to separate the character from the background.
+    const hemi = new THREE.HemisphereLight(0xbfd8ea, 0x5b6b47, 1.15);
     scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xfff2d8, 1.6);
-    sun.position.set(40, 70, 30);
-    scene.add(sun);
 
-    // Drifting clouds.
-    const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 });
-    const clouds: THREE.Mesh[] = [];
-    for (let i = 0; i < 14; i++) {
-      const cl = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(6, 13), 0), cloudMat);
-      cl.position.set(rand(-220, 220), rand(48, 78), rand(-220, 220));
-      cl.scale.y = 0.35;
+    const sun = new THREE.DirectionalLight(0xffe4bd, 2.4);
+    sun.position.set(38, 52, 26);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 160;
+    sun.shadow.camera.left = -42;
+    sun.shadow.camera.right = 42;
+    sun.shadow.camera.top = 42;
+    sun.shadow.camera.bottom = -42;
+    sun.shadow.bias = -0.0008;
+    sun.shadow.normalBias = 0.06;
+    scene.add(sun);
+    scene.add(sun.target);
+
+    const rim = new THREE.DirectionalLight(0x9fc4e8, 0.75);
+    rim.position.set(-30, 18, -40);
+    scene.add(rim);
+
+    // Drifting clouds, drawn as soft sprites — faceted geometry up there
+    // reads as floating rocks.
+    const cloudCanvas = document.createElement('canvas');
+    cloudCanvas.width = cloudCanvas.height = 256;
+    const cc = cloudCanvas.getContext('2d')!;
+    for (let i = 0; i < 26; i++) {
+      const cx = rand(60, 196);
+      const cy = rand(96, 160);
+      const cr = rand(24, 62);
+      const grad = cc.createRadialGradient(cx, cy, 0, cx, cy, cr);
+      grad.addColorStop(0, 'rgba(255,255,255,0.5)');
+      grad.addColorStop(0.6, 'rgba(255,255,255,0.22)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      cc.fillStyle = grad;
+      cc.beginPath();
+      cc.arc(cx, cy, cr, 0, Math.PI * 2);
+      cc.fill();
+    }
+    const cloudTex = new THREE.CanvasTexture(cloudCanvas);
+    const cloudMat = new THREE.SpriteMaterial({
+      map: cloudTex, transparent: true, opacity: 0.85, depthWrite: false, fog: false,
+    });
+    const clouds: THREE.Sprite[] = [];
+    for (let i = 0; i < 18; i++) {
+      const cl = new THREE.Sprite(cloudMat);
+      cl.position.set(rand(-240, 240), rand(52, 88), rand(-240, 240));
+      const w = rand(50, 110);
+      cl.scale.set(w, w * rand(0.3, 0.45), 1);
       scene.add(cl);
       clouds.push(cl);
     }
 
     // --- World -----------------------------------------------------------
     const world = buildWorld();
+    // Props cast and receive; ground receives; vegetation instances only
+    // receive, since thousands of shadow casters is where the budget goes.
+    world.group.traverse(o => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const isInstanced = (mesh as unknown as THREE.InstancedMesh).isInstancedMesh;
+      const mat = mesh.material as THREE.Material & { transparent?: boolean };
+      if (mat?.transparent) return;           // water surfaces
+      mesh.receiveShadow = true;
+      mesh.castShadow = !isInstanced;
+    });
     if (world.rice) world.rice.userData.full = world.rice.count;
     for (const f of world.flowers) f.userData.full = f.count;
     scene.add(world.group);
 
     const mossling: Mossling = createMossling();
+    mossling.group.traverse(o => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; }
+    });
     scene.add(mossling.group);
 
     const shadow = new THREE.Mesh(
       new THREE.CircleGeometry(1.1, 24),
-      new THREE.MeshBasicMaterial({ color: 0x24341f, transparent: true, opacity: 0.3 }),
+      new THREE.MeshBasicMaterial({ color: 0x24341f, transparent: true, opacity: 0.16 }),
     );
     shadow.rotation.x = -Math.PI / 2;
     scene.add(shadow);
@@ -180,6 +268,44 @@ const App: React.FC = () => {
       return p;
     });
 
+    // --- Post-processing --------------------------------------------------
+    // Bloom for the fireflies and wet highlights, then a light grade:
+    // vignette, a touch of contrast, split-toned shadows and grain.
+    const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(
+      window.innerWidth, window.innerHeight, { samples: 4, type: THREE.HalfFloatType },
+    ));
+    composer.addPass(new RenderPass(scene, camera));
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight), 0.32, 0.75, 0.82,
+    );
+    composer.addPass(bloomPass);
+    const gradePass = new ShaderPass({
+      uniforms: {
+        tDiffuse: { value: null },
+        uTime: { value: 0 },
+        uVignette: { value: 1 },
+      },
+      vertexShader: 'varying vec2 vUv;\nvoid main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; uniform float uVignette;
+        varying vec2 vUv;
+        void main(){
+          vec4 c = texture2D(tDiffuse, vUv);
+          float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+          c.rgb = mix(vec3(l), c.rgb, 1.06);          // gentle saturation
+          c.rgb = (c.rgb - 0.5) * 1.02 + 0.5;          // gentle contrast
+          c.rgb += vec3(-0.008, 0.0, 0.016) * (1.0 - l); // cool shadows
+          c.rgb += vec3(0.016, 0.008, -0.010) * l;       // warm highlights
+          vec2 d = vUv - 0.5;
+          float v = smoothstep(1.6, 0.15, dot(d, d) * 2.0);
+          c.rgb *= mix(1.0, v, uVignette * 0.35);
+          float grain = fract(sin(dot(vUv * (1.0 + uTime), vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+          c.rgb += grain * 0.012;
+          gl_FragColor = c;
+        }`,
+    });
+    composer.addPass(gradePass);
+    composer.addPass(new OutputPass());
+
     // --- Grass carpet -----------------------------------------------------
     // Dense short grass is only ever drawn near the player: blades that fall
     // behind are recycled to a fresh spot inside the disc, which keeps the
@@ -187,9 +313,9 @@ const App: React.FC = () => {
     const GRASS = 6000;
     let GRASS_LIVE = GRASS;
     const GRASS_R = 26;
-    const grassGeo = new THREE.ConeGeometry(0.075, 0.38, 3);
-    grassGeo.translate(0, 0.19, 0);
-    const grassMat = flat(0xffffff);
+    const grassGeo = shadeBlade(new THREE.ConeGeometry(0.045, 0.52, 3), 0.52);
+    grassGeo.translate(0, 0.26, 0);
+    const grassMat = flat(0xffffff, { vertexColors: true });
     const grassSway = makeSway(grassMat, 0.11);
     const grass = new THREE.InstancedMesh(grassGeo, grassMat, GRASS);
     grass.frustumCulled = false;
@@ -208,11 +334,16 @@ const App: React.FC = () => {
       grassXZ[i * 2] = x;
       grassXZ[i * 2 + 1] = z;
       const under = isWater(x, z);
+      const region = dominantRegion(x, z);
+      // Rice stands far taller than pasture grass; same blades, longer scale.
+      const tall = region.id === 'paddy' ? 2.5 : 1;
       gp.set(x, terrainHeight(x, z) - 0.04, z);
       gq.setFromEuler(new THREE.Euler(rand(-0.2, 0.2), rand(0, 6.28), rand(-0.2, 0.2)));
-      gs.set(rand(0.7, 1.5), under ? 0 : rand(0.6, 1.6), rand(0.7, 1.5));
+      gs.set(rand(0.7, 1.5), under ? 0 : rand(0.6, 1.6) * tall, rand(0.7, 1.5));
       grass.setMatrixAt(i, gm.compose(gp, gq, gs));
-      gTint.set(dominantRegion(x, z).grass).offsetHSL(rand(-0.03, 0.03), rand(-0.07, 0.07), rand(-0.02, 0.12));
+      const patch = Math.sin(x * 0.09) * Math.cos(z * 0.11) * 0.06 + Math.sin((x - z) * 0.05) * 0.04;
+      gTint.set(region.grass)
+        .offsetHSL(rand(-0.02, 0.02) + patch * 0.15, rand(-0.05, 0.05) + patch, rand(-0.02, 0.1) + patch);
       grass.setColorAt(i, gTint);
     };
 
@@ -223,7 +354,7 @@ const App: React.FC = () => {
       const arr = new Float32Array(count * 3);
       geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
       const mat = new THREE.PointsMaterial({
-        size, map: glowTex, color, transparent: true, opacity,
+        size, map: glowTex, color, transparent: true, opacity, fog: false,
         depthWrite: false, blending: THREE.AdditiveBlending,
       });
       const pts = new THREE.Points(geo, mat);
@@ -231,7 +362,7 @@ const App: React.FC = () => {
       return { pts, arr, mat };
     };
     const creek = REGIONS.find(r => r.id === 'creek')!;
-    const fireflies = makeMotes(160, 1.0, 0xfff3a8, 0);
+    const fireflies = makeMotes(160, 0.6, 0xfff3a8, 0);
     const fireflyPhase = new Float32Array(160);
     for (let i = 0; i < 160; i++) {
       const a = rand(0, Math.PI * 2);
@@ -413,6 +544,8 @@ const App: React.FC = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+      bloomPass.setSize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', onResize);
 
@@ -441,15 +574,36 @@ const App: React.FC = () => {
     let hudAcc = 0;
     // Frame-time watchdog: on a weak device, thin out the vegetation and
     // drop the pixel ratio rather than letting the walk turn to slideshow.
-    let slowFrames = 0;
+    // Measured in seconds of slow rendering, not frames: at 2 fps a frame
+    // count threshold would take half a minute to trip.
+    let slowTime = 0;
     let quality = 1;
+    // Graceful degradation, cheapest-looking losses first.
+    let tier = 0;
     const downgrade = () => {
-      quality /= 2;
-      GRASS_LIVE = Math.floor(GRASS * quality);
-      grass.count = Math.floor(GRASS * quality);
-      if (world.rice) world.rice.count = Math.floor((world.rice.userData.full as number) * quality);
-      for (const f of world.flowers) f.count = Math.floor((f.userData.full as number) * quality);
-      renderer.setPixelRatio(Math.max(1, Math.min(2, window.devicePixelRatio || 1) * quality));
+      tier += 1;
+      if (tier === 1) {
+        bloomPass.enabled = false;
+      } else if (tier === 2) {
+        sun.shadow.mapSize.set(1024, 1024);
+        sun.shadow.map?.dispose();
+        sun.shadow.map = null;
+      } else if (tier === 3) {
+        renderer.shadowMap.enabled = false;
+        scene.traverse(o => {
+          const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+          if (Array.isArray(m)) m.forEach(x => { x.needsUpdate = true; });
+          else if (m) m.needsUpdate = true;
+        });
+      } else {
+        quality /= 2;
+        GRASS_LIVE = Math.floor(GRASS * quality);
+        grass.count = GRASS_LIVE;
+        if (world.rice) world.rice.count = Math.floor((world.rice.userData.full as number) * quality);
+        for (const f of world.flowers) f.count = Math.floor((f.userData.full as number) * quality);
+        renderer.setPixelRatio(Math.max(0.75, Math.min(2, window.devicePixelRatio || 1) * quality));
+        composer.setPixelRatio?.(Math.max(0.75, Math.min(2, window.devicePixelRatio || 1) * quality));
+      }
     };
 
     const frame = (now: number) => {
@@ -541,11 +695,21 @@ const App: React.FC = () => {
       (skyMat.uniforms.uBottom.value as THREE.Color).copy(skyBottom);
       (scene.fog as THREE.Fog).color.copy(fogColor);
       renderer.setClearColor(fogColor);
-      sun.intensity = THREE.MathUtils.lerp(1.6, 0.35, P.nightT);
-      sun.color.setHex(P.nightT > 0.5 ? 0xaebfe6 : 0xfff2d8);
-      hemi.intensity = THREE.MathUtils.lerp(2.0, 0.7, P.nightT);
-      starMat.opacity = P.nightT * 0.9;
-      cloudMat.opacity = THREE.MathUtils.lerp(0.75, 0.25, P.nightT);
+      // A 2048 shadow map only looks sharp if its frustum travels with you.
+      sun.position.set(P.x + 38, 52, P.z + 26);
+      sun.target.position.set(P.x, 0, P.z);
+      sun.target.updateMatrixWorld();
+      sun.intensity = THREE.MathUtils.lerp(2.4, 0.5, P.nightT);
+      sun.color.lerpColors(new THREE.Color(0xffe4bd), new THREE.Color(0x9fb3e0), P.nightT);
+      rim.intensity = THREE.MathUtils.lerp(0.75, 0.4, P.nightT);
+      hemi.intensity = THREE.MathUtils.lerp(1.15, 0.42, P.nightT);
+      renderer.toneMappingExposure = THREE.MathUtils.lerp(1.28, 1.02, P.nightT);
+      (skyMat.uniforms.uNight.value as number) = P.nightT;
+      skyMat.uniforms.uNight.value = P.nightT;
+      (skyMat.uniforms.uSunDir.value as THREE.Vector3).set(38, 52, 26).normalize();
+      starMat.opacity = P.nightT;
+      cloudMat.opacity = THREE.MathUtils.lerp(0.8, 0.12, P.nightT);
+      cloudMat.color.copy(skyBottom).lerp(new THREE.Color(0xffffff), 0.55);
 
       const rainAmount = REGIONS.reduce((acc, r, i) => acc + r.rain * weights[i], 0);
       rainMat.opacity = rainAmount * 0.45;
@@ -606,7 +770,7 @@ const App: React.FC = () => {
       shadow.position.set(P.x, groundY + 0.06, P.z);
       const lift = Math.max(0, P.y - groundY);
       shadow.scale.setScalar(1 / (1 + lift * 0.3));
-      (shadow.material as THREE.MeshBasicMaterial).opacity = 0.3 / (1 + lift * 0.5);
+      (shadow.material as THREE.MeshBasicMaterial).opacity = 0.16 / (1 + lift * 0.5);
 
       // --- Camera ---
       // Yaw eases toward where the mossling is heading, so it feels guided
@@ -706,6 +870,14 @@ const App: React.FC = () => {
       }
       for (const u of world.sway) u.value = t;
       grassSway.value = t;
+      for (const w of world.water) {
+        w.uniforms.uTime.value = t;
+        (w.uniforms.uSky.value as THREE.Color).copy(skyBottom);
+        // Unlit water would stay noon-bright after dark, so tint it by hand.
+        (w.uniforms.uTint.value as THREE.Color)
+          .setRGB(1, 1, 1)
+          .lerp(new THREE.Color(0x3f5f80), P.nightT);
+      }
 
       // Recycle grass blades that the wanderer has left behind.
       let recycled = 0;
@@ -732,7 +904,7 @@ const App: React.FC = () => {
           ring.position.z = 25 + rand(-12, 12);
         }
         ring.scale.setScalar(0.4 + rt * 1.5);
-        (ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.5 - rt * 0.13);
+        (ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.32 - rt * 0.09) * (1 - P.nightT * 0.55);
       }
 
       // Fireflies drift and glow after dark; pollen drifts by day.
@@ -789,10 +961,11 @@ const App: React.FC = () => {
         }
       }
 
-      if (dt > 0.034) slowFrames++; else slowFrames = Math.max(0, slowFrames - 2);
-      if (slowFrames > 45 && quality > 0.12) { downgrade(); slowFrames = 0; }
+      if (dt > 0.034) slowTime += dt; else slowTime = Math.max(0, slowTime - dt * 2);
+      if (slowTime > 1.0 && quality > 0.12 && !hq) { downgrade(); slowTime = 0; }
 
-      renderer.render(scene, camera);
+      gradePass.uniforms.uTime.value = t % 100;
+      composer.render();
     };
     raf = requestAnimationFrame(frame);
 
@@ -801,7 +974,7 @@ const App: React.FC = () => {
       (window as unknown as { __mossling?: unknown }).__mossling = {
         P, keys, teleport: (x: number, z: number) => { P.x = x; P.z = z; P.y = terrainHeight(x, z); },
         setNight: (v: boolean) => { saved.current.night = v; setNight(v); },
-        grass, world, renderer, scene,
+        grass, world, renderer, scene, getTier: () => tier,
         save: saved.current, interact, jump,
       };
     }

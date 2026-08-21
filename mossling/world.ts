@@ -4,8 +4,8 @@ import * as THREE from 'three';
 import {
   createBamboo, createBridge, createBush, createButterfly, createDragonfly, createFarmhouse,
   createFence, createGreatTree, createLantern, createMushroomCluster, createPowerPole, createRock,
-  createScarecrow, createStoneSteps, createSteppingStone, createTree,
-  flat, makeSway, rand, toon, TreePalette,
+  createScarecrow, createStoneSteps, createSteppingStone, createTree, createWaterMaterial,
+  flat, makeSway, rand, shadeBlade, toon, TreePalette,
 } from './models';
 
 export interface Region {
@@ -31,50 +31,50 @@ export const REGIONS: Region[] = [
     id: 'clearing', name: 'Great Tree Clearing', nameZh: '大树空地',
     blurb: '一棵很老很老的树,树洞里刚好够打个盹。',
     x: 0, z: 55, radius: 62,
-    skyTop: 0x5f97c9, skyBottom: 0xcfe6ea, fog: 0xc4dbdd, ground: 0x74a05a, rain: 0,
-    trees: { trunk: 0x6d5136, leaves: [0x4d8a45, 0x5f9c4e, 0x3f7a43] }, grass: 0x7bab5e, density: 26,
+    skyTop: 0x5182ad, skyBottom: 0xd3e2df, fog: 0xbfd3d2, ground: 0x6f8f57, rain: 0,
+    trees: { trunk: 0x6d5136, leaves: [0x4d8a45, 0x5f9c4e, 0x3f7a43] }, grass: 0x769a5c, density: 26,
   },
   {
     id: 'paddy', name: 'Terraced Paddies', nameZh: '稻田梯田',
     blurb: '风一过,整片稻子就像水一样翻过去。',
     x: 0, z: -95, radius: 66,
-    skyTop: 0x6aa6d4, skyBottom: 0xf2e3c0, fog: 0xe4dcbb, ground: 0xbfa15c, rain: 0,
-    trees: { trunk: 0x7d6142, leaves: [0x7fa851, 0x93b85c] }, grass: 0xd9bf62, density: 10,
+    skyTop: 0x5c92bd, skyBottom: 0xe9dcbe, fog: 0xd8cdae, ground: 0x8f9b57, rain: 0,
+    trees: { trunk: 0x7d6142, leaves: [0x7fa851, 0x93b85c] }, grass: 0xbcb85e, density: 10,
   },
   {
     id: 'rain', name: 'Rain Woods', nameZh: '雨林小径',
     blurb: '雨点打在叶子上,像有人在很远的地方弹琴。',
     x: -95, z: -10, radius: 60,
-    skyTop: 0x6f8496, skyBottom: 0xb9cbd2, fog: 0xa9bfc6, ground: 0x4f7a48, rain: 1,
-    trees: { trunk: 0x5b4535, leaves: [0x2f6b3f, 0x3d7c47, 0x275c39] }, grass: 0x5c8a52, density: 44,
+    skyTop: 0x5e7484, skyBottom: 0xaebfc6, fog: 0x9aaeb5, ground: 0x4a6d47, rain: 1,
+    trees: { trunk: 0x5b4535, leaves: [0x2f6b3f, 0x3d7c47, 0x275c39] }, grass: 0x577f50, density: 44,
   },
   {
     id: 'creek', name: 'Firefly Hollow', nameZh: '萤火池畔',
     blurb: '天一黑,池子上面就浮起一整片会呼吸的光。',
     x: 95, z: 25, radius: 58,
-    skyTop: 0x4d7ab0, skyBottom: 0xd6e7e2, fog: 0xbcd6d6, ground: 0x6a9a68, rain: 0,
-    trees: { trunk: 0x66503a, leaves: [0x468a63, 0x57a06f] }, grass: 0x74a878, density: 22,
+    skyTop: 0x44699a, skyBottom: 0xcadcd9, fog: 0xafc9c8, ground: 0x628c63, rain: 0,
+    trees: { trunk: 0x66503a, leaves: [0x468a63, 0x57a06f] }, grass: 0x6d9971, density: 22,
   },
   {
     id: 'bamboo', name: 'Bamboo Grove', nameZh: '竹林小径',
     blurb: '风从竹子中间穿过去的时候,整片林子都在轻轻响。',
     x: -70, z: 78, radius: 52,
-    skyTop: 0x6f9fbe, skyBottom: 0xdcecd8, fog: 0xc8ddcb, ground: 0x6f8f52, rain: 0.15,
-    trees: { trunk: 0x6b5945, leaves: [0x7fa84e, 0x6f9a45] }, grass: 0x86a85e, density: 8,
+    skyTop: 0x5f8ba6, skyBottom: 0xd2e2d0, fog: 0xbdd0c1, ground: 0x688754, rain: 0.15,
+    trees: { trunk: 0x6b5945, leaves: [0x7fa84e, 0x6f9a45] }, grass: 0x7d9a5c, density: 8,
   },
   {
     id: 'meadow', name: 'Flower Slope', nameZh: '花田山坡',
     blurb: '躺下来的话,能听见蝴蝶翅膀擦过花瓣。',
     x: 70, z: -85, radius: 58,
-    skyTop: 0x77aede, skyBottom: 0xfae3ea, fog: 0xe8dbe2, ground: 0x88b060, rain: 0,
-    trees: { trunk: 0x7d6142, leaves: [0x86bb5c, 0xa8cc6a] }, grass: 0x93bd68, density: 14,
+    skyTop: 0x6b9ac4, skyBottom: 0xefdbe1, fog: 0xdcccd4, ground: 0x7fa25e, rain: 0,
+    trees: { trunk: 0x7d6142, leaves: [0x86bb5c, 0xa8cc6a] }, grass: 0x88ac63, density: 14,
   },
 ];
 
 // --- Terrain -----------------------------------------------------------
 const POND = { x: 95, z: 25, r: 24, floor: -1.2 };
 // A stream runs west out of the pond; the plank bridge crosses it.
-const STREAM = { ax: 74, az: 20, bx: 30, bz: 44, width: 3.4, floor: -1.0 };
+const STREAM = { ax: 74, az: 20, bx: 30, bz: 44, width: 3.4, floor: -1.35 };
 
 const distToSegment = (x: number, z: number, ax: number, az: number, bx: number, bz: number): number => {
   const dx = bx - ax;
@@ -99,7 +99,7 @@ export const terrainHeight = (x: number, z: number): number => {
   // The stream channel.
   const stream = 1 - smoothstep(STREAM.width, STREAM.width * 2.6,
     distToSegment(x, z, STREAM.ax, STREAM.az, STREAM.bx, STREAM.bz));
-  h = THREE.MathUtils.lerp(h, STREAM.floor, stream * 0.9);
+  h = THREE.MathUtils.lerp(h, STREAM.floor, stream);
   return h;
 };
 
@@ -181,6 +181,7 @@ export interface World {
   flowers: THREE.InstancedMesh[];
   bridge: THREE.Group;
   farmhouse: THREE.Group;
+  water: THREE.ShaderMaterial[];
   butterflies: THREE.Group[];
   dragonflies: THREE.Group[];
   lanternGlow: THREE.Mesh[];
@@ -255,10 +256,10 @@ export const buildWorld = (): World => {
     // Only the tall rice is placed statically — it defines the paddies from
     // far away. Short grass is a carpet that follows the player (see main).
     if (region.id !== 'paddy') continue;
-    const bladeCount = 6000;
-    const bladeGeo = new THREE.ConeGeometry(0.05, 1.15, 3);
+    const bladeCount = 5000;
+    const bladeGeo = shadeBlade(new THREE.ConeGeometry(0.05, 1.15, 3), 1.15);
     bladeGeo.translate(0, 0.58, 0);
-    const bladeMat = flat(0xffffff);
+    const bladeMat = flat(0xffffff, { vertexColors: true });
     sway.push(makeSway(bladeMat, 0.22));
     const blades = new THREE.InstancedMesh(bladeGeo, bladeMat, bladeCount);
     const m = new THREE.Matrix4();
@@ -374,10 +375,8 @@ export const buildWorld = (): World => {
   for (let i = 0; i < 5; i++) place(createMushroomCluster(), -104 + Math.sin(i * 1.26) * 3.5, -26 + Math.cos(i * 1.26) * 3.5);
 
   // Forest puddle.
-  const puddle = new THREE.Mesh(
-    new THREE.CircleGeometry(3.2, 28),
-    new THREE.MeshBasicMaterial({ color: 0x9dc4d6, transparent: true, opacity: 0.6 }),
-  );
+  const puddleMat = createWaterMaterial(0x3d5f70, 0x8bb6c8, 0.62);
+  const puddle = new THREE.Mesh(new THREE.CircleGeometry(3.2, 28), puddleMat);
   puddle.rotation.x = -Math.PI / 2;
   place(puddle, -88, 4, 0.08);
 
@@ -400,13 +399,12 @@ export const buildWorld = (): World => {
   // channel — rotating x and z on the mesh would twist it instead.
   const streamAngle = Math.atan2(STREAM.bz - STREAM.az, STREAM.bx - STREAM.ax);
   const streamGeo = new THREE.PlaneGeometry(
-    Math.hypot(STREAM.bx - STREAM.ax, STREAM.bz - STREAM.az) + 14, STREAM.width * 2.1, 1, 1);
+    Math.hypot(STREAM.bx - STREAM.ax, STREAM.bz - STREAM.az) + 4, STREAM.width * 1.55, 1, 1);
   streamGeo.rotateX(-Math.PI / 2);
-  const stream = new THREE.Mesh(streamGeo, new THREE.MeshLambertMaterial({
-    color: 0x6fb0c4, transparent: true, opacity: 0.75,
-  }));
+  const streamMat = createWaterMaterial(0x2f6b83, 0x6fb0c4, 0.74, 'strip');
+  const stream = new THREE.Mesh(streamGeo, streamMat);
   stream.rotation.y = -streamAngle;
-  stream.position.set((STREAM.ax + STREAM.bx) / 2, -0.42, (STREAM.az + STREAM.bz) / 2);
+  stream.position.set((STREAM.ax + STREAM.bx) / 2, -0.55, (STREAM.az + STREAM.bz) / 2);
   group.add(stream);
 
   const bridge = createBridge();
@@ -422,10 +420,8 @@ export const buildWorld = (): World => {
   for (let i = 0; i < 6; i++) place(createPowerPole(), -34 + i * 15, -58 - i * 6);
 
   // Pond + stepping stones.
-  const pond = new THREE.Mesh(
-    new THREE.CircleGeometry(POND.r * 0.85, 56),
-    new THREE.MeshLambertMaterial({ color: 0x6fb0c4, transparent: true, opacity: 0.78 }),
-  );
+  const pondMat = createWaterMaterial();
+  const pond = new THREE.Mesh(new THREE.CircleGeometry(POND.r * 0.85, 56), pondMat);
   pond.rotation.x = -Math.PI / 2;
   pond.position.set(POND.x, -0.45, POND.z);
   group.add(pond);
@@ -433,8 +429,8 @@ export const buildWorld = (): World => {
   const ripples: THREE.Mesh[] = [];
   for (let i = 0; i < 5; i++) {
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.9, 1.05, 30),
-      new THREE.MeshBasicMaterial({ color: 0xdff2f7, transparent: true, opacity: 0, side: THREE.DoubleSide }),
+      new THREE.RingGeometry(0.96, 1.03, 32),
+      new THREE.MeshBasicMaterial({ color: 0xdff2f7, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }),
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(POND.x + rand(-12, 12), -0.4, POND.z + rand(-12, 12));
@@ -449,6 +445,23 @@ export const buildWorld = (): World => {
     const z = 12 + Math.sin(i * 0.8) * 3.5;
     stone.position.set(x, Math.max(terrainHeight(x, z), -0.55) + 0.25, z);
     group.add(stone);
+  }
+
+  // --- Distant ridgelines ---
+  // Big, cheap silhouettes sitting out past the fog so the horizon has
+  // layers instead of ending in a flat band.
+  const ridgeMat = flat(0x8fa6a8);
+  const farMat = flat(0xa8bcbd);
+  for (let i = 0; i < 26; i++) {
+    const a = (i / 26) * Math.PI * 2 + rand(-0.08, 0.08);
+    const far = i % 2 === 0;
+    const dist = far ? rand(300, 340) : rand(225, 265);
+    const peak = new THREE.Mesh(new THREE.ConeGeometry(rand(45, 95), rand(28, 62), 5), far ? farMat : ridgeMat);
+    peak.position.set(Math.sin(a) * dist, -6, Math.cos(a) * dist);
+    peak.rotation.y = rand(0, 3);
+    peak.castShadow = false;
+    peak.receiveShadow = false;
+    group.add(peak);
   }
 
   // --- Small living things ---
@@ -474,7 +487,8 @@ export const buildWorld = (): World => {
   }
 
   return {
-    group, sway, rice, flowers: [stems, blossoms], bridge, farmhouse, butterflies, dragonflies,
+    group, sway, rice, flowers: [stems, blossoms], bridge, farmhouse,
+    water: [pondMat, streamMat, puddleMat], butterflies, dragonflies,
     lanternGlow: [lantern.userData.glow as THREE.Mesh],
     pond, ripples, swing,
   };

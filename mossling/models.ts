@@ -5,7 +5,7 @@ import * as THREE from 'three';
 
 // --- Cel shading -------------------------------------------------------
 // A 4-step gradient ramp gives every surface a flat, storybook look.
-const RAMP = new THREE.DataTexture(new Uint8Array([95, 155, 210, 255]), 4, 1, THREE.RedFormat);
+const RAMP = new THREE.DataTexture(new Uint8Array([88, 138, 182, 218, 245, 255]), 6, 1, THREE.RedFormat);
 RAMP.minFilter = THREE.NearestFilter;
 RAMP.magFilter = THREE.NearestFilter;
 RAMP.needsUpdate = true;
@@ -62,9 +62,9 @@ export interface Mossling {
   step: number;
 }
 
-const FUR = 0x7d9a5e;
-const FUR_DARK = 0x5c7a44;
-const CHEST = 0xc8d6a2;
+const FUR = 0x74905a;
+const FUR_DARK = 0x53703e;
+const CHEST = 0xbccb97;
 
 export const createMossling = (): Mossling => {
   const group = new THREE.Group();
@@ -293,18 +293,40 @@ export interface TreePalette { trunk: number; leaves: number[]; }
 export const createTree = (p: TreePalette, scale = 1): THREE.Group => {
   const g = new THREE.Group();
   const h = rand(3.4, 6.8) * scale;
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.36 * scale, h, 7), toon(p.trunk));
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * scale, 0.38 * scale, h, 8), toon(p.trunk));
   trunk.position.y = h / 2;
+  trunk.rotation.z = rand(-0.05, 0.05);
   g.add(trunk);
+
+  // A couple of branches lifting into the canopy.
+  for (let i = 0; i < 2; i++) {
+    const a = rand(0, Math.PI * 2);
+    const branch = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.055 * scale, 0.1 * scale, h * 0.42, 6), toon(p.trunk));
+    branch.position.set(Math.sin(a) * 0.3 * scale, h * 0.72, Math.cos(a) * 0.3 * scale);
+    branch.rotation.set(Math.cos(a) * 0.5, 0, -Math.sin(a) * 0.5);
+    g.add(branch);
+  }
+
+  // Canopy: a cluster of blobs, each its own shade, with a darker underside
+  // so the crown has some volume instead of reading as one flat mass.
   const canopyGeo = new THREE.IcosahedronGeometry(1, 0);
-  const mat = flat(p.leaves[Math.floor(Math.random() * p.leaves.length)]);
-  for (let i = 0; i < 3; i++) {
-    const blob = new THREE.Mesh(canopyGeo, mat);
-    blob.position.set(rand(-0.6, 0.6) * scale, h - 0.3 * scale + i * rand(0.5, 0.9) * scale, rand(-0.6, 0.6) * scale);
-    blob.scale.setScalar(rand(0.9, 1.7) * scale * (1 - i * 0.14));
+  const base = new THREE.Color(p.leaves[Math.floor(Math.random() * p.leaves.length)]);
+  const crown = h + rand(0.1, 0.5) * scale;
+  for (let i = 0; i < 7; i++) {
+    const shade = base.clone().offsetHSL(rand(-0.02, 0.02), rand(-0.06, 0.06), rand(-0.09, 0.07));
+    const blob = new THREE.Mesh(canopyGeo, flat(shade.getHex()));
+    const a = rand(0, Math.PI * 2);
+    const r = rand(0, 0.85) * scale;
+    blob.position.set(Math.sin(a) * r, crown - rand(0, 1.5) * scale, Math.cos(a) * r);
+    blob.scale.setScalar(rand(0.7, 1.45) * scale);
     blob.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
     g.add(blob);
   }
+  const under = new THREE.Mesh(canopyGeo, flat(base.clone().offsetHSL(0, 0.02, -0.14).getHex()));
+  under.position.y = crown - 1.15 * scale;
+  under.scale.set(1.5 * scale, 0.75 * scale, 1.5 * scale);
+  g.add(under);
   return g;
 };
 
@@ -329,10 +351,15 @@ export const createGreatTree = (): THREE.Group => {
   g.add(trunk);
 
   // Hollow: a dark recess in the trunk facing the path.
-  const hollow = new THREE.Mesh(new THREE.SphereGeometry(1.9, 18, 14), toon(0x241a12));
+  const hollow = new THREE.Mesh(new THREE.SphereGeometry(1.9, 18, 14), toon(0x3a2a1c));
   hollow.scale.set(1, 1.5, 0.7);
   hollow.position.set(0, 3.1, 3.1);
   g.add(hollow);
+  // A little straw catching the light inside, so the opening has depth.
+  const straw = new THREE.Mesh(new THREE.SphereGeometry(1.25, 14, 10), toon(0x9c7f4d));
+  straw.scale.set(1, 0.42, 0.5);
+  straw.position.set(0, 1.95, 3.5);
+  g.add(straw);
   const rimGeo = new THREE.TorusGeometry(1.85, 0.32, 8, 20);
   const rim = new THREE.Mesh(rimGeo, toon(0x7d6042));
   rim.scale.set(1, 1.5, 1);
@@ -530,6 +557,72 @@ export const createLantern = (): THREE.Group => {
   g.add(base, shaft, house, glow, roof);
   g.userData.glow = glow;
   return g;
+};
+
+// Stylised water: fresnel toward the sky colour, drifting ripple bands and
+// a glint where the ripples peak. Cheaper than a reflection probe and it
+// keeps the painted look.
+export const createWaterMaterial = (
+  deep = 0x2c5f7d, shallow = 0x63a6bb, opacity = 0.78, shape: 'disc' | 'strip' = 'disc',
+): THREE.ShaderMaterial =>
+  new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    uniforms: {
+      uTime: { value: 0 },
+      uDeep: { value: new THREE.Color(deep) },
+      uShallow: { value: new THREE.Color(shallow) },
+      uSky: { value: new THREE.Color(0xdceaf0) },
+      uOpacity: { value: opacity },
+      uTint: { value: new THREE.Color(0xffffff) },
+      uStrip: { value: shape === 'strip' ? 1 : 0 },
+    },
+    vertexShader: `varying vec3 vW; varying vec2 vUvW;
+      void main(){
+        vUvW = uv;
+        vec4 w = modelMatrix * vec4(position, 1.0);
+        vW = w.xyz;
+        gl_Position = projectionMatrix * viewMatrix * w;
+      }`,
+    fragmentShader: `uniform float uTime; uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uSky;
+      uniform float uOpacity; uniform vec3 uTint; uniform float uStrip;
+      varying vec3 vW; varying vec2 vUvW;
+      void main(){
+        vec3 V = normalize(cameraPosition - vW);
+        float fres = pow(1.0 - clamp(V.y, 0.0, 1.0), 3.0);
+        // Two slow bands plus a finer one, so highlights are streaks and not
+        // round blobs of white.
+        float r1 = sin(vW.x * 0.55 + uTime * 0.8) * sin(vW.z * 0.47 - uTime * 0.6);
+        float r2 = sin((vW.x + vW.z) * 0.85 - uTime * 1.3);
+        float r3 = sin(vW.x * 2.7 - vW.z * 1.9 + uTime * 2.1);
+        float ripple = r1 * 0.5 + r2 * 0.25 + r3 * 0.12;
+        vec3 col = mix(uDeep, uShallow, clamp(0.45 + ripple * 0.3, 0.0, 1.0));
+        col = mix(col, uSky, fres * 0.45);
+        col += smoothstep(0.93, 1.0, ripple + 0.42) * 0.16;
+        col *= uTint;
+        // Feather the waterline so the surface does not end on a hard polygon
+        // edge against the bank.
+        float edge = uStrip > 0.5
+          ? smoothstep(0.0, 0.3, min(vUvW.y, 1.0 - vUvW.y)) *
+            smoothstep(0.0, 0.09, min(vUvW.x, 1.0 - vUvW.x))
+          : smoothstep(1.0, 0.72, length(vUvW - 0.5) * 2.0);
+        gl_FragColor = vec4(col, clamp(uOpacity + fres * 0.18, 0.0, 1.0) * edge);
+      }`,
+  });
+
+// Bakes a base-to-tip gradient into a blade so grass is not a flat colour.
+export const shadeBlade = (geo: THREE.BufferGeometry, height: number): THREE.BufferGeometry => {
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const t = THREE.MathUtils.clamp(pos.getY(i) / height, 0, 1);
+    const v = 0.62 + t * 0.62;
+    colors[i * 3] = v;
+    colors[i * 3 + 1] = v * 1.02;
+    colors[i * 3 + 2] = v * 0.92;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
 };
 
 // --- Countryside vignettes ---------------------------------------------
