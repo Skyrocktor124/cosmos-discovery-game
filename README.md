@@ -39,7 +39,14 @@ npm install
 npm run dev      # local dev server at http://localhost:3000
 npm run build    # production build → dist/
 npm run preview  # preview the production build
+
+npm run build:single   # one standalone HTML of the 3D game, runs from file://
 ```
+
+`build:single` flattens Mossling Wander into
+`dist-single/mossling-standalone.html` — the whole game inlined into a single
+file that plays by double-clicking it, with no server and no network. Handy
+for sending someone a playable copy, and for hosts that take one file.
 
 ## Deployment
 
