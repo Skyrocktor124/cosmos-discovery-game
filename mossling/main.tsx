@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
@@ -11,22 +12,28 @@ import './ui.css';
 import ShareButton from '../shared/ShareButton';
 import { sfx } from '../shared/sfx';
 import {
-  createBladeGeometry, createGlowTexture, createMossling, createPlantingRing, createRainbow,
-  createSeed, createTree, flat, makeSway, Mossling, rand, updateMossling,
+  createBird, createBladeGeometry, createCaveMushroom, createCloudTexture, createFloat,
+  createFruit, createGlowTexture, createLightShaft, createMossling, createPlantingRing,
+  createRainbow, createSeed, createTree, flat, makeSway, Mossling, rand, updateMossling,
 } from './models';
 import {
-  buildWorld, DISCOVERIES, dominantRegion, isWater, PLANT_SPOTS, Region, REGIONS,
-  regionWeights, SEED_SPOTS, terrainHeight, trailDistance,
+  BLOCKERS, buildWorld, DISCOVERIES, dominantRegion, EVENT_DISCOVERIES, FRUIT_SPOTS, isWater,
+  PLANT_SPOTS, Region, REGIONS, regionWeights, SEED_SPOTS, SHROOM_SPOTS, terrainHeight,
+  trailDistance,
 } from './world';
 
 const SAVE_KEY = 'mossling-save-v1';
 
 interface SaveData {
   seeds: number;
+  fruit: number;
+  mushrooms: number;
+  fish: number;
   collected: string[];
   planted: string[];
   found: string[];
   night: boolean;
+  wishes: string[];
 }
 
 const loadSave = (): SaveData => {
@@ -36,14 +43,21 @@ const loadSave = (): SaveData => {
       const s = JSON.parse(raw) as Partial<SaveData>;
       return {
         seeds: s.seeds ?? 0,
+        fruit: s.fruit ?? 0,
+        mushrooms: s.mushrooms ?? 0,
+        fish: s.fish ?? 0,
         collected: s.collected ?? [],
         planted: s.planted ?? [],
         found: s.found ?? [],
         night: s.night ?? false,
+        wishes: s.wishes ?? [],
       };
     }
   } catch { /* ignore */ }
-  return { seeds: 0, collected: [], planted: [], found: [], night: false };
+  return {
+    seeds: 0, fruit: 0, mushrooms: 0, fish: 0,
+    collected: [], planted: [], found: [], night: false, wishes: [],
+  };
 };
 
 const NIGHT = { top: 0x0d1730, bottom: 0x2a3d55, fog: 0x203247 };
@@ -72,9 +86,45 @@ const SunIcon = () => <Icon path={<><circle cx="12" cy="12" r="4" /><path d="M12
 const MoonIcon = () => <Icon path={<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" />} />;
 const SoundOnIcon = () => <Icon path={<><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5Z" /><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10" /></>} />;
 const SoundOffIcon = () => <Icon path={<><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5Z" /><path d="m16 10 4 4M20 10l-4 4" /></>} />;
+const FruitIcon = () => <Icon path={<><circle cx="12" cy="14" r="5.5" /><path d="M12 8.5V5M12 6c1.6-1.4 3.4-1.6 4.4-1.2.3 1-.2 2.6-1.8 3.4" /></>} />;
+const ShroomIcon = () => <Icon path={<><path d="M5 11a7 7 0 0 1 14 0Z" /><path d="M10 11v5.5a2 2 0 0 0 4 0V11" /></>} />;
+const FishIcon = () => <Icon path={<><path d="M3 12c3-4 7-5 10-5s6 2 8 5c-2 3-5 5-8 5s-7-1-10-5Z" /><path d="M17 12h.01" /></>} />;
+const WishIcon = () => <Icon path={<path d="m12 4 2.2 4.9 5.3.5-4 3.6 1.2 5.2L12 15.6 7.3 18.2l1.2-5.2-4-3.6 5.3-.5Z" />} className="w-3.5 h-3.5" />;
+const CheckIcon = () => <Icon path={<path d="m5 12.5 4.5 4.5L19 7" />} className="w-3.5 h-3.5" />;
+
 const JumpIcon = () => <Icon path={<><path d="M12 19V6" /><path d="m7 11 5-5 5 5" /></>} className="w-6 h-6" />;
 
-type Prompt = { kind: 'plant' | 'nap'; label: string } | null;
+// --- Wishes ------------------------------------------------------------
+// Three gentle intentions at a time. Nothing expires, nothing is scored;
+// finishing one simply writes a line and a new wish takes its place.
+interface Wish {
+  id: string;
+  text: string;
+  kind: 'seeds' | 'planted' | 'fruit' | 'mushrooms' | 'fish' | 'region' | 'night' | 'sit' | 'nap';
+  n?: number;
+  region?: string;
+}
+
+const WISHES: Wish[] = [
+  { id: 'w-seed', text: '捡起 3 颗会发光的种子', kind: 'seeds', n: 3 },
+  { id: 'w-seed5', text: '再捡 5 颗种子', kind: 'seeds', n: 5 },
+  { id: 'w-plant', text: '找个光圈,种下一棵树', kind: 'planted', n: 1 },
+  { id: 'w-plant2', text: '再种两棵树', kind: 'planted', n: 2 },
+  { id: 'w-fruit', text: '去果树林摘 2 颗果子', kind: 'fruit', n: 2 },
+  { id: 'w-shroom', text: '采 2 朵会发光的蘑菇', kind: 'mushrooms', n: 2 },
+  { id: 'w-fish', text: '在水边钓上来一条鱼', kind: 'fish', n: 1 },
+  { id: 'w-overlook', text: '爬到山顶的长椅那里', kind: 'region', region: 'overlook' },
+  { id: 'w-grotto', text: '去苔藓岩洞里看看', kind: 'region', region: 'grotto' },
+  { id: 'w-mill', text: '去看看溪边的水车', kind: 'region', region: 'mill' },
+  { id: 'w-orchard', text: '去果树林走一趟', kind: 'region', region: 'orchard' },
+  { id: 'w-bamboo', text: '穿过一次竹林', kind: 'region', region: 'bamboo' },
+  { id: 'w-paddy', text: '走进稻田里', kind: 'region', region: 'paddy' },
+  { id: 'w-night', text: '在夜里散一次步', kind: 'night' },
+  { id: 'w-sit', text: '找个地方坐下歇一会儿', kind: 'sit' },
+  { id: 'w-nap', text: '在老树的树洞里睡一觉', kind: 'nap' },
+];
+
+type Prompt = { kind: 'plant' | 'nap' | 'fish' | 'reel'; label: string } | null;
 
 const App: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -82,6 +132,9 @@ const App: React.FC = () => {
 
   const [started, setStarted] = useState(false);
   const [seeds, setSeeds] = useState(saved.current.seeds);
+  const [fruit, setFruit] = useState(saved.current.fruit);
+  const [mushrooms, setMushrooms] = useState(saved.current.mushrooms);
+  const [fish, setFish] = useState(saved.current.fish);
   const [planted, setPlanted] = useState(saved.current.planted.length);
   const [found, setFound] = useState<string[]>(saved.current.found);
   const [regionName, setRegionName] = useState('');
@@ -90,6 +143,8 @@ const App: React.FC = () => {
   const [prompt, setPrompt] = useState<Prompt>(null);
   const [codexOpen, setCodexOpen] = useState(false);
   const [sitting, setSitting] = useState(false);
+  const [wishes, setWishes] = useState<{ wish: Wish; done: boolean }[]>([]);
+  const [fishing, setFishing] = useState<'idle' | 'waiting' | 'bite'>('idle');
   const [muted, setMuted] = useState(sfx.isMuted);
   const fadeRef = useRef<HTMLDivElement>(null);
 
@@ -120,6 +175,9 @@ const App: React.FC = () => {
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
+    // Objects the ambient-occlusion prepass must not see (sky, billboards,
+    // particles); registered as they are created, used further down.
+    const aoExcluded: THREE.Object3D[] = [];
     scene.fog = new THREE.Fog(0xc4dbdd, 72, 190);
     const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 700);
 
@@ -161,6 +219,7 @@ const App: React.FC = () => {
     });
     const sky = new THREE.Mesh(new THREE.SphereGeometry(320, 24, 16), skyMat);
     scene.add(sky);
+    aoExcluded.push(sky);
 
     // Stars, only visible after dark.
     const starGeo = new THREE.BufferGeometry();
@@ -177,6 +236,7 @@ const App: React.FC = () => {
     });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
+    aoExcluded.push(stars);
 
     // Three-light rig: warm key that casts, cool sky fill, cool rim from
     // behind to separate the character from the background.
@@ -206,36 +266,47 @@ const App: React.FC = () => {
     rim.position.set(-46, 24, -38);
     scene.add(rim);
 
-    // Drifting clouds, drawn as soft sprites — faceted geometry up there
-    // reads as floating rocks.
-    const cloudCanvas = document.createElement('canvas');
-    cloudCanvas.width = cloudCanvas.height = 256;
-    const cc = cloudCanvas.getContext('2d')!;
-    for (let i = 0; i < 26; i++) {
-      const cx = rand(60, 196);
-      const cy = rand(96, 160);
-      const cr = rand(24, 62);
-      const grad = cc.createRadialGradient(cx, cy, 0, cx, cy, cr);
-      grad.addColorStop(0, 'rgba(255,255,255,0.5)');
-      grad.addColorStop(0.6, 'rgba(255,255,255,0.22)');
-      grad.addColorStop(1, 'rgba(255,255,255,0)');
-      cc.fillStyle = grad;
-      cc.beginPath();
-      cc.arc(cx, cy, cr, 0, Math.PI * 2);
-      cc.fill();
-    }
-    const cloudTex = new THREE.CanvasTexture(cloudCanvas);
-    const cloudMat = new THREE.SpriteMaterial({
-      map: cloudTex, transparent: true, opacity: 0.85, depthWrite: false, fog: false,
-    });
-    const clouds: THREE.Sprite[] = [];
+    // Painted cumulus in two layers: big hero clouds low over the ridges and
+    // smaller ones higher up, drifting at different speeds for parallax.
+    const cloudTextures = [createCloudTexture(0), createCloudTexture(3.1), createCloudTexture(6.4)];
+    interface Cloud { sprite: THREE.Sprite; speed: number; }
+    const clouds: Cloud[] = [];
+    const cloudMats = cloudTextures.map(map => new THREE.SpriteMaterial({
+      map, transparent: true, opacity: 0.85, depthWrite: false, fog: false,
+    }));
+    // The clouds live in a group that tracks the camera on the ground plane,
+    // so they always sit far off over the ridges instead of drifting through
+    // the foreground and washing the frame out.
+    const cloudLayer = new THREE.Group();
+    scene.add(cloudLayer);
+    aoExcluded.push(cloudLayer);
     for (let i = 0; i < 18; i++) {
-      const cl = new THREE.Sprite(cloudMat);
-      cl.position.set(rand(-240, 240), rand(52, 88), rand(-240, 240));
-      const w = rand(50, 110);
-      cl.scale.set(w, w * rand(0.3, 0.45), 1);
-      scene.add(cl);
-      clouds.push(cl);
+      const high = i % 3 === 0;
+      const mat = cloudMats[i % cloudMats.length];
+      const cl = new THREE.Sprite(mat);
+      const w = high ? rand(60, 110) : rand(120, 210);
+      cl.scale.set(w, w * 0.46, 1);
+      const a = (i / 18) * Math.PI * 2 + rand(-0.12, 0.12);
+      const r = high ? rand(320, 430) : rand(240, 360);
+      cl.position.set(Math.sin(a) * r, high ? rand(110, 165) : rand(62, 105), Math.cos(a) * r);
+      cloudLayer.add(cl);
+      clouds.push({ sprite: cl, speed: high ? rand(0.4, 0.7) : rand(0.9, 1.6) });
+    }
+    // One material instance per texture, so night dimming is a single write.
+    const dimClouds = (o: number) => cloudMats.forEach(m => { m.opacity = o; });
+
+    // Birds, circling far off.
+    const birds: THREE.Group[] = [];
+    for (let i = 0; i < 9; i++) {
+      const bird = createBird();
+      bird.userData.phase = rand(0, 6.28);
+      bird.userData.radius = rand(40, 95);
+      bird.userData.height = rand(28, 46);
+      bird.userData.speed = rand(0.06, 0.11);
+      bird.userData.centre = new THREE.Vector3(rand(-60, 60), 0, rand(-60, 60));
+      scene.add(bird);
+      birds.push(bird);
+      aoExcluded.push(bird);
     }
 
     // --- World -----------------------------------------------------------
@@ -255,6 +326,26 @@ const App: React.FC = () => {
     for (const f of world.flowers) f.userData.full = f.count;
     scene.add(world.group);
 
+    // Shafts of sun coming through the canopies.
+    const shafts: THREE.Mesh[] = [];
+    const shaftSpots: [number, number, number][] = [
+      [6, 60, 1], [-8, 66, 0.85], [14, 52, 0.7],
+      [-64, 82, 0.8], [-76, 74, 0.65], [-58, 90, 0.7],
+      [-88, -4, 0.6], [-98, -18, 0.55],
+    ];
+    for (const [x, z, strength] of shaftSpots) {
+      const shaft = createLightShaft();
+      shaft.scale.set(rand(2.4, 4), rand(14, 20), 1);
+      shaft.position.set(x, terrainHeight(x, z) + 8, z);
+      // Lean along the sun direction.
+      shaft.rotation.z = -0.42;
+      shaft.userData.strength = strength;
+      shaft.renderOrder = 2;
+      scene.add(shaft);
+      shafts.push(shaft);
+      aoExcluded.push(shaft);
+    }
+
     const mossling: Mossling = createMossling();
     mossling.group.traverse(o => {
       const mesh = o as THREE.Mesh;
@@ -270,15 +361,22 @@ const App: React.FC = () => {
     scene.add(shadow);
 
     // --- Seeds, planting rings, grown trees -------------------------------
-    interface SeedObj { id: string; obj: THREE.Group; x: number; z: number; }
-    const seedObjs: SeedObj[] = [];
-    for (const spot of SEED_SPOTS) {
-      if (saved.current.collected.includes(spot.id)) continue;
-      const obj = createSeed();
-      obj.position.set(spot.x, terrainHeight(spot.x, spot.z) + 1.1, spot.z);
-      scene.add(obj);
-      seedObjs.push({ id: spot.id, obj, x: spot.x, z: spot.z });
-    }
+    type PickupKind = 'seed' | 'fruit' | 'mushroom';
+    interface Pickup { id: string; kind: PickupKind; obj: THREE.Group; x: number; z: number; }
+    const pickups: Pickup[] = [];
+    const addPickups = (spots: typeof SEED_SPOTS, kind: PickupKind) => {
+      for (const spot of spots) {
+        if (saved.current.collected.includes(spot.id)) continue;
+        const obj = kind === 'seed' ? createSeed() : kind === 'fruit' ? createFruit() : createCaveMushroom();
+        const lift = kind === 'mushroom' ? 0.05 : 1.0;
+        obj.position.set(spot.x, terrainHeight(spot.x, spot.z) + lift, spot.z);
+        scene.add(obj);
+        pickups.push({ id: spot.id, kind, obj, x: spot.x, z: spot.z });
+      }
+    };
+    addPickups(SEED_SPOTS, 'seed');
+    addPickups(FRUIT_SPOTS, 'fruit');
+    addPickups(SHROOM_SPOTS, 'mushroom');
 
     interface PlantObj { id: string; ring: THREE.Mesh; x: number; z: number; grown: THREE.Group | null; grow: number; }
     const plantObjs: PlantObj[] = PLANT_SPOTS.map(spot => {
@@ -305,6 +403,33 @@ const App: React.FC = () => {
       window.innerWidth, window.innerHeight, { samples: 4, type: THREE.HalfFloatType },
     ));
     composer.addPass(new RenderPass(scene, camera));
+
+    // Ambient occlusion: the soft darkening where a trunk meets the ground,
+    // or under the canopy. Nothing else does as much for the sense of volume.
+    const aoPass = new GTAOPass(scene, camera, window.innerWidth, window.innerHeight);
+    aoPass.output = GTAOPass.OUTPUT.Default;
+    aoPass.blendIntensity = 0.45;
+    aoPass.updateGtaoMaterial({
+      radius: 0.7,
+      distanceExponent: 1.4,
+      thickness: 1.0,
+      scale: 1.0,
+      samples: 16,
+      screenSpaceRadius: false,
+    });
+    // GTAO renders its own depth/normal prepass with an override material,
+    // which makes billboards and particles read as solid walls and stamps
+    // grey rectangles across the sky. Hide those while it samples; the beauty
+    // buffer it blends onto already contains them.
+    const origAoRender = aoPass.render.bind(aoPass);
+    aoPass.render = ((...args: Parameters<typeof origAoRender>) => {
+      const wasVisible = aoExcluded.map(o => o.visible);
+      for (const o of aoExcluded) o.visible = false;
+      origAoRender(...args);
+      aoExcluded.forEach((o, i) => { o.visible = wasVisible[i]; });
+    }) as typeof aoPass.render;
+    composer.addPass(aoPass);
+
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight), 0.32, 0.75, 0.82,
     );
@@ -342,7 +467,7 @@ const App: React.FC = () => {
     // ground lush without paying for a whole valley of instances.
     const GRASS = 14000;
     let GRASS_LIVE = GRASS;
-    const GRASS_R = 22;
+    const GRASS_R = 25;
     const grassGeo = createBladeGeometry(0.4, 0.042, 0.24, 4);
     const grassMat = flat(0xffffff, { vertexColors: true, side: THREE.DoubleSide });
     const grassSway = makeSway(grassMat, 0.11);
@@ -389,6 +514,7 @@ const App: React.FC = () => {
       });
       const pts = new THREE.Points(geo, mat);
       scene.add(pts);
+      aoExcluded.push(pts);
       return { pts, arr, mat };
     };
     const creek = REGIONS.find(r => r.id === 'creek')!;
@@ -419,10 +545,34 @@ const App: React.FC = () => {
     const rain = new THREE.LineSegments(rainGeo, rainMat);
     rain.frustumCulled = false;
     scene.add(rain);
+    aoExcluded.push(rain);
+
+    // --- Blossom fall ------------------------------------------------------
+    // Petals drift down wherever the orchard is; they fade in with the region
+    // weight, so walking in feels like walking into weather.
+    const PETALS = 220;
+    const petalGeo = new THREE.PlaneGeometry(0.16, 0.11);
+    const petalMat = new THREE.MeshBasicMaterial({
+      color: 0xf8d3de, side: THREE.DoubleSide, transparent: true, opacity: 0, fog: true,
+    });
+    const petals = new THREE.InstancedMesh(petalGeo, petalMat, PETALS);
+    petals.frustumCulled = false;
+    scene.add(petals);
+    aoExcluded.push(petals);
+    const petalState = Array.from({ length: PETALS }, () => ({
+      x: rand(-26, 26), y: rand(0, 14), z: rand(-26, 26),
+      spin: rand(0, 6.28), speed: rand(0.5, 1.2), drift: rand(0.3, 1.1),
+    }));
+    const petalMatrix = new THREE.Matrix4();
+    const petalQuat = new THREE.Quaternion();
+    const petalEuler = new THREE.Euler();
+    const petalPos = new THREE.Vector3();
+    const petalScale = new THREE.Vector3(1, 1, 1);
 
     // --- Rainbow ----------------------------------------------------------
     const rainbow = createRainbow();
     scene.add(rainbow);
+    aoExcluded.push(rainbow);
 
     // --- Leaf burst for planting -----------------------------------------
     const leafGeo = new THREE.TetrahedronGeometry(0.2);
@@ -453,6 +603,7 @@ const App: React.FC = () => {
       facing: Math.PI, camYaw: Math.PI, moving: false, turn: 0,
       napT: 0, napping: false, napFlipped: false, fade: 0,
       sitting: false, sitT: 0, wetness: 0, rainbowT: 0,
+      fishing: false, fishWait: 0, fishBite: 0, fishX: 0, fishZ: 0, camSnap: false,
       nightT: saved.current.night ? 1 : 0,
       time: 0,
     };
@@ -493,15 +644,97 @@ const App: React.FC = () => {
     let currentRegion: Region = dominantRegion(P.x, P.z);
     setRegionName(`${currentRegion.nameZh} · ${currentRegion.name}`);
 
+    // Journal entries earned by doing something rather than walking somewhere.
+    const award = (id: string) => {
+      if (!EVENT_DISCOVERIES.includes(id) || saved.current.found.includes(id)) return;
+      const entry = DISCOVERIES.find(d => d.id === id);
+      if (!entry) return;
+      saved.current.found.push(id);
+      persist();
+      setFound([...saved.current.found]);
+      sfx.play('chime');
+      showToast(entry.name, entry.note);
+    };
+
     const showToast = (title: string, note: string) => {
       setToast({ title, note });
       window.setTimeout(() => setToast(t => (t && t.title === title ? null : t)), 5200);
     };
 
+    // --- Wishes -----------------------------------------------------------
+    // Progress is measured against a baseline taken when the wish is drawn,
+    // so "plant two trees" means two more from now, not two ever.
+    interface ActiveWish { wish: Wish; base: number; done: boolean; }
+    let active: ActiveWish[] = [];
+
+    const counterFor = (w: Wish): number => {
+      switch (w.kind) {
+        case 'seeds': return saved.current.collected.filter(id => id.includes('seed')).length;
+        case 'planted': return saved.current.planted.length;
+        case 'fruit': return saved.current.fruit;
+        case 'mushrooms': return saved.current.mushrooms;
+        case 'fish': return saved.current.fish;
+        default: return 0;
+      }
+    };
+
+    const publishWishes = () => setWishes(active.map(a => ({ wish: a.wish, done: a.done })));
+
+    const drawWish = (): Wish | null => {
+      const used = new Set([...saved.current.wishes, ...active.map(a => a.wish.id)]);
+      const pool = WISHES.filter(w => !used.has(w.id));
+      // Once every wish has been granted, start the list over.
+      const source = pool.length ? pool : WISHES.filter(w => !active.some(a => a.wish.id === w.id));
+      return source.length ? source[Math.floor(Math.random() * source.length)] : null;
+    };
+
+    const addWish = () => {
+      const w = drawWish();
+      if (w) active.push({ wish: w, base: counterFor(w), done: false });
+    };
+    while (active.length < 3) {
+      const before = active.length;
+      addWish();
+      if (active.length === before) break;
+    }
+    publishWishes();
+
+    const completeWish = (a: ActiveWish) => {
+      a.done = true;
+      saved.current.wishes.push(a.wish.id);
+      persist();
+      publishWishes();
+      sfx.play('chime');
+      showToast('心愿达成', a.wish.text);
+      // Leave the finished line up for a moment, then replace it.
+      window.setTimeout(() => {
+        active = active.filter(x => x !== a);
+        addWish();
+        publishWishes();
+      }, 3200);
+    };
+
+    const checkWishes = (ctx: { region: string; night: boolean; sitting: boolean; napped: boolean }) => {
+      for (const a of active) {
+        if (a.done) continue;
+        const w = a.wish;
+        let ok = false;
+        if (w.kind === 'region') ok = ctx.region === w.region;
+        else if (w.kind === 'night') ok = ctx.night;
+        else if (w.kind === 'sit') ok = ctx.sitting;
+        else if (w.kind === 'nap') ok = ctx.napped;
+        else ok = counterFor(w) - a.base >= (w.n ?? 1);
+        if (ok) completeWish(a);
+      }
+    };
+
     // --- Interactions -----------------------------------------------------
     let promptState: Prompt = null;
     const setPromptOnce = (p: Prompt) => {
-      const same = (a: Prompt, b: Prompt) => (!a && !b) || (!!a && !!b && a.kind === b.kind);
+      // Compare the label too: fishing keeps the same kind while the text
+      // changes from "cast" to "waiting", and the UI must follow.
+      const same = (a: Prompt, b: Prompt) =>
+        (!a && !b) || (!!a && !!b && a.kind === b.kind && a.label === b.label);
       if (!same(p, promptState)) { promptState = p; setPrompt(p); }
     };
 
@@ -522,7 +755,61 @@ const App: React.FC = () => {
       spot.ring.visible = false;
       burst(new THREE.Vector3(spot.x, terrainHeight(spot.x, spot.z) + 1, spot.z), 14);
       sfx.play('merge');
+      if (saved.current.planted.length >= PLANT_SPOTS.length) award('allplanted');
       showToast('种子发芽了', '一棵新的小树。它会自己长大,你随时可以回来看它。');
+    };
+
+    // --- Fishing ----------------------------------------------------------
+    const FISH = ['一条银色的小鱼', '一条胖乎乎的鲫鱼', '一条会发光的鱼', '一只溪蟹', '一条很小很小的鱼'];
+    const floatObj = createFloat();
+    floatObj.visible = false;
+    scene.add(floatObj);
+
+    // Water within reach in front of the mossling, if any.
+    const waterAhead = (): { x: number; z: number } | null => {
+      for (let d = 1.5; d <= 5; d += 0.7) {
+        const x = P.x + Math.sin(P.facing) * d;
+        const z = P.z + Math.cos(P.facing) * d;
+        if (isWater(x, z)) return { x, z };
+      }
+      return null;
+    };
+
+    const stopFishing = () => {
+      P.fishing = false;
+      P.fishBite = 0;
+      floatObj.visible = false;
+      setFishing('idle');
+    };
+
+    const castLine = () => {
+      const spot = waterAhead();
+      if (!spot) return;
+      P.fishing = true;
+      P.fishX = spot.x;
+      P.fishZ = spot.z;
+      P.fishWait = rand(2, 4.5);
+      P.fishBite = 0;
+      floatObj.position.set(spot.x, -0.35, spot.z);
+      floatObj.visible = true;
+      setFishing('waiting');
+      sfx.play('blip');
+    };
+
+    const reelIn = () => {
+      if (P.fishBite > 0) {
+        saved.current.fish += 1;
+        persist();
+        setFish(saved.current.fish);
+        sfx.play('merge');
+        const name = FISH[Math.floor(Math.random() * FISH.length)];
+        showToast('钓到了', `${name}。看了一会儿,又把它放回水里。`);
+        award('firstfish');
+      } else {
+        sfx.play('click');
+        showToast('跑掉了', '水面晃了两下就安静了。再等等吧。');
+      }
+      stopFishing();
     };
 
     const napInHollow = () => {
@@ -535,6 +822,8 @@ const App: React.FC = () => {
 
     const interact = () => {
       if (!startedRef.current) return;
+      if (promptState?.kind === 'reel') { reelIn(); return; }
+      if (promptState?.kind === 'fish') { castLine(); return; }
       if (promptState?.kind === 'nap') { napInHollow(); return; }
       if (promptState?.kind === 'plant') {
         const near = plantObjs.find(p => !p.grown && Math.hypot(p.x - P.x, p.z - P.z) < 4);
@@ -602,6 +891,7 @@ const App: React.FC = () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
       composer.setSize(window.innerWidth, window.innerHeight);
       bloomPass.setSize(window.innerWidth, window.innerHeight);
+      aoPass.setSize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', onResize);
 
@@ -628,43 +918,60 @@ const App: React.FC = () => {
     let raf = 0;
     let last = performance.now();
     let hudAcc = 0;
+    let nightWalk = 0;
     // Frame-time watchdog: on a weak device, thin out the vegetation and
     // drop the pixel ratio rather than letting the walk turn to slideshow.
     // Measured in seconds of slow rendering, not frames: at 2 fps a frame
     // count threshold would take half a minute to trip.
+    const bootAt = performance.now();
     let slowTime = 0;
+    let fastTime = 0;
     let quality = 1;
-    // Graceful degradation, cheapest-looking losses first.
+    // Quality ladder, cheapest-looking losses first. It is a pure function of
+    // the tier so it can be walked back up again once the machine keeps up.
     let tier = 0;
-    const downgrade = () => {
-      tier += 1;
-      if (tier === 1) {
-        bloomPass.enabled = false;
-      } else if (tier === 2) {
-        sun.shadow.mapSize.set(1024, 1024);
+    const MAX_TIER = 8;
+    const basePixelRatio = Math.min(2, window.devicePixelRatio || 1);
+    const applyTier = (t: number) => {
+      aoPass.enabled = t < 1;
+      bloomPass.enabled = t < 2;
+
+      const shadowRes = t < 3 ? 2048 : 1024;
+      if (sun.shadow.mapSize.x !== shadowRes) {
+        sun.shadow.mapSize.set(shadowRes, shadowRes);
         sun.shadow.map?.dispose();
         sun.shadow.map = null;
-      } else if (tier === 3) {
-        renderer.shadowMap.enabled = false;
+      }
+
+      const wantShadows = t < 4;
+      if (renderer.shadowMap.enabled !== wantShadows) {
+        renderer.shadowMap.enabled = wantShadows;
         scene.traverse(o => {
           const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
           if (Array.isArray(m)) m.forEach(x => { x.needsUpdate = true; });
           else if (m) m.needsUpdate = true;
         });
-      } else {
-        quality /= 2;
-        GRASS_LIVE = Math.floor(GRASS * quality);
-        grass.count = GRASS_LIVE;
-        if (world.rice) world.rice.count = Math.floor((world.rice.userData.full as number) * quality);
-        for (const f of world.flowers) f.count = Math.floor((f.userData.full as number) * quality);
-        renderer.setPixelRatio(Math.max(0.75, Math.min(2, window.devicePixelRatio || 1) * quality));
-        composer.setPixelRatio?.(Math.max(0.75, Math.min(2, window.devicePixelRatio || 1) * quality));
       }
+
+      quality = t < 5 ? 1 : Math.pow(0.5, t - 4);
+      GRASS_LIVE = Math.floor(GRASS * quality);
+      grass.count = GRASS_LIVE;
+      if (world.rice) world.rice.count = Math.floor((world.rice.userData.full as number) * quality);
+      for (const f of world.flowers) f.count = Math.floor((f.userData.full as number) * quality);
+      const pr = Math.max(0.75, basePixelRatio * (t < 7 ? 1 : 0.6));
+      renderer.setPixelRatio(pr);
+      composer.setPixelRatio?.(pr);
     };
+    const downgrade = () => { if (tier < MAX_TIER) applyTier(++tier); };
+    const upgrade = () => { if (tier > 0) applyTier(--tier); };
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
-      const dt = Math.min(0.05, (now - last) / 1000);
+      // Simulation time is capped so a stall cannot teleport the world, but
+      // the watchdog needs the real elapsed time or it reacts 20x too slowly
+      // on exactly the machines that need it.
+      const realDt = (now - last) / 1000;
+      const dt = Math.min(0.05, realDt);
       last = now;
       P.time += dt;
       const t = P.time;
@@ -707,10 +1014,11 @@ const App: React.FC = () => {
         P.turn *= 0.9;
       }
       // Keep the wanderer inside the valley.
-      const fromHome = Math.hypot(P.x, P.z);
-      if (fromHome > 170) {
-        P.x *= 170 / fromHome;
-        P.z *= 170 / fromHome;
+      const fromHome = Math.hypot(P.x, P.z - 20);
+      if (fromHome > 215) {
+        const k = 215 / fromHome;
+        P.x *= k;
+        P.z = 20 + (P.z - 20) * k;
       }
 
       // Jump / ground.
@@ -770,8 +1078,7 @@ const App: React.FC = () => {
       skyMat.uniforms.uNight.value = P.nightT;
       (skyMat.uniforms.uSunDir.value as THREE.Vector3).copy(SUN_OFFSET).normalize();
       starMat.opacity = P.nightT;
-      cloudMat.opacity = THREE.MathUtils.lerp(0.8, 0.12, P.nightT);
-      cloudMat.color.copy(skyBottom).lerp(new THREE.Color(0xffffff), 0.55);
+      dimClouds(THREE.MathUtils.lerp(0.85, 0.18, P.nightT));
 
       const rainAmount = REGIONS.reduce((acc, r, i) => acc + r.rain * weights[i], 0);
       rainMat.opacity = rainAmount * 0.45;
@@ -853,8 +1160,10 @@ const App: React.FC = () => {
         stars.position.copy(camera.position);
         gradePass.uniforms.uTime.value = t % 100;
         composer.render();
-        if (dt > 0.034) slowTime += dt; else slowTime = Math.max(0, slowTime - dt * 2);
-        if (slowTime > 1.0 && quality > 0.12 && !hq) { downgrade(); slowTime = 0; }
+        if (!hq && now - bootAt > 2500) {
+          if (realDt > 0.034) { slowTime += realDt; fastTime = 0; } else { slowTime = Math.max(0, slowTime - realDt); }
+          if (slowTime > 1.0) { downgrade(); slowTime = 0; }
+        }
         return;
       }
 
@@ -867,29 +1176,56 @@ const App: React.FC = () => {
         P.camYaw += d * Math.min(1, dt * 0.9);
       }
       // Sitting eases the camera back and a little lower, like settling in.
-      const camDist = P.sitting ? 11 + Math.min(4.5, P.sitT * 1.6) : 11;
+      let camDist = P.sitting ? 11 + Math.min(4.5, P.sitT * 1.6) : 11;
+      // Pull in if the camera would end up inside a trunk or a boulder.
+      for (const b of BLOCKERS) {
+        // If the mossling itself is standing among the rocks, pulling the
+        // camera in only jams it against its own back.
+        if (Math.hypot(P.x - b.x, P.z - b.z) < b.r + 1.5) continue;
+        for (let step = 0; step < 3; step++) {
+          const tx = P.x - Math.sin(P.camYaw) * camDist;
+          const tz = P.z - Math.cos(P.camYaw) * camDist;
+          const gap = Math.hypot(tx - b.x, tz - b.z);
+          if (gap > b.r + 0.8 || P.y + 4 > b.h) break;
+          camDist = Math.max(6.5, camDist - (b.r + 0.8 - gap) - 0.4);
+        }
+      }
       const camX = P.x - Math.sin(P.camYaw) * camDist;
       const camZ = P.z - Math.cos(P.camYaw) * camDist;
       const camY = Math.max(terrainHeight(camX, camZ) + 2.6, P.y + 4.6);
-      camera.position.lerp(new THREE.Vector3(camX, camY, camZ), Math.min(1, dt * 3.4));
+      if (P.camSnap) {
+        camera.position.set(camX, camY, camZ);
+        P.camSnap = false;
+      } else {
+        camera.position.lerp(new THREE.Vector3(camX, camY, camZ), Math.min(1, dt * 3.4));
+      }
       camera.lookAt(P.x, P.y + 1.7, P.z);
       sky.position.copy(camera.position);
       stars.position.copy(camera.position);
 
-      // --- Seeds ---
-      for (let i = seedObjs.length - 1; i >= 0; i--) {
-        const s = seedObjs[i];
-        s.obj.rotation.y += dt * 1.6;
-        s.obj.position.y = terrainHeight(s.x, s.z) + 1.1 + Math.sin(t * 2 + s.x) * 0.18;
-        if (Math.hypot(s.x - P.x, s.z - P.z) < 2.2) {
-          scene.remove(s.obj);
-          seedObjs.splice(i, 1);
-          saved.current.seeds += 1;
-          saved.current.collected.push(s.id);
+      // --- Pickups ---
+      for (let i = pickups.length - 1; i >= 0; i--) {
+        const it = pickups[i];
+        if (it.kind === 'mushroom') {
+          it.obj.rotation.y += dt * 0.4;
+        } else {
+          it.obj.rotation.y += dt * 1.6;
+          it.obj.position.y = terrainHeight(it.x, it.z) + 1.0 + Math.sin(t * 2 + it.x) * 0.18;
+        }
+        if (Math.hypot(it.x - P.x, it.z - P.z) < 2.2) {
+          scene.remove(it.obj);
+          pickups.splice(i, 1);
+          saved.current.collected.push(it.id);
+          if (it.kind === 'seed') { saved.current.seeds += 1; setSeeds(saved.current.seeds); }
+          if (it.kind === 'fruit') {
+            saved.current.fruit += 1;
+            setFruit(saved.current.fruit);
+            award('firstfruit');
+          }
+          if (it.kind === 'mushroom') { saved.current.mushrooms += 1; setMushrooms(saved.current.mushrooms); }
           persist();
-          setSeeds(saved.current.seeds);
           sfx.play('pickup');
-          burst(s.obj.position.clone(), 4);
+          burst(it.obj.position.clone(), 4);
         }
       }
 
@@ -911,7 +1247,7 @@ const App: React.FC = () => {
 
       // --- Discoveries ---
       for (const d of DISCOVERIES) {
-        if (saved.current.found.includes(d.id)) continue;
+        if (d.radius <= 0 || saved.current.found.includes(d.id)) continue;
         if (Math.hypot(d.x - P.x, d.z - P.z) < d.radius) {
           saved.current.found.push(d.id);
           persist();
@@ -921,11 +1257,44 @@ const App: React.FC = () => {
         }
       }
 
+      // --- Fishing ---
+      if (P.fishing) {
+        if (P.moving) {
+          stopFishing();
+        } else if (P.fishBite > 0) {
+          // A short window to strike before it lets go.
+          P.fishBite -= dt;
+          floatObj.position.y = -0.75 + Math.sin(t * 22) * 0.1;
+          if (P.fishBite <= 0) {
+            showToast('跑掉了', '浮标沉下去又浮起来。它走了。');
+            stopFishing();
+          }
+        } else {
+          P.fishWait -= dt;
+          floatObj.position.y = -0.32 + Math.sin(t * 1.6) * 0.06;
+          if (P.fishWait <= 0) {
+            P.fishBite = 1.4;
+            setFishing('bite');
+            sfx.play('blip');
+          }
+        }
+      }
+
       // --- Context prompt ---
       const nearHollow = Math.hypot(P.x - 0, P.z - 64) < 9;
-      if (nearHollow && !P.napping) setPromptOnce({ kind: 'nap', label: '在树洞里打个盹' });
-      else if (nearPlant && saved.current.seeds > 0) setPromptOnce({ kind: 'plant', label: '种下一颗种子' });
-      else setPromptOnce(null);
+      if (P.fishing) {
+        setPromptOnce(P.fishBite > 0
+          ? { kind: 'reel', label: '提竿!' }
+          : { kind: 'fish', label: '等着…(动一下就收竿)' });
+      } else if (nearHollow && !P.napping) {
+        setPromptOnce({ kind: 'nap', label: '在树洞里打个盹' });
+      } else if (nearPlant && saved.current.seeds > 0) {
+        setPromptOnce({ kind: 'plant', label: '种下一颗种子' });
+      } else if (!P.moving && waterAhead()) {
+        setPromptOnce({ kind: 'fish', label: '在这里钓鱼' });
+      } else {
+        setPromptOnce(null);
+      }
 
       // --- Living things ---
       for (const b of world.butterflies) {
@@ -964,7 +1333,11 @@ const App: React.FC = () => {
           .lerp(new THREE.Color(0x3f5f80), P.nightT);
       }
 
-      syncGrass(P.x, P.z);
+      // Centred a little ahead of the mossling: the camera sits behind it, so
+      // the visible field is mostly in front.
+      syncGrass(P.x + Math.sin(P.facing) * 7, P.z + Math.cos(P.facing) * 7);
+
+      world.millWheel.rotation.z -= dt * 0.55;
 
       // Swing sways in the wind.
       (world.swing.userData.rope as THREE.Group).rotation.x = Math.sin(t * 0.9) * 0.12;
@@ -1008,6 +1381,28 @@ const App: React.FC = () => {
         (g.material as THREE.MeshBasicMaterial).opacity = 0.6 + Math.sin(t * 6) * 0.08 + P.nightT * 0.3;
       }
 
+      // Blossom, only where the orchard is.
+      const orchardWeight = weights[REGIONS.findIndex(r => r.id === 'orchard')] ?? 0;
+      petalMat.opacity = Math.min(1, orchardWeight * 2.2) * (1 - P.nightT * 0.6);
+      if (petalMat.opacity > 0.02) {
+        for (let i = 0; i < PETALS; i++) {
+          const ps = petalState[i];
+          ps.y -= dt * ps.speed;
+          ps.x += Math.sin(t * 0.7 + ps.spin) * dt * ps.drift;
+          ps.z += Math.cos(t * 0.5 + ps.spin) * dt * ps.drift;
+          if (ps.y < -1) {
+            ps.y = rand(10, 16);
+            ps.x = rand(-26, 26);
+            ps.z = rand(-26, 26);
+          }
+          petalPos.set(P.x + ps.x, terrainHeight(P.x + ps.x, P.z + ps.z) + ps.y, P.z + ps.z);
+          petalEuler.set(t * 1.6 + ps.spin, t * 1.1 + ps.spin, t * 0.8);
+          petalQuat.setFromEuler(petalEuler);
+          petals.setMatrixAt(i, petalMatrix.compose(petalPos, petalQuat, petalScale));
+        }
+        petals.instanceMatrix.needsUpdate = true;
+      }
+
       // Leaves.
       for (const l of leaves) {
         if (l.life <= 0) continue;
@@ -1019,10 +1414,38 @@ const App: React.FC = () => {
         if (l.life <= 0) l.mesh.visible = false;
       }
 
-      // Clouds drift.
-      for (const cl of clouds) {
-        cl.position.x += dt * 0.6;
-        if (cl.position.x > 230) cl.position.x = -230;
+      // Clouds drift across the ring, the higher layer slower.
+      cloudLayer.position.set(camera.position.x, 0, camera.position.z);
+      for (const c of clouds) {
+        c.sprite.position.x += dt * c.speed;
+        if (c.sprite.position.x > 440) c.sprite.position.x = -440;
+      }
+
+      // Birds circle and beat their wings.
+      for (const bird of birds) {
+        const ph = bird.userData.phase as number;
+        const r = bird.userData.radius as number;
+        const a = t * (bird.userData.speed as number) + ph;
+        const centre = bird.userData.centre as THREE.Vector3;
+        bird.position.set(
+          centre.x + Math.sin(a) * r,
+          (bird.userData.height as number) + Math.sin(t * 0.3 + ph) * 2.5,
+          centre.z + Math.cos(a) * r,
+        );
+        bird.rotation.y = -a;
+        const beat = Math.sin(t * 7 + ph);
+        const wings = bird.userData.wings as THREE.Mesh[];
+        wings[0].rotation.z = beat * 0.55;
+        wings[1].rotation.z = -beat * 0.55;
+      }
+
+      // Light shafts always face the camera and fade out after dark.
+      for (const shaft of shafts) {
+        shaft.lookAt(camera.position.x, shaft.position.y, camera.position.z);
+        shaft.rotation.z = -0.42;
+        const mat = shaft.material as THREE.MeshBasicMaterial;
+        mat.opacity = (shaft.userData.strength as number) * (1 - P.nightT) *
+          (0.16 + Math.sin(t * 0.4 + shaft.position.x) * 0.04);
       }
 
       // --- HUD (a few times a second) ---
@@ -1034,10 +1457,26 @@ const App: React.FC = () => {
           currentRegion = r;
           setRegionName(`${r.nameZh} · ${r.name}`);
         }
+        if (saved.current.night && P.moving) {
+          nightWalk += 0.25;
+          if (nightWalk > 12) award('nightwalk');
+        }
+        checkWishes({
+          region: r.id,
+          night: saved.current.night && P.moving,
+          sitting: P.sitting,
+          napped: P.napFlipped && P.napping,
+        });
       }
 
-      if (dt > 0.034) slowTime += dt; else slowTime = Math.max(0, slowTime - dt * 2);
-      if (slowTime > 1.0 && quality > 0.12 && !hq) { downgrade(); slowTime = 0; }
+      // Warm-up frames (shader compiles, first texture uploads) are not a
+      // verdict on the machine, so they do not count against it.
+      if (!hq && now - bootAt > 2500) {
+        if (realDt > 0.034) { slowTime += realDt; fastTime = 0; } else { slowTime = Math.max(0, slowTime - realDt); }
+        if (realDt < 0.02) fastTime += realDt; else if (realDt > 0.03) fastTime = 0;
+        if (slowTime > 1.0) { downgrade(); slowTime = 0; fastTime = 0; }
+        else if (fastTime > 8 && tier > 0) { upgrade(); fastTime = 0; }
+      }
 
       gradePass.uniforms.uTime.value = t % 100;
       composer.render();
@@ -1047,9 +1486,16 @@ const App: React.FC = () => {
     // ?debug=1 exposes state so automated tests can walk around and look.
     if (new URLSearchParams(location.search).has('debug')) {
       (window as unknown as { __mossling?: unknown }).__mossling = {
-        P, keys, teleport: (x: number, z: number) => { P.x = x; P.z = z; P.y = terrainHeight(x, z); },
+        P,
+        keys,
+        teleport: (x: number, z: number) => {
+          P.x = x;
+          P.z = z;
+          P.y = terrainHeight(x, z);
+          P.camSnap = true;
+        },
         setNight: (v: boolean) => { saved.current.night = v; setNight(v); },
-        grass, world, renderer, scene, getTier: () => tier,
+        grass, world, renderer, scene, pickups, getTier: () => tier,
         save: saved.current, interact, jump,
       };
     }
@@ -1099,6 +1545,9 @@ const App: React.FC = () => {
           <div className="ms-panel rounded-full py-2 flex items-center divide-x divide-[#e2f0d6]/12">
             {stat(<SeedIcon />, seeds, '种子', 'seeds')}
             {stat(<SproutIcon />, planted, '种下', 'planted')}
+            {fruit > 0 && stat(<FruitIcon />, fruit, '果子', 'fruit')}
+            {mushrooms > 0 && stat(<ShroomIcon />, mushrooms, '蘑菇', 'mushrooms')}
+            {fish > 0 && stat(<FishIcon />, fish, '鱼', 'fish')}
             {stat(night ? <MoonIcon /> : <SunIcon />, night ? '夜' : '昼', '此刻')}
           </div>
 
@@ -1120,6 +1569,27 @@ const App: React.FC = () => {
             >
               {muted ? <SoundOffIcon /> : <SoundOnIcon />}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Wishes */}
+      {started && wishes.length > 0 && !codexOpen && (
+        <div className="absolute left-4 bottom-6 pointer-events-none ms-fade max-w-[15rem]">
+          <div className="ms-sans text-[9px] ms-track uppercase text-white/45 mb-2 pl-1">今天想做的事</div>
+          <div className="flex flex-col gap-1.5">
+            {wishes.map(({ wish, done }) => (
+              <div key={wish.id}
+                className={`flex items-start gap-2 text-[12.5px] leading-snug transition-opacity duration-500 ${
+                  done ? 'text-[#cfe0b8]/60' : 'text-white/85'
+                }`}
+                style={{ textShadow: '0 1px 10px rgba(0,0,0,0.55)' }}>
+                <span className={`mt-[3px] shrink-0 ${done ? 'text-[#b7d68f]' : 'text-white/40'}`}>
+                  {done ? <CheckIcon /> : <WishIcon />}
+                </span>
+                <span className={done ? 'line-through decoration-[#b7d68f]/50' : ''}>{wish.text}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -1164,11 +1634,15 @@ const App: React.FC = () => {
               data-testid="interact"
               onPointerDown={e => e.stopPropagation()}
               onClick={() => controls.current.interact()}
-              className="ms-panel rounded-full pl-3 pr-5 py-2.5 flex items-center gap-3 hover:border-[#e2f0d6]/40 transition-colors ms-rise"
-              style={{ borderColor: 'rgba(232, 201, 138, 0.45)' }}
+              className={`ms-panel rounded-full pl-3 pr-5 py-2.5 flex items-center gap-3 transition-colors ms-rise ${
+                fishing === 'bite' ? 'animate-pulse' : ''
+              }`}
+              style={{ borderColor: fishing === 'bite' ? 'rgba(232,160,120,0.85)' : 'rgba(232, 201, 138, 0.45)' }}
             >
               <span className="ms-key">E</span>
-              <span className="ms-serif text-[15px] text-[#f6e7c6]">{prompt.label}</span>
+              <span className={`ms-serif text-[15px] ${fishing === 'bite' ? 'text-[#ffd9b8]' : 'text-[#f6e7c6]'}`}>
+                {prompt.label}
+              </span>
             </button>
           ) : (
             <button
@@ -1255,7 +1729,7 @@ const App: React.FC = () => {
 
           <p className="ms-serif text-[15px] leading-[2] text-[#e8f0de]/90 max-w-md mt-8 ms-rise ms-delay-3">
             一只背上长着苔藓和小蘑菇的森林精灵,<br />
-            住在一片有六种风景的山谷里。<br />
+            住在一片有十种风景的山谷里。<br />
             没有敌人,没有计时,也不会失败。
           </p>
 

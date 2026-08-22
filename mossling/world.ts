@@ -1,10 +1,11 @@
-// The world of Mossling Wander: rolling terrain, five regions that blend
+// The world of Mossling Wander: rolling terrain, ten regions that blend
 // into one another, and the landmarks scattered through them.
 import * as THREE from 'three';
 import {
-  createBamboo, createBridge, createBush, createButterfly, createDragonfly, createFarmhouse,
-  createFence, createGreatTree, createLantern, createMushroomCluster, createPowerPole, createRock,
-  createBladeGeometry, createScarecrow, createStoneSteps, createSteppingStone, createTree,
+  createBamboo, createBench, createBladeGeometry, createBlossomTree, createBridge, createBush,
+  createButterfly, createDragonfly, createFarmhouse, createFence, createGreatTree, createGrotto,
+  createLantern, createMushroomCluster, createOverlook, createPowerPole, createRock,
+  createScarecrow, createStoneSteps, createSteppingStone, createTree, createWatermill,
   createWaterMaterial, flat, makeSway, rand, toon, TreePalette,
 } from './models';
 
@@ -69,6 +70,34 @@ export const REGIONS: Region[] = [
     skyTop: 0x6b9ac4, skyBottom: 0xefdbe1, fog: 0xdcccd4, ground: 0x7fa25e, rain: 0,
     trees: { trunk: 0x7d6142, leaves: [0x86bb5c, 0xa8cc6a] }, grass: 0x88ac63, density: 14,
   },
+  {
+    id: 'overlook', name: 'Ridge Lookout', nameZh: '山顶观景台',
+    blurb: '风从下面的山谷一路吹上来,把整片森林的声音都带上来了。',
+    x: -26, z: 152, radius: 54,
+    skyTop: 0x4a7ba8, skyBottom: 0xe6dcc8, fog: 0xcfd4c8, ground: 0x7a8b58, rain: 0,
+    trees: { trunk: 0x6f5a42, leaves: [0x5e8a4c, 0x6f9a55] }, grass: 0x8aa063, density: 12,
+  },
+  {
+    id: 'mill', name: 'The Watermill', nameZh: '溪边水车',
+    blurb: '水车吱呀吱呀地转,一整天都没停过,也没人来管它。',
+    x: 46, z: 116, radius: 48,
+    skyTop: 0x5789b4, skyBottom: 0xdbe6de, fog: 0xc3d3ca, ground: 0x6c9159, rain: 0,
+    trees: { trunk: 0x6b5240, leaves: [0x4f8a4e, 0x63a05c] }, grass: 0x759b60, density: 20,
+  },
+  {
+    id: 'grotto', name: 'Mossy Grotto', nameZh: '苔藓岩洞',
+    blurb: '洞里比外面凉,岩壁上的小蘑菇会自己发光。',
+    x: -136, z: 62, radius: 46,
+    skyTop: 0x4d6f82, skyBottom: 0xb9c8c4, fog: 0xa4b7b4, ground: 0x5a7350, rain: 0.25,
+    trees: { trunk: 0x54432f, leaves: [0x36663f, 0x437a48] }, grass: 0x5f8256, density: 30,
+  },
+  {
+    id: 'orchard', name: 'Blossom Orchard', nameZh: '果树林',
+    blurb: '风一吹就下一场粉色的雨。树上的果子熟了,可以摘。',
+    x: 132, z: -46, radius: 50,
+    skyTop: 0x6f9fc9, skyBottom: 0xf6e2e6, fog: 0xe6d6d6, ground: 0x86a75f, rain: 0,
+    trees: { trunk: 0x7d5f47, leaves: [0xf3b9cc, 0xf6c9d6] }, grass: 0x8cae66, density: 8,
+  },
 ];
 
 // --- Terrain -----------------------------------------------------------
@@ -90,12 +119,18 @@ const smoothstep = (a: number, b: number, x: number) => {
 
 export const terrainHeight = (x: number, z: number): number => {
   let h = Math.sin(x * 0.032) * 1.7 + Math.cos(z * 0.026) * 1.5 + Math.sin((x + z) * 0.015) * 1.2;
+  // The ridge that the lookout stands on.
+  const ridge = 1 - smoothstep(10, 62, Math.hypot(x + 26, z - 152));
+  h += ridge * ridge * 15;
   // Terraces in the paddy region — shallow steps instead of smooth hills.
   const paddy = 1 - smoothstep(30, 66, Math.hypot(x - 0, z + 95));
   if (paddy > 0) h = THREE.MathUtils.lerp(h, Math.round(h * 1.4) / 1.4 + 0.4, paddy);
   // The hollow that holds the pond.
   const pond = 1 - smoothstep(POND.r * 0.55, POND.r * 1.25, Math.hypot(x - POND.x, z - POND.z));
   h = THREE.MathUtils.lerp(h, POND.floor, pond);
+  // The millpond basin.
+  const mill = 1 - smoothstep(9, 20, Math.hypot(x - 53, z - 116));
+  h = THREE.MathUtils.lerp(h, -1.0, mill);
   // The stream channel.
   const stream = 1 - smoothstep(STREAM.width, STREAM.width * 2.6,
     distToSegment(x, z, STREAM.ax, STREAM.az, STREAM.bx, STREAM.bz));
@@ -103,9 +138,12 @@ export const terrainHeight = (x: number, z: number): number => {
   return h;
 };
 
+export const MILL_POND = { x: 53, z: 116, r: 11 };
+
 export const isWater = (x: number, z: number): boolean =>
   (Math.hypot(x - POND.x, z - POND.z) < POND.r * 0.82 && terrainHeight(x, z) < -0.35) ||
-  distToSegment(x, z, STREAM.ax, STREAM.az, STREAM.bx, STREAM.bz) < STREAM.width * 0.85;
+  distToSegment(x, z, STREAM.ax, STREAM.az, STREAM.bx, STREAM.bz) < STREAM.width * 0.85 ||
+  Math.hypot(x - MILL_POND.x, z - MILL_POND.z) < MILL_POND.r * 0.9;
 
 // Influence of each region at a point, normalised so the weights sum to 1.
 export const regionWeights = (x: number, z: number): number[] => {
@@ -129,8 +167,10 @@ export const dominantRegion = (x: number, z: number): Region => {
 // kept clear of grass, which gives every view a line to follow.
 const TRAIL: [number, number][] = [
   [0, 55], [22, 62], [34, 66], [46, 48], [52, 32], [72, 26], [95, 25],
-  [88, -20], [76, -60], [70, -85], [36, -92], [0, -95], [-40, -74],
-  [-82, -34], [-95, -10], [-92, 30], [-70, 78], [-38, 70], [0, 55],
+  [110, 0], [125, -24], [132, -46], [112, -66], [88, -78], [70, -85],
+  [36, -92], [0, -95], [-40, -74], [-82, -34], [-95, -10], [-92, 30],
+  [-110, 48], [-136, 62], [-108, 70], [-70, 78], [-46, 96], [-30, 124],
+  [-26, 148], [-6, 132], [20, 122], [46, 116], [40, 92], [22, 74], [0, 55],
 ];
 
 export const trailDistance = (x: number, z: number): number => {
@@ -168,7 +208,19 @@ export const DISCOVERIES: Discovery[] = [
   { id: 'farmhouse', name: '山边的老房子', note: '没有人在,但廊下扫得很干净。坐一会儿也没关系。', x: 34, z: 66, radius: 10 },
   { id: 'poles', name: '田埂上的电线杆', note: '一根接着一根走到很远的地方,电线上停着看不清的小鸟。', x: -34, z: -58, radius: 9 },
   { id: 'steps', name: '长苔的石阶', note: '不知道通向哪里,但每一级都有人踩过的凹痕。', x: -84, z: 52, radius: 7 },
+  { id: 'overlook', name: '山顶的长椅', note: '坐在这里能看见整条山谷。风很大,但一点也不冷。', x: -26, z: 150, radius: 11 },
+  { id: 'watermill', name: '溪边的水车', note: '木头被水泡得发黑,转起来会吱呀作响。听久了像有人在哼歌。', x: 46, z: 116, radius: 11 },
+  { id: 'glowshroom', name: '会发光的蘑菇', note: '洞里的蘑菇是淡青色的。靠近的时候,它们好像亮了一点点。', x: -136, z: 62, radius: 12 },
+  { id: 'blossom', name: '落花的果树林', note: '风一吹就下一场粉色的雨。抬头的时候记得张开手。', x: 132, z: -46, radius: 13 },
+  { id: 'firstfish', name: '第一条鱼', note: '它在水里看了你很久才咬钩。放回去的时候,它甩了一下尾巴。', x: 9999, z: 9999, radius: 0 },
+  { id: 'firstfruit', name: '第一颗果子', note: '沉甸甸的,凉凉的。咬开之前先闻了很久。', x: 9999, z: 9999, radius: 0 },
+  { id: 'allplanted', name: '种满山谷', note: '每一处空地都长出了新的树。它们会比你活得更久。', x: 9999, z: 9999, radius: 0 },
+  { id: 'nightwalk', name: '夜里的散步', note: '什么都看不太清,但每一步都很稳。萤火虫替你照着路。', x: 9999, z: 9999, radius: 0 },
 ];
+
+// Entries earned by doing something rather than by walking somewhere; parked
+// far outside the valley so proximity never awards them.
+export const EVENT_DISCOVERIES = ['firstfish', 'firstfruit', 'allplanted', 'nightwalk'];
 
 // --- Seeds & planting spots -------------------------------------------
 export interface Spot { id: string; x: number; z: number; }
@@ -185,10 +237,43 @@ const seedRing = (region: Region, count: number, radius: number, offset: number)
 
 export const SEED_SPOTS: Spot[] = REGIONS.flatMap((r, i) => seedRing(r, 6, r.radius * 0.75, i * 1.1));
 
+// Fruit lies under the orchard trees; glowing mushrooms grow in the grotto
+// and in the damp of the rain woods.
+export const FRUIT_SPOTS: Spot[] = (() => {
+  const r = REGIONS.find(x => x.id === 'orchard')!;
+  return Array.from({ length: 10 }, (_, i) => {
+    const a = (i / 10) * Math.PI * 2 + 0.4;
+    const d = r.radius * (0.3 + ((i * 29) % 50) / 100);
+    return { id: `fruit-${i}`, x: r.x + Math.sin(a) * d, z: r.z + Math.cos(a) * d };
+  });
+})();
+
+export const SHROOM_SPOTS: Spot[] = ['grotto', 'rain'].flatMap(id => {
+  const r = REGIONS.find(x => x.id === id)!;
+  return Array.from({ length: 7 }, (_, i) => {
+    const a = (i / 7) * Math.PI * 2 + (id === 'rain' ? 1.1 : 0.2);
+    const d = r.radius * (0.25 + ((i * 37) % 55) / 100);
+    return { id: `shroom-${id}-${i}`, x: r.x + Math.sin(a) * d, z: r.z + Math.cos(a) * d };
+  });
+});
+
 export const PLANT_SPOTS: Spot[] = REGIONS.flatMap(r => [
   { id: `${r.id}-plant-0`, x: r.x + 11, z: r.z + 9 },
   { id: `${r.id}-plant-1`, x: r.x - 13, z: r.z - 7 },
 ]);
+
+// Coarse cylinders around the big props. The camera uses these to avoid
+// backing into a boulder or a trunk; cheap compared with raycasting the
+// whole valley every frame.
+export interface Blocker { x: number; z: number; r: number; h: number; }
+
+export const BLOCKERS: Blocker[] = [
+  { x: 0, z: 62, r: 5.2, h: 16 },      // the great tree
+  { x: 34, z: 66, r: 5.4, h: 6 },      // farmhouse
+  { x: 46, z: 116, r: 4.4, h: 6 },     // watermill
+  { x: -136, z: 62, r: 8.5, h: 7 },    // grotto boulders
+  { x: -26, z: 150, r: 4.6, h: 3 },    // lookout deck
+];
 
 // --- World construction ------------------------------------------------
 export interface World {
@@ -199,6 +284,7 @@ export interface World {
   bridge: THREE.Group;
   farmhouse: THREE.Group;
   water: THREE.ShaderMaterial[];
+  millWheel: THREE.Group;
   butterflies: THREE.Group[];
   dragonflies: THREE.Group[];
   lanternGlow: THREE.Mesh[];
@@ -272,8 +358,8 @@ export const buildWorld = (): World => {
   let rice: THREE.InstancedMesh | null = null;
 
   // --- Ground: one big mesh, vertex-coloured by region weights ---
-  const SIZE = 460;
-  const SEG = 150;
+  const SIZE = 620;
+  const SEG = 190;
   const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -495,6 +581,50 @@ export const buildWorld = (): World => {
   // Power poles marching along the paddy edge.
   for (let i = 0; i < 6; i++) place(createPowerPole(), -34 + i * 15, -58 - i * 6);
 
+  // --- Ridge lookout ---
+  const overlook = createOverlook();
+  overlook.rotation.y = 0.3;
+  place(overlook, -26, 150);
+  place(createStoneSteps(12), -30, 126);
+  for (let i = 0; i < 3; i++) place(createBench(0), -14 + i * 9, 138 + i * 4);
+
+  // --- Watermill, on its own millpond ---
+  const mill = createWatermill();
+  mill.group.rotation.y = -0.6;
+  place(mill.group, 46, 116);
+  const millPondMat = createWaterMaterial(0x36657e, 0x6ea8bd, 0.72);
+  const millPond = new THREE.Mesh(new THREE.CircleGeometry(11, 40), millPondMat);
+  millPond.rotation.x = -Math.PI / 2;
+  millPond.position.set(53, terrainHeight(53, 116) - 0.5, 116);
+  group.add(millPond);
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2;
+    place(createRock(), 53 + Math.sin(a) * 11.5, 116 + Math.cos(a) * 11.5);
+  }
+  place(createFence(4), 34, 104);
+
+  // --- Mossy grotto ---
+  const grotto = createGrotto();
+  grotto.rotation.y = 2.4;
+  place(grotto, -136, 62);
+  for (let i = 0; i < 9; i++) {
+    const a = rand(0, Math.PI * 2);
+    place(createRock(), -136 + Math.sin(a) * rand(9, 20), 62 + Math.cos(a) * rand(9, 20));
+  }
+  place(createLantern(), -124, 52);
+
+  // --- Blossom orchard, planted in rows ---
+  const orchard = REGIONS.find(r => r.id === 'orchard')!;
+  for (let row = -3; row <= 3; row++) {
+    for (let col = -3; col <= 3; col++) {
+      const x = orchard.x + row * 9 + rand(-1.4, 1.4);
+      const z = orchard.z + col * 9 + rand(-1.4, 1.4);
+      if (Math.hypot(x - orchard.x, z - orchard.z) > orchard.radius * 0.8) continue;
+      place(createBlossomTree(Math.random() < 0.7), x, z);
+    }
+  }
+  place(createBench(0), 132, -28);
+
   // Pond + stepping stones.
   const pondMat = createWaterMaterial();
   const pond = new THREE.Mesh(new THREE.CircleGeometry(POND.r * 0.85, 56), pondMat);
@@ -564,7 +694,8 @@ export const buildWorld = (): World => {
 
   return {
     group, sway, rice, flowers: [stems, blossoms, hearts], bridge, farmhouse,
-    water: [pondMat, streamMat, puddleMat], butterflies, dragonflies,
+    water: [pondMat, streamMat, puddleMat, millPondMat], millWheel: mill.wheel,
+    butterflies, dragonflies,
     lanternGlow: [lantern.userData.glow as THREE.Mesh],
     pond, ripples, swing,
   };

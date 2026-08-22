@@ -30,13 +30,19 @@ export const makeSway = (mat: THREE.Material, amount = 0.13): { value: number } 
       '#include <begin_vertex>',
       `#include <begin_vertex>
       #ifdef USE_INSTANCING
-        float swayPhase = instanceMatrix[3].x * 0.6 + instanceMatrix[3].z * 0.8;
+        vec2 swayWorld = vec2(instanceMatrix[3].x, instanceMatrix[3].z);
       #else
-        float swayPhase = 0.0;
+        vec2 swayWorld = vec2(modelMatrix[3].x, modelMatrix[3].z);
       #endif
+      float swayPhase = swayWorld.x * 0.6 + swayWorld.y * 0.8;
       float swayUp = max(transformed.y, 0.0);
-      transformed.x += sin(uTime * 1.5 + swayPhase) * swayUp * ${amount.toFixed(3)};
-      transformed.z += cos(uTime * 1.1 + swayPhase) * swayUp * ${(amount * 0.6).toFixed(3)};`,
+      // A gust travels across the valley as a band of stronger bend, so the
+      // wind reads as something moving through rather than a uniform wobble.
+      float gust = sin(dot(swayWorld, vec2(0.72, 0.69)) * 0.045 - uTime * 0.85);
+      gust = pow(max(gust, 0.0), 3.0);
+      float bend = ${amount.toFixed(3)} * (1.0 + gust * 2.6);
+      transformed.x += sin(uTime * 1.5 + swayPhase) * swayUp * bend;
+      transformed.z += cos(uTime * 1.1 + swayPhase) * swayUp * bend * 0.6;`,
     );
   };
   mat.needsUpdate = true;
@@ -905,5 +911,318 @@ export const createStoneSteps = (count = 7): THREE.Group => {
       g.add(patch);
     }
   }
+  return g;
+};
+
+// --- Sky and air -------------------------------------------------------
+// Cumulus painted into a canvas: a cluster of soft lobes, then a vertical
+// pass that warms the tops and cools the undersides. Flat white sprites are
+// what make a sky look cheap.
+export const createCloudTexture = (seed = 0): THREE.CanvasTexture => {
+  const W = 512;
+  const H = 256;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d')!;
+
+  const lobes = 16 + Math.floor(Math.random() * 8);
+  const baseY = H * 0.66;
+  for (let i = 0; i < lobes; i++) {
+    const t = i / (lobes - 1);
+    // A flatter bottom and a billowing top, like a real cumulus.
+    const x = W * (0.12 + t * 0.76) + Math.sin(t * 9 + seed) * 12;
+    const spread = Math.sin(t * Math.PI);
+    const y = baseY - spread * rand(30, 76) * (0.6 + Math.random() * 0.6);
+    const r = rand(26, 54) * (0.55 + spread * 0.75);
+    const grad = g.createRadialGradient(x, y, r * 0.15, x, y, r);
+    grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+    grad.addColorStop(0.55, 'rgba(255,255,255,0.72)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fill();
+  }
+  // Soften the flat base.
+  for (let i = 0; i < 10; i++) {
+    const x = rand(W * 0.15, W * 0.85);
+    const r = rand(24, 46);
+    const grad = g.createRadialGradient(x, baseY, 0, x, baseY, r);
+    grad.addColorStop(0, 'rgba(255,255,255,0.5)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.arc(x, baseY, r, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  // Shade what is already drawn: warm crowns, cool bellies.
+  g.globalCompositeOperation = 'source-atop';
+  const shade = g.createLinearGradient(0, baseY - 90, 0, baseY + 20);
+  shade.addColorStop(0, 'rgba(255,246,226,0.95)');
+  shade.addColorStop(0.55, 'rgba(244,240,236,0.6)');
+  shade.addColorStop(1, 'rgba(150,168,190,0.55)');
+  g.fillStyle = shade;
+  g.fillRect(0, 0, W, H);
+  g.globalCompositeOperation = 'source-over';
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+};
+
+// A soft shaft of light, for sun coming through a canopy.
+export const createLightShaft = (): THREE.Mesh => {
+  const c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 128;
+  const g = c.getContext('2d')!;
+  const grad = g.createLinearGradient(0, 0, 0, 128);
+  grad.addColorStop(0, 'rgba(255,242,214,0.55)');
+  grad.addColorStop(0.6, 'rgba(255,238,200,0.18)');
+  grad.addColorStop(1, 'rgba(255,236,196,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 128);
+  // Feather the sides.
+  g.globalCompositeOperation = 'destination-in';
+  const side = g.createLinearGradient(0, 0, 64, 0);
+  side.addColorStop(0, 'rgba(0,0,0,0)');
+  side.addColorStop(0.5, 'rgba(0,0,0,1)');
+  side.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = side;
+  g.fillRect(0, 0, 64, 128);
+
+  const tex = new THREE.CanvasTexture(c);
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({
+      map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide, fog: false,
+    }),
+  );
+  return mesh;
+};
+
+// A distant bird: two wings that beat, seen as a moving mark in the sky.
+export const createBird = (): THREE.Group => {
+  const g = new THREE.Group();
+  const mat = toon(0x3c4450);
+  const wingGeo = new THREE.BoxGeometry(0.9, 0.045, 0.28);
+  const wl = new THREE.Mesh(wingGeo, mat);
+  wl.position.x = -0.45;
+  const wr = new THREE.Mesh(wingGeo, mat);
+  wr.position.x = 0.45;
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.3, 4, 6), mat);
+  body.rotation.x = Math.PI / 2;
+  g.add(wl, wr, body);
+  g.userData.wings = [wl, wr];
+  return g;
+};
+
+// --- Landmarks for the outer regions -----------------------------------
+// A lookout platform on the ridge: decking, a rail, and a bench facing out.
+export const createOverlook = (): THREE.Group => {
+  const g = new THREE.Group();
+  const wood = toon(0x9c7a4f);
+  const dark = toon(0x74593a);
+
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.3, 6), wood);
+  deck.position.y = 0.9;
+  g.add(deck);
+  for (const [x, z] of [[-3.4, -2.6], [3.4, -2.6], [-3.4, 2.6], [3.4, 2.6]] as const) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 1.9, 7), dark);
+    leg.position.set(x, 0, z);
+    g.add(leg);
+  }
+  // Rail along the far edge only, so the view stays open.
+  for (let i = -3; i <= 3; i++) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.1, 6), dark);
+    post.position.set(i * 1.2, 1.55, -2.8);
+    g.add(post);
+  }
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(7.4, 0.12, 0.12), dark);
+  rail.position.set(0, 2.05, -2.8);
+  g.add(rail);
+
+  g.add(createBench(1.2));
+  return g;
+};
+
+export const createBench = (z = 0): THREE.Group => {
+  const g = new THREE.Group();
+  const wood = toon(0xa8865a);
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 0.7), wood);
+  seat.position.set(0, 1.5, z);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.6, 0.12), wood);
+  back.position.set(0, 1.85, z + 0.32);
+  g.add(seat, back);
+  for (const x of [-1.05, 1.05]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.62, 0.6), toon(0x74593a));
+    leg.position.set(x, 1.16, z);
+    g.add(leg);
+  }
+  return g;
+};
+
+// A watermill: the wheel is returned separately so it can turn.
+export const createWatermill = (): { group: THREE.Group; wheel: THREE.Group } => {
+  const g = new THREE.Group();
+  const wall = toon(0xcdbb96);
+  const beam = toon(0x6b4f36);
+
+  const house = new THREE.Mesh(new THREE.BoxGeometry(5.4, 4, 4.6), wall);
+  house.position.y = 2.4;
+  g.add(house);
+  for (const side of [-1, 1]) {
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.45, 3.2), toon(0x7d6544));
+    slab.position.set(0, 5.2, side * 1.4);
+    slab.rotation.x = side * 0.5;
+    g.add(slab);
+  }
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2, 0.12), beam);
+  door.position.set(0, 1.4, 2.36);
+  g.add(door);
+
+  // The wheel, on the side facing the water.
+  const wheel = new THREE.Group();
+  for (const r of [2.3, 2.3]) {
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.13, 8, 24), beam);
+    wheel.add(rim);
+  }
+  (wheel.children[0] as THREE.Mesh).position.z = -0.42;
+  (wheel.children[1] as THREE.Mesh).position.z = 0.42;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const paddle = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 1.05), toon(0x8a6a44));
+    paddle.position.set(Math.sin(a) * 2.05, Math.cos(a) * 2.05, 0);
+    paddle.rotation.z = -a;
+    wheel.add(paddle);
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.1, 0.08), beam);
+    spoke.position.set(Math.sin(a) * 1.05, Math.cos(a) * 1.05, 0);
+    spoke.rotation.z = -a;
+    wheel.add(spoke);
+  }
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.4, 8), beam);
+  axle.rotation.x = Math.PI / 2;
+  wheel.add(axle);
+  wheel.position.set(3.4, 2.5, 0);
+  wheel.rotation.y = Math.PI / 2;
+  g.add(wheel);
+
+  return { group: g, wheel };
+};
+
+// A mossy grotto: a ring of boulders around a dark mouth, lit from inside.
+export const createGrotto = (): THREE.Group => {
+  const g = new THREE.Group();
+  const rockMat = flat(0x77807f);
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    const wide = Math.abs(Math.sin(a));
+    const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(1.6, 3.4), 0), rockMat);
+    rock.position.set(Math.sin(a) * 5.4, rand(0.4, 3.6) + wide * 1.6, Math.cos(a) * 4.4 - 1.5);
+    rock.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
+    rock.scale.set(rand(0.8, 1.4), rand(0.7, 1.3), rand(0.8, 1.4));
+    g.add(rock);
+  }
+  // Overhang and dark interior.
+  const roof = new THREE.Mesh(new THREE.IcosahedronGeometry(5.6, 0), rockMat);
+  roof.position.set(0, 5.2, -2.2);
+  roof.scale.set(1.3, 0.55, 1.1);
+  g.add(roof);
+  const mouth = new THREE.Mesh(new THREE.SphereGeometry(2.6, 20, 16), toon(0x1b1f22));
+  mouth.position.set(0, 2, -0.6);
+  mouth.scale.set(1.15, 1, 0.9);
+  g.add(mouth);
+
+  // Moss and glowing mushrooms inside.
+  for (let i = 0; i < 10; i++) {
+    const a = rand(-1.2, 1.2);
+    const moss = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.5, 1.1), 0), flat(0x4f7f4a));
+    moss.position.set(Math.sin(a) * 4.6, rand(0.3, 4), Math.cos(a) * 3.6 - 1);
+    moss.scale.set(1, 0.4, 1);
+    g.add(moss);
+  }
+  for (let i = 0; i < 9; i++) {
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, rand(0.3, 0.6), 7), toon(0xdcd6c4));
+    const cap = new THREE.Mesh(
+      new THREE.SphereGeometry(rand(0.2, 0.34), 14, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+      toon(0x7fd6c8, { emissive: 0x2c6f68 }),
+    );
+    const one = new THREE.Group();
+    cap.position.y = 0.25;
+    one.add(stem, cap);
+    one.position.set(rand(-3.4, 3.4), 0.2, rand(-2.4, 1.2));
+    g.add(one);
+  }
+  return g;
+};
+
+// A blossom tree for the orchard; fruit hangs in the crown.
+export const createBlossomTree = (fruit = true): THREE.Group => {
+  const g = new THREE.Group();
+  const h = rand(3.2, 4.6);
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.34, h, 8), toon(0x7d5f47));
+  trunk.position.y = h / 2;
+  g.add(trunk);
+  const blobGeo = new THREE.IcosahedronGeometry(1, 0);
+  const petals = [0xf6c9d6, 0xf3b9cc, 0xfbdde6, 0xeaa9c2];
+  for (let i = 0; i < 7; i++) {
+    const b = new THREE.Mesh(blobGeo, flat(petals[i % petals.length]));
+    const a = rand(0, Math.PI * 2);
+    const r = rand(0, 0.9);
+    b.position.set(Math.sin(a) * r, h + rand(-0.4, 1.1), Math.cos(a) * r);
+    b.scale.setScalar(rand(0.85, 1.6));
+    b.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
+    g.add(b);
+  }
+  if (fruit) {
+    for (let i = 0; i < 5; i++) {
+      const f = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), toon(0xdf7f5a));
+      const a = rand(0, Math.PI * 2);
+      f.position.set(Math.sin(a) * rand(0.6, 1.4), h + rand(-0.6, 0.4), Math.cos(a) * rand(0.6, 1.4));
+      g.add(f);
+    }
+  }
+  return g;
+};
+
+// Pickups: a fruit and a cave mushroom, both collected like seeds.
+export const createFruit = (): THREE.Group => {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 14), toon(0xdf7f5a));
+  body.scale.y = 1.1;
+  const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), toon(0x7fbb4f));
+  leaf.scale.set(1, 0.2, 0.5);
+  leaf.position.set(0.08, 0.26, 0);
+  leaf.rotation.z = -0.5;
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.16, 6), toon(0x6b4f36));
+  stem.position.y = 0.28;
+  g.add(body, leaf, stem);
+  return g;
+};
+
+export const createCaveMushroom = (): THREE.Group => {
+  const g = new THREE.Group();
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, 0.36, 8), toon(0xe4dccb));
+  stem.position.y = 0.18;
+  const cap = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    toon(0x7fd6c8, { emissive: 0x2f7a72 }),
+  );
+  cap.position.y = 0.34;
+  cap.scale.y = 0.8;
+  g.add(stem, cap);
+  return g;
+};
+
+// The float for fishing: a stick with a red bob.
+export const createFloat = (): THREE.Group => {
+  const g = new THREE.Group();
+  const bob = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), toon(0xd9534f));
+  const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 6), toon(0xf3efe4));
+  tip.position.y = 0.24;
+  g.add(bob, tip);
   return g;
 };
