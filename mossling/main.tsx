@@ -7,16 +7,16 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import '../index.css';
-import SoundToggle from '../shared/SoundToggle';
+import './ui.css';
 import ShareButton from '../shared/ShareButton';
 import { sfx } from '../shared/sfx';
 import {
-  createGlowTexture, createMossling, createPlantingRing, createRainbow, createSeed, createTree,
-  flat, makeSway, Mossling, rand, shadeBlade, updateMossling,
+  createBladeGeometry, createGlowTexture, createMossling, createPlantingRing, createRainbow,
+  createSeed, createTree, flat, makeSway, Mossling, rand, updateMossling,
 } from './models';
 import {
   buildWorld, DISCOVERIES, dominantRegion, isWater, PLANT_SPOTS, Region, REGIONS,
-  regionWeights, SEED_SPOTS, terrainHeight,
+  regionWeights, SEED_SPOTS, terrainHeight, trailDistance,
 } from './world';
 
 const SAVE_KEY = 'mossling-save-v1';
@@ -54,6 +54,26 @@ const WALK_SPEED = 9.5;
 const GRAVITY = -30;
 const JUMP_V = 10;
 
+
+// --- Icons -------------------------------------------------------------
+// Hairline glyphs drawn inline: emoji render differently on every platform
+// and drag the whole interface down with them.
+const Icon: React.FC<{ path: React.ReactNode; className?: string }> = ({ path, className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"
+    strokeLinecap="round" strokeLinejoin="round" className={className ?? 'w-4 h-4'} aria-hidden="true">
+    {path}
+  </svg>
+);
+
+const SeedIcon = () => <Icon path={<><ellipse cx="12" cy="13.5" rx="5" ry="6.5" /><path d="M12 7V4M9.5 5.5 12 4l2.5 1.5" /></>} />;
+const SproutIcon = () => <Icon path={<><path d="M12 20v-7" /><path d="M12 13c0-3 2.2-5 5-5 0 3-2.2 5-5 5Z" /><path d="M12 15c0-2.6-1.9-4.4-4.4-4.4 0 2.6 1.9 4.4 4.4 4.4Z" /></>} />;
+const BookIcon = () => <Icon path={<><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H5.5A1.5 1.5 0 0 1 4 15.5Z" /><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h4.5a1.5 1.5 0 0 0 1.5-1.5Z" /></>} />;
+const SunIcon = () => <Icon path={<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" /></>} />;
+const MoonIcon = () => <Icon path={<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" />} />;
+const SoundOnIcon = () => <Icon path={<><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5Z" /><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10" /></>} />;
+const SoundOffIcon = () => <Icon path={<><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5Z" /><path d="m16 10 4 4M20 10l-4 4" /></>} />;
+const JumpIcon = () => <Icon path={<><path d="M12 19V6" /><path d="m7 11 5-5 5 5" /></>} className="w-6 h-6" />;
+
 type Prompt = { kind: 'plant' | 'nap'; label: string } | null;
 
 const App: React.FC = () => {
@@ -66,10 +86,11 @@ const App: React.FC = () => {
   const [found, setFound] = useState<string[]>(saved.current.found);
   const [regionName, setRegionName] = useState('');
   const [night, setNight] = useState(saved.current.night);
-  const [toast, setToast] = useState<{ icon: string; title: string; note: string } | null>(null);
+  const [toast, setToast] = useState<{ title: string; note: string } | null>(null);
   const [prompt, setPrompt] = useState<Prompt>(null);
   const [codexOpen, setCodexOpen] = useState(false);
   const [sitting, setSitting] = useState(false);
+  const [muted, setMuted] = useState(sfx.isMuted);
   const fadeRef = useRef<HTMLDivElement>(null);
 
   const startedRef = useRef(false);
@@ -93,13 +114,13 @@ const App: React.FC = () => {
     // Filmic response instead of raw linear output: highlights roll off
     // instead of clipping to white, which is most of the "cheap render" look.
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.28;
+    renderer.toneMappingExposure = 1.32;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xc4dbdd, 45, 165);
+    scene.fog = new THREE.Fog(0xc4dbdd, 72, 190);
     const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 700);
 
     // Gradient sky dome that follows the camera.
@@ -110,7 +131,7 @@ const App: React.FC = () => {
         uTop: { value: new THREE.Color(0x5f97c9) },
         uBottom: { value: new THREE.Color(0xcfe6ea) },
         uSunDir: { value: new THREE.Vector3(0.5, 0.55, 0.35).normalize() },
-        uSunColor: { value: new THREE.Color(0xffe9c4) },
+        uSunColor: { value: new THREE.Color(0xffcf94) },
         uNight: { value: 0 },
       },
       vertexShader: 'varying vec3 vP;\nvoid main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -124,10 +145,15 @@ const App: React.FC = () => {
           vec3 mid = mix(uBottom, uTop, 0.55);
           vec3 col = mix(uBottom, mid, smoothstep(0.44, 0.62, h));
           col = mix(col, uTop, smoothstep(0.6, 0.98, h));
+          // Warm band along the horizon, strongest on the sun's side.
+          vec3 sunFlat = normalize(vec3(uSunDir.x, 0.0, uSunDir.z));
+          float toSun = max(dot(normalize(vec3(dir.x, 0.0, dir.z)), sunFlat), 0.0);
+          float horizon = 1.0 - smoothstep(0.0, 0.28, abs(dir.y));
+          col = mix(col, uSunColor, horizon * pow(toSun, 1.6) * 0.55 * (1.0 - uNight));
           // Broad glow around the sun, plus a tighter core.
           float sd = max(dot(dir, normalize(uSunDir)), 0.0);
-          col += uSunColor * pow(sd, 6.0) * 0.35 * (1.0 - uNight);
-          col += uSunColor * pow(sd, 90.0) * 0.9 * (1.0 - uNight);
+          col += uSunColor * pow(sd, 5.0) * 0.4 * (1.0 - uNight);
+          col += uSunColor * pow(sd, 90.0) * 1.1 * (1.0 - uNight);
           // Ordered dither breaks up gradient banding on wide skies.
           float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
           gl_FragColor = vec4(col + dither * 0.006, 1.0);
@@ -154,26 +180,30 @@ const App: React.FC = () => {
 
     // Three-light rig: warm key that casts, cool sky fill, cool rim from
     // behind to separate the character from the background.
-    const hemi = new THREE.HemisphereLight(0xbfd8ea, 0x5b6b47, 1.15);
+    const hemi = new THREE.HemisphereLight(0xc2d8ea, 0x8f8552, 1.5);
     scene.add(hemi);
 
-    const sun = new THREE.DirectionalLight(0xffe4bd, 2.4);
-    sun.position.set(38, 52, 26);
+    // Late afternoon: the sun sits low, so everything casts a long shadow and
+    // the light rakes across the valley instead of falling flat from above.
+    const SUN_OFFSET = new THREE.Vector3(62, 21, 34);
+    const sun = new THREE.DirectionalLight(0xffd7a1, 2.7);
+    sun.position.copy(SUN_OFFSET);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 160;
-    sun.shadow.camera.left = -42;
-    sun.shadow.camera.right = 42;
-    sun.shadow.camera.top = 42;
-    sun.shadow.camera.bottom = -42;
+    sun.shadow.camera.far = 220;
+    sun.shadow.camera.left = -60;
+    sun.shadow.camera.right = 60;
+    sun.shadow.camera.top = 60;
+    sun.shadow.camera.bottom = -60;
     sun.shadow.bias = -0.0008;
     sun.shadow.normalBias = 0.06;
     scene.add(sun);
     scene.add(sun.target);
 
-    const rim = new THREE.DirectionalLight(0x9fc4e8, 0.75);
-    rim.position.set(-30, 18, -40);
+    // Cool bounce from the opposite side keeps shadowed faces from going muddy.
+    const rim = new THREE.DirectionalLight(0x9ec2e0, 0.6);
+    rim.position.set(-46, 24, -38);
     scene.add(rim);
 
     // Drifting clouds, drawn as soft sprites — faceted geometry up there
@@ -310,12 +340,11 @@ const App: React.FC = () => {
     // Dense short grass is only ever drawn near the player: blades that fall
     // behind are recycled to a fresh spot inside the disc, which keeps the
     // ground lush without paying for a whole valley of instances.
-    const GRASS = 6000;
+    const GRASS = 14000;
     let GRASS_LIVE = GRASS;
-    const GRASS_R = 26;
-    const grassGeo = shadeBlade(new THREE.ConeGeometry(0.045, 0.52, 3), 0.52);
-    grassGeo.translate(0, 0.26, 0);
-    const grassMat = flat(0xffffff, { vertexColors: true });
+    const GRASS_R = 22;
+    const grassGeo = createBladeGeometry(0.4, 0.042, 0.24, 4);
+    const grassMat = flat(0xffffff, { vertexColors: true, side: THREE.DoubleSide });
     const grassSway = makeSway(grassMat, 0.11);
     const grass = new THREE.InstancedMesh(grassGeo, grassMat, GRASS);
     grass.frustumCulled = false;
@@ -333,17 +362,18 @@ const App: React.FC = () => {
       const z = cz + Math.cos(a) * r;
       grassXZ[i * 2] = x;
       grassXZ[i * 2 + 1] = z;
-      const under = isWater(x, z);
+      const under = isWater(x, z) || trailDistance(x, z) < 2.6;
       const region = dominantRegion(x, z);
       // Rice stands far taller than pasture grass; same blades, longer scale.
       const tall = region.id === 'paddy' ? 2.5 : 1;
       gp.set(x, terrainHeight(x, z) - 0.04, z);
       gq.setFromEuler(new THREE.Euler(rand(-0.2, 0.2), rand(0, 6.28), rand(-0.2, 0.2)));
-      gs.set(rand(0.7, 1.5), under ? 0 : rand(0.6, 1.6) * tall, rand(0.7, 1.5));
+      const slim = tall > 1 ? 0.5 : 1;
+      gs.set(rand(0.75, 1.25) * slim, under ? 0 : rand(0.55, 1.15) * tall, rand(0.75, 1.25) * slim);
       grass.setMatrixAt(i, gm.compose(gp, gq, gs));
       const patch = Math.sin(x * 0.09) * Math.cos(z * 0.11) * 0.06 + Math.sin((x - z) * 0.05) * 0.04;
       gTint.set(region.grass)
-        .offsetHSL(rand(-0.02, 0.02) + patch * 0.15, rand(-0.05, 0.05) + patch, rand(-0.02, 0.1) + patch);
+        .offsetHSL(rand(-0.02, 0.02) + patch * 0.15, rand(-0.05, 0.05) + patch, rand(0.02, 0.14) + patch);
       grass.setColorAt(i, gTint);
     };
 
@@ -430,15 +460,41 @@ const App: React.FC = () => {
     const joy = { active: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 };
     const drag = { active: false, id: -1, x: 0 };
 
-    for (let i = 0; i < GRASS; i++) placeBlade(i, 0, 14);
+    let lastGrassX = 0;
+    let lastGrassZ = 56;
+    for (let i = 0; i < GRASS; i++) placeBlade(i, 0, 56);
+
+    // Keeps the carpet centred on whatever the camera is following. Blades
+    // left behind are recycled a few hundred per frame; a big jump (teleport,
+    // or the title camera handing over to the player) outruns that budget, so
+    // there the whole carpet is reseeded at once.
+    const syncGrass = (cx: number, cz: number) => {
+      const jumped = Math.hypot(cx - lastGrassX, cz - lastGrassZ) > GRASS_R * 0.5;
+      lastGrassX = cx;
+      lastGrassZ = cz;
+      let recycled = 0;
+      for (let i = 0; i < GRASS_LIVE; i++) {
+        const dx = grassXZ[i * 2] - cx;
+        const dz = grassXZ[i * 2 + 1] - cz;
+        if (dx * dx + dz * dz > GRASS_R * GRASS_R) {
+          placeBlade(i, cx, cz);
+          recycled++;
+          if (!jumped && recycled >= 900) break;
+        }
+      }
+      if (recycled > 0) {
+        grass.instanceMatrix.needsUpdate = true;
+        if (grass.instanceColor) grass.instanceColor.needsUpdate = true;
+      }
+    };
     grass.instanceMatrix.needsUpdate = true;
     if (grass.instanceColor) grass.instanceColor.needsUpdate = true;
 
     let currentRegion: Region = dominantRegion(P.x, P.z);
     setRegionName(`${currentRegion.nameZh} · ${currentRegion.name}`);
 
-    const showToast = (icon: string, title: string, note: string) => {
-      setToast({ icon, title, note });
+    const showToast = (title: string, note: string) => {
+      setToast({ title, note });
       window.setTimeout(() => setToast(t => (t && t.title === title ? null : t)), 5200);
     };
 
@@ -466,7 +522,7 @@ const App: React.FC = () => {
       spot.ring.visible = false;
       burst(new THREE.Vector3(spot.x, terrainHeight(spot.x, spot.z) + 1, spot.z), 14);
       sfx.play('merge');
-      showToast('🌱', '种子发芽了', '一棵新的小树。它会自己长大,你随时可以回来看它。');
+      showToast('种子发芽了', '一棵新的小树。它会自己长大,你随时可以回来看它。');
     };
 
     const napInHollow = () => {
@@ -688,6 +744,13 @@ const App: React.FC = () => {
       blendRegionColor(skyTop, weights, 'skyTop');
       blendRegionColor(skyBottom, weights, 'skyBottom');
       blendRegionColor(fogColor, weights, 'fog');
+      // Aerial perspective at golden hour: haze warms toward the sun and
+      // stays cool away from it.
+      const GOLD = new THREE.Color(0xf6c98d);
+      const COOL = new THREE.Color(0x9fb6c9);
+      skyBottom.lerp(GOLD, 0.34);
+      skyTop.lerp(COOL, 0.16);
+      fogColor.lerp(GOLD, 0.2);
       skyTop.lerp(nightTop, P.nightT);
       skyBottom.lerp(nightBottom, P.nightT);
       fogColor.lerp(nightFog, P.nightT);
@@ -696,17 +759,16 @@ const App: React.FC = () => {
       (scene.fog as THREE.Fog).color.copy(fogColor);
       renderer.setClearColor(fogColor);
       // A 2048 shadow map only looks sharp if its frustum travels with you.
-      sun.position.set(P.x + 38, 52, P.z + 26);
+      sun.position.set(P.x + SUN_OFFSET.x, SUN_OFFSET.y, P.z + SUN_OFFSET.z);
       sun.target.position.set(P.x, 0, P.z);
       sun.target.updateMatrixWorld();
-      sun.intensity = THREE.MathUtils.lerp(2.4, 0.5, P.nightT);
-      sun.color.lerpColors(new THREE.Color(0xffe4bd), new THREE.Color(0x9fb3e0), P.nightT);
-      rim.intensity = THREE.MathUtils.lerp(0.75, 0.4, P.nightT);
-      hemi.intensity = THREE.MathUtils.lerp(1.15, 0.42, P.nightT);
-      renderer.toneMappingExposure = THREE.MathUtils.lerp(1.28, 1.02, P.nightT);
-      (skyMat.uniforms.uNight.value as number) = P.nightT;
+      sun.intensity = THREE.MathUtils.lerp(2.7, 0.55, P.nightT);
+      sun.color.lerpColors(new THREE.Color(0xffd7a1), new THREE.Color(0x9fb3e0), P.nightT);
+      rim.intensity = THREE.MathUtils.lerp(0.6, 0.45, P.nightT);
+      hemi.intensity = THREE.MathUtils.lerp(1.5, 0.5, P.nightT);
+      renderer.toneMappingExposure = THREE.MathUtils.lerp(1.32, 1.04, P.nightT);
       skyMat.uniforms.uNight.value = P.nightT;
-      (skyMat.uniforms.uSunDir.value as THREE.Vector3).set(38, 52, 26).normalize();
+      (skyMat.uniforms.uSunDir.value as THREE.Vector3).copy(SUN_OFFSET).normalize();
       starMat.opacity = P.nightT;
       cloudMat.opacity = THREE.MathUtils.lerp(0.8, 0.12, P.nightT);
       cloudMat.color.copy(skyBottom).lerp(new THREE.Color(0xffffff), 0.55);
@@ -773,6 +835,29 @@ const App: React.FC = () => {
       (shadow.material as THREE.MeshBasicMaterial).opacity = 0.16 / (1 + lift * 0.5);
 
       // --- Camera ---
+      // On the title screen the camera drifts slowly around the great tree
+      // instead of staring at the grass in front of the player.
+      if (!startedRef.current) {
+        const a = t * 0.04 + 2.4;
+        const cx = Math.sin(a) * 30;
+        const cz = 56 + Math.cos(a) * 30;
+        // Low and close, so the grass and the raking light do the work.
+        camera.position.set(cx, terrainHeight(cx, cz) + 5.5, cz);
+        // Aim a little off the trunk so the tree sits off-centre rather than
+        // squarely behind the title.
+        camera.lookAt(-7, 9, 57);
+        syncGrass(camera.position.x, camera.position.z);
+        for (const u of world.sway) u.value = t;
+        grassSway.value = t;
+        sky.position.copy(camera.position);
+        stars.position.copy(camera.position);
+        gradePass.uniforms.uTime.value = t % 100;
+        composer.render();
+        if (dt > 0.034) slowTime += dt; else slowTime = Math.max(0, slowTime - dt * 2);
+        if (slowTime > 1.0 && quality > 0.12 && !hq) { downgrade(); slowTime = 0; }
+        return;
+      }
+
       // Yaw eases toward where the mossling is heading, so it feels guided
       // rather than glued; dragging overrides it.
       if (P.moving && !drag.active) {
@@ -832,7 +917,7 @@ const App: React.FC = () => {
           persist();
           setFound([...saved.current.found]);
           sfx.play('chime');
-          showToast(d.icon, d.name, d.note);
+          showToast(d.name, d.note);
         }
       }
 
@@ -879,17 +964,7 @@ const App: React.FC = () => {
           .lerp(new THREE.Color(0x3f5f80), P.nightT);
       }
 
-      // Recycle grass blades that the wanderer has left behind.
-      let recycled = 0;
-      for (let i = 0; i < GRASS_LIVE && recycled < 400; i++) {
-        const dx = grassXZ[i * 2] - P.x;
-        const dz = grassXZ[i * 2 + 1] - P.z;
-        if (dx * dx + dz * dz > GRASS_R * GRASS_R) { placeBlade(i, P.x, P.z); recycled++; }
-      }
-      if (recycled > 0) {
-        grass.instanceMatrix.needsUpdate = true;
-        if (grass.instanceColor) grass.instanceColor.needsUpdate = true;
-      }
+      syncGrass(P.x, P.z);
 
       // Swing sways in the wind.
       (world.swing.userData.rope as THREE.Group).rotation.x = Math.sin(t * 0.9) * 0.12;
@@ -1003,167 +1078,220 @@ const App: React.FC = () => {
 
   const total = DISCOVERIES.length;
 
+  const stat = (icon: React.ReactNode, value: React.ReactNode, label: string, testid?: string) => (
+    <div className="flex items-center gap-2 px-3">
+      <span className="text-[#c7d6b4]">{icon}</span>
+      <span className="ms-serif text-[15px] leading-none text-[#f2f6ea]" data-testid={testid}>{value}</span>
+      <span className="ms-sans text-[9px] ms-track uppercase text-[#c7d6b4]/50 hidden sm:inline">{label}</span>
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 select-none" style={{ touchAction: 'none', background: '#c4dbdd' }}>
+    <div className="fixed inset-0 select-none ms-sans text-[#f2f6ea]"
+      style={{ touchAction: 'none', background: '#c4dbdd' }}>
       <div ref={mountRef} className="absolute inset-0" />
       {/* Sleep fade — driven straight from the loop, no re-render per frame. */}
-      <div ref={fadeRef} className="absolute inset-0 bg-emerald-950 pointer-events-none transition-none" style={{ opacity: 0 }} />
+      <div ref={fadeRef} className="absolute inset-0 bg-[#0e1a13] pointer-events-none" style={{ opacity: 0 }} />
 
-      {/* HUD */}
-      <div className="absolute top-3 left-0 right-0 flex justify-center items-center gap-2 pointer-events-none font-mono px-3">
-        <div className="bg-emerald-950/45 border border-emerald-200/25 rounded-xl px-3 py-1.5 text-center backdrop-blur-sm">
-          <div className="text-[10px] uppercase text-emerald-100/60">种子</div>
-          <div className="text-base font-bold text-amber-200" data-testid="seeds">🌰 {seeds}</div>
-        </div>
-        <div className="bg-emerald-950/45 border border-emerald-200/25 rounded-xl px-3 py-1.5 text-center backdrop-blur-sm">
-          <div className="text-[10px] uppercase text-emerald-100/60">种下</div>
-          <div className="text-base font-bold text-lime-200" data-testid="planted">🌱 {planted}</div>
-        </div>
-        <button
-          onClick={() => { sfx.play('click'); setCodexOpen(o => !o); }}
-          data-testid="codex-button"
-          className="bg-emerald-950/45 border border-emerald-200/25 rounded-xl px-3 py-1.5 text-center backdrop-blur-sm pointer-events-auto hover:border-emerald-200/60 transition-colors"
-        >
-          <div className="text-[10px] uppercase text-emerald-100/60">发现</div>
-          <div className="text-base font-bold text-sky-100" data-testid="found">📖 {found.length}/{total}</div>
-        </button>
-        <div className="bg-emerald-950/45 border border-emerald-200/25 rounded-xl px-3 py-1.5 text-center backdrop-blur-sm">
-          <div className="text-[10px] uppercase text-emerald-100/60">此刻</div>
-          <div className="text-base font-bold text-white">{night ? '🌙 夜' : '☀️ 昼'}</div>
-        </div>
-        <SoundToggle className="pointer-events-auto" />
-      </div>
-
-      {/* Region name */}
+      {/* Top bar: one quiet strip rather than a row of boxes */}
       {started && (
-        <div key={regionName} className="absolute top-24 left-0 right-0 text-center pointer-events-none animate-in fade-in zoom-in">
-          <div className="inline-block text-white/90 text-lg font-bold tracking-wide drop-shadow-lg" data-testid="region">
-            {regionName}
+        <div className="absolute top-4 left-4 right-4 flex items-start justify-between pointer-events-none ms-fade">
+          <div className="ms-panel rounded-full py-2 flex items-center divide-x divide-[#e2f0d6]/12">
+            {stat(<SeedIcon />, seeds, '种子', 'seeds')}
+            {stat(<SproutIcon />, planted, '种下', 'planted')}
+            {stat(night ? <MoonIcon /> : <SunIcon />, night ? '夜' : '昼', '此刻')}
+          </div>
+
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <button
+              onClick={() => { sfx.play('click'); setCodexOpen(o => !o); }}
+              data-testid="codex-button"
+              title="森林手帐"
+              className="ms-panel rounded-full h-10 px-4 flex items-center gap-2 text-[#e6efdc] hover:text-white transition-colors"
+            >
+              <BookIcon />
+              <span className="ms-serif text-[15px] leading-none" data-testid="found">{found.length}<span className="text-[#c7d6b4]/55 text-[12px]">/{total}</span></span>
+            </button>
+            <button
+              onClick={() => setMuted(sfx.toggle())}
+              title={muted ? '打开声音' : '静音'}
+              data-testid="sound-toggle"
+              className="ms-panel rounded-full w-10 h-10 flex items-center justify-center text-[#c7d6b4] hover:text-white transition-colors"
+            >
+              {muted ? <SoundOffIcon /> : <SoundOnIcon />}
+            </button>
           </div>
         </div>
       )}
 
-      {/* Discovery toast */}
+      {/* Region title */}
+      {started && (
+        <div key={regionName} className="absolute top-[14%] left-0 right-0 text-center pointer-events-none ms-region">
+          <div className="ms-serif text-2xl sm:text-[28px] text-white/95" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.45)' }}
+            data-testid="region">
+            {regionName.split(' · ')[0]}
+          </div>
+          <div className="ms-hair w-40 mx-auto my-2" />
+          <div className="ms-sans text-[10px] ms-track uppercase text-white/60">
+            {regionName.split(' · ')[1]}
+          </div>
+        </div>
+      )}
+
+      {/* Discovery card */}
       {toast && (
-        <div className="absolute bottom-32 left-1/2 -translate-x-1/2 w-[min(92vw,26rem)] pointer-events-none animate-in fade-in zoom-in">
-          <div className="bg-emerald-950/75 border border-emerald-200/30 rounded-2xl px-4 py-3 backdrop-blur-sm text-center">
-            <div className="text-2xl mb-1">{toast.icon}</div>
-            <div className="text-sm font-bold text-lime-100" data-testid="toast-title">{toast.title}</div>
-            <div className="text-xs text-emerald-50/80 mt-1 leading-relaxed">{toast.note}</div>
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[min(92vw,25rem)] pointer-events-none ms-rise">
+          <div className="ms-panel rounded-2xl px-6 py-5 text-center">
+            <div className="ms-sans text-[9px] ms-track uppercase text-[#c7d6b4]/60">记入手帐</div>
+            <div className="ms-serif text-lg mt-2 text-[#f6faf0]" data-testid="toast-title">{toast.title}</div>
+            <div className="ms-hair w-24 mx-auto my-3" />
+            <div className="text-[13px] leading-relaxed text-[#dfe9d4]/85">{toast.note}</div>
           </div>
         </div>
       )}
 
-      {/* Context action */}
-      {started && prompt && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-          <button
-            data-testid="interact"
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => controls.current.interact()}
-            className="px-6 py-3 rounded-2xl bg-lime-600/90 border border-lime-200/50 text-white font-bold text-sm tracking-wide backdrop-blur-sm animate-pulse"
-          >
-            {prompt.label} <span className="opacity-70 text-xs">(E)</span>
-          </button>
+      {/* Bottom centre: whatever the moment offers */}
+      {started && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+          {sitting && (
+            <p className="ms-serif text-[15px] text-white/80 ms-fade text-center px-6"
+              style={{ textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
+              风在竹子和稻子中间来回走。什么都不用做。
+            </p>
+          )}
+          {prompt ? (
+            <button
+              data-testid="interact"
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => controls.current.interact()}
+              className="ms-panel rounded-full pl-3 pr-5 py-2.5 flex items-center gap-3 hover:border-[#e2f0d6]/40 transition-colors ms-rise"
+              style={{ borderColor: 'rgba(232, 201, 138, 0.45)' }}
+            >
+              <span className="ms-key">E</span>
+              <span className="ms-serif text-[15px] text-[#f6e7c6]">{prompt.label}</span>
+            </button>
+          ) : (
+            <button
+              data-testid="sit"
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => controls.current.sit()}
+              className="ms-panel rounded-full pl-3 pr-5 py-2 flex items-center gap-3 text-[#dfe9d4]/80 hover:text-white transition-colors"
+            >
+              <span className="ms-key">C</span>
+              <span className="ms-serif text-[14px]">{sitting ? '起来走走' : '坐下歇会儿'}</span>
+            </button>
+          )}
         </div>
       )}
 
-      {/* Sit down and rest */}
-      {started && !prompt && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-          <button
-            data-testid="sit"
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => controls.current.sit()}
-            className="px-5 py-2.5 rounded-2xl bg-emerald-900/50 border border-emerald-200/30 text-emerald-50 text-sm font-bold tracking-wide backdrop-blur-sm hover:bg-emerald-800/60 transition-colors"
-          >
-            {sitting ? '起来走走 (C)' : '坐下歇会儿 (C)'}
-          </button>
-        </div>
-      )}
-
-      {sitting && (
-        <div className="absolute bottom-24 left-0 right-0 text-center pointer-events-none">
-          <p className="text-emerald-50/80 text-sm animate-in fade-in">风在竹子和稻子中间来回走。什么都不用做。</p>
-        </div>
-      )}
-
-      {/* Mobile helpers */}
+      {/* Touch-only jump */}
       {started && (
         <button
           onPointerDown={e => { e.stopPropagation(); controls.current.jump(); }}
-          className="absolute bottom-8 right-6 w-16 h-16 rounded-full bg-emerald-800/50 border border-emerald-200/40 text-2xl backdrop-blur-sm sm:hidden"
-          aria-label="Jump"
+          className="ms-panel absolute bottom-8 right-6 w-14 h-14 rounded-full flex items-center justify-center text-[#dfe9d4] sm:hidden"
+          aria-label="跳"
         >
-          ⤴️
+          <JumpIcon />
         </button>
       )}
 
-      {/* Codex */}
+      {/* Journal */}
       {codexOpen && (
-        <div className="absolute inset-0 bg-emerald-950/70 backdrop-blur-sm overflow-y-auto p-4 sm:p-8" onClick={() => setCodexOpen(false)}>
-          <div className="max-w-lg mx-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-black text-lime-100 mb-1">森林手帐</h2>
-            <p className="text-xs text-emerald-100/60 mb-4">走到它们旁边就会自己记下来 · {found.length}/{total}</p>
-            <div className="flex flex-col gap-2">
-              {DISCOVERIES.map(d => {
+        <div className="absolute inset-0 bg-[#0b1610]/80 backdrop-blur-md overflow-y-auto ms-scroll ms-fade px-5 py-10"
+          onClick={() => setCodexOpen(false)}>
+          <div className="max-w-xl mx-auto" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-8">
+              <h2 className="ms-serif text-3xl text-[#f6faf0]">森林手帐</h2>
+              <div className="ms-hair w-32 mx-auto my-4" />
+              <p className="ms-sans text-[10px] ms-track uppercase text-[#c7d6b4]/60">
+                {found.length} of {total} found
+              </p>
+            </div>
+
+            <div className="flex flex-col">
+              {DISCOVERIES.map((d, i) => {
                 const got = found.includes(d.id);
                 return (
-                  <div key={d.id} className={`rounded-xl px-4 py-3 border ${got ? 'bg-emerald-900/60 border-emerald-300/30' : 'bg-emerald-950/50 border-emerald-100/10'}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{got ? d.icon : '·'}</span>
-                      <span className={`font-bold text-sm ${got ? 'text-lime-100' : 'text-emerald-100/30'}`}>
-                        {got ? d.name : '还没找到'}
-                      </span>
+                  <div key={d.id}
+                    className={`py-4 border-t border-[#e2f0d6]/10 flex gap-4 ${got ? '' : 'opacity-35'}`}>
+                    <div className="ms-serif text-[13px] text-[#c7d6b4]/60 pt-0.5 w-7 shrink-0">
+                      {String(i + 1).padStart(2, '0')}
                     </div>
-                    {got && <p className="text-xs text-emerald-50/70 mt-1.5 leading-relaxed">{d.note}</p>}
+                    <div className="min-w-0">
+                      <div className={`ms-serif text-[17px] ${got ? 'text-[#f6faf0]' : 'text-[#c7d6b4]'}`}>
+                        {got ? d.name : '还没走到'}
+                      </div>
+                      {got && (
+                        <p className="text-[13px] leading-relaxed text-[#dfe9d4]/75 mt-1.5">{d.note}</p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
-            <button onClick={() => setCodexOpen(false)} className="mt-5 w-full py-2.5 rounded-xl bg-lime-600/80 text-white font-bold text-sm">
+
+            <button onClick={() => setCodexOpen(false)}
+              className="mt-8 mx-auto block ms-sans text-[10px] ms-track uppercase text-[#c7d6b4]/70 hover:text-white transition-colors">
               合上手帐
             </button>
           </div>
         </div>
       )}
 
-      {/* Title screen */}
+      {/* Title */}
       {!started && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-emerald-950/55 backdrop-blur-[2px] px-6 text-center">
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-lime-200 to-emerald-300">
-            苔灵漫游
-          </h1>
-          <p className="text-emerald-100/70 text-xs uppercase tracking-[0.3em]">Mossling Wander</p>
-          <p className="text-sm text-emerald-50/90 max-w-sm leading-relaxed">
-            一只背上长着苔藓和小蘑菇的森林精灵,住在一片有六种风景的山谷里。<br />
-            没有敌人,没有计时,也不会失败 —— 走走看看,捡起会发光的种子,把它们种回土里。
-          </p>
-          <div className="text-xs text-emerald-100/70 leading-relaxed">
-            <span className="text-lime-200 font-bold">WASD / 方向键</span> 走路 ·
-            <span className="text-lime-200 font-bold"> 空格</span> 跳 ·
-            <span className="text-lime-200 font-bold"> E</span> 互动 ·
-            <span className="text-lime-200 font-bold"> C</span> 坐下 ·
-            <span className="text-lime-200 font-bold"> 拖动鼠标 / Q R</span> 转视角<br />
-            手机:左半屏拖动走路,右半屏拖动转视角
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+          style={{ background: 'radial-gradient(130% 85% at 50% 42%, rgba(10,22,15,0.12) 0%, rgba(8,18,13,0.62) 100%)' }}>
+          <div className="ms-rise ms-delay-1">
+            <h1 className="ms-serif text-5xl sm:text-6xl tracking-[0.12em] text-[#f6faf0]"
+              style={{ textShadow: '0 4px 40px rgba(0,0,0,0.6)' }}>
+              苔灵漫游
+            </h1>
           </div>
+          <div className="ms-hair w-48 my-6 ms-rise ms-delay-2" />
+          <p className="ms-sans text-[10px] ms-track uppercase text-[#c7d6b4]/80 ms-rise ms-delay-2">
+            Mossling Wander
+          </p>
+
+          <p className="ms-serif text-[15px] leading-[2] text-[#e8f0de]/90 max-w-md mt-8 ms-rise ms-delay-3">
+            一只背上长着苔藓和小蘑菇的森林精灵,<br />
+            住在一片有六种风景的山谷里。<br />
+            没有敌人,没有计时,也不会失败。
+          </p>
+
           <button
             data-testid="start"
             onPointerDown={e => e.stopPropagation()}
             onClick={() => { sfx.play('click'); setStarted(true); }}
-            className="px-8 py-3 rounded-2xl bg-lime-600 hover:bg-lime-500 transition-colors font-bold text-white tracking-wide"
+            className="mt-10 px-10 py-3.5 rounded-full border border-[#e8c98a]/50 text-[#f6e7c6] ms-serif text-[17px] tracking-[0.2em]
+              hover:bg-[#e8c98a]/12 hover:border-[#e8c98a]/80 transition-colors ms-rise ms-delay-3"
           >
             出发散步
           </button>
-          <div className="flex flex-wrap justify-center gap-4 text-xs text-emerald-100/50 uppercase font-bold mt-2">
-            <a href="../" className="hover:text-cyan-200 transition-colors">▶ Chroma Cosmos</a>
-            <a href="../astro-merge/" className="hover:text-fuchsia-200 transition-colors">▶ Astro Merge</a>
-            <a href="../orbit-dash/" className="hover:text-amber-200 transition-colors">▶ Orbit Dash</a>
-            <a href="../star-serpent/" className="hover:text-lime-200 transition-colors">▶ Star Serpent</a>
+
+          <div className="mt-10 flex flex-wrap justify-center items-center gap-x-5 gap-y-3 text-[11px] text-[#c7d6b4]/70 ms-rise ms-delay-4">
+            <span className="flex items-center gap-1.5"><span className="ms-key">W A S D</span>走路</span>
+            <span className="flex items-center gap-1.5"><span className="ms-key">空格</span>跳</span>
+            <span className="flex items-center gap-1.5"><span className="ms-key">E</span>互动</span>
+            <span className="flex items-center gap-1.5"><span className="ms-key">C</span>坐下</span>
+            <span className="flex items-center gap-1.5"><span className="ms-key">拖动</span>转视角</span>
           </div>
+          <p className="mt-3 text-[10px] text-[#c7d6b4]/45 ms-rise ms-delay-4">
+            手机:左半屏拖动走路,右半屏拖动转视角
+          </p>
+
           {found.length > 0 && (
-            <ShareButton text={`我在《苔灵漫游》的山谷里找到了 ${found.length}/${total} 处风景,种下了 ${planted} 棵树 🌱`} />
+            <div className="mt-8 ms-rise ms-delay-4">
+              <ShareButton text={`我在《苔灵漫游》的山谷里找到了 ${found.length}/${total} 处风景,种下了 ${planted} 棵树`} />
+            </div>
           )}
+
+          <div className="absolute bottom-6 left-0 right-0 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] ms-track uppercase text-[#c7d6b4]/35 ms-fade ms-delay-4">
+            <a href="../" className="hover:text-[#c7d6b4]/80 transition-colors">Chroma Cosmos</a>
+            <a href="../astro-merge/" className="hover:text-[#c7d6b4]/80 transition-colors">Astro Merge</a>
+            <a href="../orbit-dash/" className="hover:text-[#c7d6b4]/80 transition-colors">Orbit Dash</a>
+            <a href="../star-serpent/" className="hover:text-[#c7d6b4]/80 transition-colors">Star Serpent</a>
+          </div>
         </div>
       )}
     </div>

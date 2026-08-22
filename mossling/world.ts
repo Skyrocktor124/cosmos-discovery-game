@@ -4,8 +4,8 @@ import * as THREE from 'three';
 import {
   createBamboo, createBridge, createBush, createButterfly, createDragonfly, createFarmhouse,
   createFence, createGreatTree, createLantern, createMushroomCluster, createPowerPole, createRock,
-  createScarecrow, createStoneSteps, createSteppingStone, createTree, createWaterMaterial,
-  flat, makeSway, rand, shadeBlade, toon, TreePalette,
+  createBladeGeometry, createScarecrow, createStoneSteps, createSteppingStone, createTree,
+  createWaterMaterial, flat, makeSway, rand, toon, TreePalette,
 } from './models';
 
 export interface Region {
@@ -38,8 +38,8 @@ export const REGIONS: Region[] = [
     id: 'paddy', name: 'Terraced Paddies', nameZh: '稻田梯田',
     blurb: '风一过,整片稻子就像水一样翻过去。',
     x: 0, z: -95, radius: 66,
-    skyTop: 0x5c92bd, skyBottom: 0xe9dcbe, fog: 0xd8cdae, ground: 0x8f9b57, rain: 0,
-    trees: { trunk: 0x7d6142, leaves: [0x7fa851, 0x93b85c] }, grass: 0xbcb85e, density: 10,
+    skyTop: 0x5c92bd, skyBottom: 0xe9dcbe, fog: 0xd8cdae, ground: 0x87894e, rain: 0,
+    trees: { trunk: 0x7d6142, leaves: [0x7fa851, 0x93b85c] }, grass: 0xb0b167, density: 10,
   },
   {
     id: 'rain', name: 'Rain Woods', nameZh: '雨林小径',
@@ -124,10 +124,27 @@ export const dominantRegion = (x: number, z: number): Region => {
   return REGIONS[best];
 };
 
+// --- The trail ---------------------------------------------------------
+// A path worn between the landmarks. It is drawn into the ground colour and
+// kept clear of grass, which gives every view a line to follow.
+const TRAIL: [number, number][] = [
+  [0, 55], [22, 62], [34, 66], [46, 48], [52, 32], [72, 26], [95, 25],
+  [88, -20], [76, -60], [70, -85], [36, -92], [0, -95], [-40, -74],
+  [-82, -34], [-95, -10], [-92, 30], [-70, 78], [-38, 70], [0, 55],
+];
+
+export const trailDistance = (x: number, z: number): number => {
+  let best = Infinity;
+  for (let i = 0; i < TRAIL.length - 1; i++) {
+    const d = distToSegment(x, z, TRAIL[i][0], TRAIL[i][1], TRAIL[i + 1][0], TRAIL[i + 1][1]);
+    if (d < best) best = d;
+  }
+  return best;
+};
+
 // --- Discoveries -------------------------------------------------------
 export interface Discovery {
   id: string;
-  icon: string;
   name: string;
   note: string;
   x: number;
@@ -136,21 +153,21 @@ export interface Discovery {
 }
 
 export const DISCOVERIES: Discovery[] = [
-  { id: 'great-tree', icon: '🌳', name: '老树的树洞', note: '树洞里有干草和一点点阳光。可以在这里睡一觉,醒来天就变了。', x: 0, z: 62, radius: 9 },
-  { id: 'swing', icon: '🪢', name: '藤蔓秋千', note: '不知道谁挂上去的,绳子已经被磨得很光滑了。', x: -18, z: 46, radius: 6 },
-  { id: 'scarecrow', icon: '🧑‍🌾', name: '稻草人', note: '它站在这里很多年了,帽子歪着,好像在打瞌睡。', x: -14, z: -88, radius: 7 },
-  { id: 'dragonflies', icon: '🪰', name: '蜻蜓群', note: '傍晚的稻田上,蜻蜓会一圈一圈地绕着你飞。', x: 16, z: -104, radius: 9 },
-  { id: 'puddle', icon: '💧', name: '林间水洼', note: '低头能看见自己,还有一整片被雨打碎的天空。', x: -88, z: 4, radius: 6 },
-  { id: 'mushroom-ring', icon: '🍄', name: '蘑菇圈', note: '一圈红伞蘑菇。老人家说,踩进去会被森林记住名字。', x: -104, z: -26, radius: 6 },
-  { id: 'stones', icon: '🪨', name: '踏脚石', note: '一块一块跳过去,水面就会跟着晃。', x: 76, z: 12, radius: 8 },
-  { id: 'fireflies', icon: '✨', name: '萤火虫', note: '它们只在夜里出来。站着别动,就会有几只停在你头上的芽上。', x: 100, z: 30, radius: 12 },
-  { id: 'lantern', icon: '🏮', name: '苔藓石灯', note: '灯里的火不知道是谁点的,但从来没灭过。', x: 112, z: 6, radius: 6 },
-  { id: 'butterflies', icon: '🦋', name: '蝴蝶花海', note: '花开得太密了,风一吹分不清哪些是花瓣哪些是翅膀。', x: 70, z: -85, radius: 12 },
-  { id: 'bamboo', icon: '🎋', name: '竹林小径', note: '抬头只看得见一条细细的天。风穿过来的时候,竹子会一起点头。', x: -70, z: 78, radius: 14 },
-  { id: 'bridge', icon: '🌉', name: '小木桥', note: '桥板被踩得发亮。站在中间往下看,水里有云在走。', x: 52, z: 32, radius: 7 },
-  { id: 'farmhouse', icon: '🏡', name: '山边的老房子', note: '没有人在,但廊下扫得很干净。坐一会儿也没关系。', x: 34, z: 66, radius: 10 },
-  { id: 'poles', icon: '🪵', name: '田埂上的电线杆', note: '一根接着一根走到很远的地方,电线上停着看不清的小鸟。', x: -34, z: -58, radius: 9 },
-  { id: 'steps', icon: '🪜', name: '长苔的石阶', note: '不知道通向哪里,但每一级都有人踩过的凹痕。', x: -84, z: 52, radius: 7 },
+  { id: 'great-tree', name: '老树的树洞', note: '树洞里有干草和一点点阳光。可以在这里睡一觉,醒来天就变了。', x: 0, z: 62, radius: 9 },
+  { id: 'swing', name: '藤蔓秋千', note: '不知道谁挂上去的,绳子已经被磨得很光滑了。', x: -18, z: 46, radius: 6 },
+  { id: 'scarecrow', name: '稻草人', note: '它站在这里很多年了,帽子歪着,好像在打瞌睡。', x: -14, z: -88, radius: 7 },
+  { id: 'dragonflies', name: '蜻蜓群', note: '傍晚的稻田上,蜻蜓会一圈一圈地绕着你飞。', x: 16, z: -104, radius: 9 },
+  { id: 'puddle', name: '林间水洼', note: '低头能看见自己,还有一整片被雨打碎的天空。', x: -88, z: 4, radius: 6 },
+  { id: 'mushroom-ring', name: '蘑菇圈', note: '一圈红伞蘑菇。老人家说,踩进去会被森林记住名字。', x: -104, z: -26, radius: 6 },
+  { id: 'stones', name: '踏脚石', note: '一块一块跳过去,水面就会跟着晃。', x: 76, z: 12, radius: 8 },
+  { id: 'fireflies', name: '萤火虫', note: '它们只在夜里出来。站着别动,就会有几只停在你头上的芽上。', x: 100, z: 30, radius: 12 },
+  { id: 'lantern', name: '苔藓石灯', note: '灯里的火不知道是谁点的,但从来没灭过。', x: 112, z: 6, radius: 6 },
+  { id: 'butterflies', name: '蝴蝶花海', note: '花开得太密了,风一吹分不清哪些是花瓣哪些是翅膀。', x: 70, z: -85, radius: 12 },
+  { id: 'bamboo', name: '竹林小径', note: '抬头只看得见一条细细的天。风穿过来的时候,竹子会一起点头。', x: -70, z: 78, radius: 14 },
+  { id: 'bridge', name: '小木桥', note: '桥板被踩得发亮。站在中间往下看,水里有云在走。', x: 52, z: 32, radius: 7 },
+  { id: 'farmhouse', name: '山边的老房子', note: '没有人在,但廊下扫得很干净。坐一会儿也没关系。', x: 34, z: 66, radius: 10 },
+  { id: 'poles', name: '田埂上的电线杆', note: '一根接着一根走到很远的地方,电线上停着看不清的小鸟。', x: -34, z: -58, radius: 9 },
+  { id: 'steps', name: '长苔的石阶', note: '不知道通向哪里,但每一级都有人踩过的凹痕。', x: -84, z: 52, radius: 7 },
 ];
 
 // --- Seeds & planting spots -------------------------------------------
@@ -204,6 +221,51 @@ const scatter = (region: Region, count: number, fn: (x: number, z: number) => TH
   }
 };
 
+// A greyscale detail map painted once into a canvas and tiled over the whole
+// valley. It modulates the vertex colours rather than replacing them, so each
+// region keeps its palette but the ground stops reading as flat plastic.
+const groundDetailTexture = (): THREE.CanvasTexture => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#fbfbfb';
+  g.fillRect(0, 0, 512, 512);
+
+  // Soft patches of lighter and darker ground.
+  for (let i = 0; i < 220; i++) {
+    const x = rand(0, 512);
+    const y = rand(0, 512);
+    const r = rand(18, 90);
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    const v = Math.random() < 0.5 ? 255 : 90;
+    grad.addColorStop(0, `rgba(${v},${v},${v},${rand(0.1, 0.26)})`);
+    grad.addColorStop(1, `rgba(${v},${v},${v},0)`);
+    g.fillStyle = grad;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+
+  // Short strokes so the surface has a direction to it, like matted grass.
+  for (let i = 0; i < 2600; i++) {
+    const x = rand(0, 512);
+    const y = rand(0, 512);
+    const len = rand(3, 11);
+    const a = rand(0, Math.PI * 2);
+    g.strokeStyle = Math.random() < 0.5
+      ? `rgba(255,255,255,${rand(0.10, 0.28)})`
+      : `rgba(70,70,70,${rand(0.08, 0.22)})`;
+    g.lineWidth = rand(0.7, 1.8);
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+    g.stroke();
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 8;
+  return t;
+};
+
 export const buildWorld = (): World => {
   const group = new THREE.Group();
   const sway: { value: number }[] = [];
@@ -233,9 +295,12 @@ export const buildWorld = (): World => {
       acc += w[k];
     }
     c.multiplyScalar(1 / acc);
+    // The trail, worn down to pale earth with soft edges.
+    const trail = 1 - smoothstep(2.2, 5.0, trailDistance(x, z));
     // Gentle mottling so the ground is never a flat wash of one colour.
     const mottle = Math.sin(x * 0.9) * Math.cos(z * 0.7) * 0.05 + Math.sin((x + z) * 0.31) * 0.04;
     c.offsetHSL(0, 0, mottle);
+    if (trail > 0) c.lerp(new THREE.Color(0xbda37a), trail * 0.92);
     // Wet, darker soil under the pond.
     if (terrainHeight(x, z) < -0.6) c.lerp(new THREE.Color(0x5d7a5a), 0.5);
     colors[i * 3] = c.r;
@@ -244,7 +309,12 @@ export const buildWorld = (): World => {
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  const ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
+  const detail = groundDetailTexture();
+  detail.repeat.set(62, 62);
+  const ground = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({
+    vertexColors: true, map: detail,
+  }));
+  ground.receiveShadow = true;
   group.add(ground);
 
   // --- Per-region planting ---
@@ -257,9 +327,8 @@ export const buildWorld = (): World => {
     // far away. Short grass is a carpet that follows the player (see main).
     if (region.id !== 'paddy') continue;
     const bladeCount = 5000;
-    const bladeGeo = shadeBlade(new THREE.ConeGeometry(0.05, 1.15, 3), 1.15);
-    bladeGeo.translate(0, 0.58, 0);
-    const bladeMat = flat(0xffffff, { vertexColors: true });
+    const bladeGeo = createBladeGeometry(1.3, 0.028, 0.5, 4);
+    const bladeMat = flat(0xffffff, { vertexColors: true, side: THREE.DoubleSide });
     sway.push(makeSway(bladeMat, 0.22));
     const blades = new THREE.InstancedMesh(bladeGeo, bladeMat, bladeCount);
     const m = new THREE.Matrix4();
@@ -273,7 +342,7 @@ export const buildWorld = (): World => {
       const r = Math.sqrt(Math.random()) * region.radius * 1.05;
       const x = region.x + Math.sin(a) * r;
       const z = region.z + Math.cos(a) * r;
-      if (isWater(x, z)) continue;
+      if (isWater(x, z) || trailDistance(x, z) < 2.4) continue;
       p.set(x, terrainHeight(x, z) - 0.04, z);
       q.setFromEuler(new THREE.Euler(rand(-0.18, 0.18), rand(0, 6.28), rand(-0.18, 0.18)));
       sc.set(rand(0.7, 1.4), rand(0.6, 1.5), rand(0.7, 1.4));
@@ -301,12 +370,17 @@ export const buildWorld = (): World => {
 
   // Blossom: an octahedron squashed flat — eight triangles per flower, which
   // matters when there are thousands of them.
-  const blossomGeo = new THREE.OctahedronGeometry(0.2, 0);
-  blossomGeo.scale(1, 0.42, 1);
+  const blossomGeo = new THREE.OctahedronGeometry(0.15, 0);
+  blossomGeo.scale(1, 0.38, 1);
   blossomGeo.translate(0, 0.66, 0);
   const blossomMat = flat(0xffffff);
   sway.push(makeSway(blossomMat, 0.16));
   const blossoms = new THREE.InstancedMesh(blossomGeo, blossomMat, FLOWERS);
+
+  // A pollen dot in the middle of each blossom.
+  const heartGeo = new THREE.SphereGeometry(0.05, 6, 5);
+  heartGeo.translate(0, 0.7, 0);
+  const hearts = new THREE.InstancedMesh(heartGeo, flat(0xf7d774), FLOWERS);
 
   const palette = [0xf2a6c4, 0xf7d774, 0xd9a8ef, 0xfff1f4, 0xf28b82, 0xa8d5f2];
   const fm = new THREE.Matrix4();
@@ -331,12 +405,14 @@ export const buildWorld = (): World => {
     fm.compose(fp, fq, fs);
     stems.setMatrixAt(i, fm);
     blossoms.setMatrixAt(i, fm);
+    hearts.setMatrixAt(i, fm);
     blossoms.setColorAt(i, new THREE.Color(palette[i % palette.length]));
   }
   stems.instanceMatrix.needsUpdate = true;
   blossoms.instanceMatrix.needsUpdate = true;
+  hearts.instanceMatrix.needsUpdate = true;
   if (blossoms.instanceColor) blossoms.instanceColor.needsUpdate = true;
-  group.add(stems, blossoms);
+  group.add(stems, blossoms, hearts);
 
   // --- Landmarks ---
   const place = (obj: THREE.Object3D, x: number, z: number, yOffset = 0) => {
@@ -487,7 +563,7 @@ export const buildWorld = (): World => {
   }
 
   return {
-    group, sway, rice, flowers: [stems, blossoms], bridge, farmhouse,
+    group, sway, rice, flowers: [stems, blossoms, hearts], bridge, farmhouse,
     water: [pondMat, streamMat, puddleMat], butterflies, dragonflies,
     lanternGlow: [lantern.userData.glow as THREE.Mesh],
     pond, ripples, swing,

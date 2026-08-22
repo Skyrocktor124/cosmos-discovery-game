@@ -48,7 +48,9 @@ export const makeSway = (mat: THREE.Material, amount = 0.13): { value: number } 
 // head, moss patches and tiny mushrooms growing on its back.
 export interface Mossling {
   group: THREE.Group;
+  rig: THREE.Group;
   body: THREE.Mesh;
+  head: THREE.Group;
   earL: THREE.Mesh;
   earR: THREE.Mesh;
   armL: THREE.Mesh;
@@ -60,66 +62,131 @@ export interface Mossling {
   hat: THREE.Group;
   blink: number;
   step: number;
+  headLag: number;
 }
 
-const FUR = 0x74905a;
-const FUR_DARK = 0x53703e;
-const CHEST = 0xbccb97;
+// Warm taupe rather than leaf green: a green creature standing in green grass
+// has no silhouette. The moss stays, as patches on its back.
+const FUR = 0xa8926f;
+const FUR_SHADE = 0x8a7454;
+const MOSS = 0x5d7c46;
+const CHEST = 0xe7dcc0;
+const DARK = 0x33291d;
 
 export const createMossling = (): Mossling => {
   const group = new THREE.Group();
-  const fur = toon(FUR);
-  const moss = flat(FUR_DARK);
-  const dark = toon(0x26301c);
+  const rig = new THREE.Group();      // everything that bobs while walking
+  group.add(rig);
 
+  const fur = toon(FUR, { emissive: 0x1a140c });
+  const furShade = toon(FUR_SHADE);
+  const moss = flat(MOSS);
+  const dark = toon(DARK);
+
+  // --- Body ---
   const body = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), fur);
-  body.scale.set(1.02, 1.06, 0.96);
-  body.position.y = 1.12;
-  group.add(body);
+  body.scale.set(1, 0.94, 0.94);
+  body.position.y = 1.0;
+  rig.add(body);
 
-  // Softer, smaller chest fur than a full belly plate.
-  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 16), toon(CHEST));
-  chest.scale.set(1, 1.1, 0.5);
-  chest.position.set(0, -0.22, 0.72);
+  // Inverted hull: a slightly larger back-facing shell reads as a soft ink
+  // line around the silhouette and lifts the character off the background.
+  const outlineMat = new THREE.MeshBasicMaterial({ color: 0x2e2418, side: THREE.BackSide });
+  const bodyOutline = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 18), outlineMat);
+  bodyOutline.scale.setScalar(1.03);
+  body.add(bodyOutline);
+
+  // Darker haunches, so the body has a top and a bottom.
+  const haunch = new THREE.Mesh(new THREE.SphereGeometry(0.96, 24, 16), furShade);
+  haunch.scale.set(1, 0.6, 0.98);
+  haunch.position.y = -0.42;
+  body.add(haunch);
+
+  // Cream chest.
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.56, 20, 16), toon(CHEST));
+  chest.scale.set(1, 1.15, 0.5);
+  chest.position.set(0, -0.16, 0.74);
   body.add(chest);
 
-  // Moss growing across its back and shoulders.
+  // Moss growing across its back, with two little mushrooms.
   const mossBlob = new THREE.IcosahedronGeometry(0.3, 0);
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 7; i++) {
     const m = new THREE.Mesh(mossBlob, moss);
-    const a = rand(-0.9, 0.9);
-    m.position.set(Math.sin(a) * 0.75, rand(0.1, 0.75), -Math.cos(a) * 0.8);
-    m.scale.set(rand(0.7, 1.3), rand(0.35, 0.55), rand(0.7, 1.3));
+    const a = rand(-1.1, 1.1);
+    m.position.set(Math.sin(a) * 0.72, rand(0.05, 0.7), -Math.cos(a) * 0.78);
+    m.scale.set(rand(0.7, 1.35), rand(0.32, 0.5), rand(0.7, 1.35));
     body.add(m);
   }
-
-  // Two little mushrooms sprouting from its back.
   for (const side of [-1, 1]) {
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.28, 8), toon(0xefe6cf));
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), toon(0xc9695f));
-    cap.position.y = 0.14;
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.26, 8), toon(0xefe6cf));
+    const cap = new THREE.Mesh(
+      new THREE.SphereGeometry(0.16, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), toon(0xc06a58));
+    cap.position.y = 0.13;
     cap.scale.y = 0.85;
     for (let i = 0; i < 3; i++) {
-      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), toon(0xf6efe0));
-      dot.position.set(rand(-0.1, 0.1), rand(0.02, 0.11), rand(-0.1, 0.1));
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), toon(0xf6efe0));
+      dot.position.set(rand(-0.09, 0.09), rand(0.02, 0.1), rand(-0.09, 0.09));
       cap.add(dot);
     }
     const shroom = new THREE.Group();
     shroom.add(stem, cap);
-    shroom.position.set(side * 0.34, 0.72, -0.62);
-    shroom.rotation.z = side * 0.25;
-    shroom.rotation.x = -0.35;
+    shroom.position.set(side * 0.32, 0.62, -0.6);
+    shroom.rotation.set(-0.35, 0, side * 0.25);
     body.add(shroom);
   }
 
-  // Rounded ears — no cat points.
-  const earGeo = new THREE.SphereGeometry(0.27, 16, 12);
+  // --- Head: a separate mass, which is what gives the silhouette a reading ---
+  const head = new THREE.Group();
+  head.position.set(0, 1.86, 0.06);
+  rig.add(head);
+
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.72, 28, 22), fur);
+  skull.scale.set(1.06, 0.98, 0.98);
+  head.add(skull);
+  const headOutline = new THREE.Mesh(new THREE.SphereGeometry(0.72, 22, 16), outlineMat);
+  headOutline.scale.setScalar(1.04);
+  skull.add(headOutline);
+
+  // Ears: big and rounded, tilted out — the clearest part of the outline.
+  const earGeo = new THREE.SphereGeometry(0.3, 18, 14);
   const earL = new THREE.Mesh(earGeo, fur);
-  earL.scale.set(1, 1, 0.55);
-  earL.position.set(-0.72, 0.62, 0);
-  const earR = earL.clone() as THREE.Mesh;
-  earR.position.x = 0.72;
-  body.add(earL, earR);
+  earL.scale.set(1.02, 1.3, 0.44);
+  earL.position.set(-0.66, 0.52, -0.04);
+  earL.rotation.z = 0.4;
+  const innerL = new THREE.Mesh(earGeo, toon(0xcf9d90));
+  innerL.scale.set(0.62, 0.78, 0.4);
+  innerL.position.z = 0.1;
+  earL.add(innerL);
+  const earR = earL.clone(true) as THREE.Mesh;
+  earR.position.x = 0.62;
+  earR.rotation.z = -0.42;
+  head.add(earL, earR);
+
+  // Face.
+  const eyeGeo = new THREE.SphereGeometry(0.155, 18, 14);
+  const eyeL = new THREE.Mesh(eyeGeo, dark);
+  eyeL.position.set(-0.26, 0.06, 0.61);
+  const glint = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), toon(0xffffff));
+  glint.position.set(-0.05, 0.06, 0.12);
+  eyeL.add(glint);
+  const eyeR = eyeL.clone(true) as THREE.Mesh;
+  eyeR.position.x = 0.26;
+  head.add(eyeL, eyeR);
+
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 14), toon(CHEST));
+  muzzle.scale.set(1, 0.7, 0.55);
+  muzzle.position.set(0, -0.22, 0.55);
+  head.add(muzzle);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), dark);
+  nose.position.set(0, -0.14, 0.78);
+  head.add(nose);
+
+  for (const side of [-1, 1]) {
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 10), toon(0xd79a8c));
+    cheek.scale.set(1, 0.62, 0.22);
+    cheek.position.set(side * 0.47, -0.1, 0.48);
+    head.add(cheek);
+  }
 
   // A sprout on top of its head.
   const sprout = new THREE.Group();
@@ -133,60 +200,41 @@ export const createMossling = (): Mossling => {
     leaf.rotation.z = side * 0.5;
     sprout.add(leaf);
   }
-  sprout.position.y = 0.98;
-  body.add(sprout);
+  sprout.position.y = 0.6;
+  head.add(sprout);
 
-  // Big, friendly eyes with a highlight.
-  const eyeGeo = new THREE.SphereGeometry(0.2, 18, 14);
-  const eyeL = new THREE.Mesh(eyeGeo, dark);
-  eyeL.position.set(-0.34, 0.32, 0.74);
-  const glint = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), toon(0xffffff));
-  glint.position.set(-0.06, 0.07, 0.15);
-  eyeL.add(glint);
-  const eyeR = eyeL.clone() as THREE.Mesh;
-  eyeR.position.x = 0.34;
-  body.add(eyeL, eyeR);
-
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), dark);
-  nose.position.set(0, 0.09, 0.94);
-  body.add(nose);
-
-  // Blush.
-  for (const side of [-1, 1]) {
-    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), toon(0xdb9a92));
-    cheek.scale.set(1, 0.6, 0.25);
-    cheek.position.set(side * 0.6, 0.06, 0.66);
-    body.add(cheek);
-  }
-
-  const armGeo = new THREE.CapsuleGeometry(0.19, 0.3, 6, 12);
-  const armL = new THREE.Mesh(armGeo, fur);
-  armL.position.set(-1.0, 1.1, 0.12);
-  armL.rotation.z = 0.28;
+  // --- Limbs ---
+  const armGeo = new THREE.CapsuleGeometry(0.17, 0.28, 6, 12);
+  const armL = new THREE.Mesh(armGeo, furShade);
+  armL.position.set(-0.95, 1.12, 0.1);
+  armL.rotation.z = 0.3;
   const armR = armL.clone() as THREE.Mesh;
-  armR.position.x = 1.0;
-  armR.rotation.z = -0.28;
-  group.add(armL, armR);
+  armR.position.x = 0.95;
+  armR.rotation.z = -0.3;
+  rig.add(armL, armR);
 
   const footGeo = new THREE.SphereGeometry(0.3, 16, 12);
   for (const x of [-0.4, 0.4]) {
-    const f = new THREE.Mesh(footGeo, toon(0x4c6438));
-    f.scale.set(1, 0.55, 1.3);
-    f.position.set(x, 0.18, 0.14);
-    group.add(f);
+    const f = new THREE.Mesh(footGeo, toon(0x6b5a44));
+    f.scale.set(1, 0.5, 1.25);
+    f.position.set(x, 0.17, 0.16);
+    rig.add(f);
   }
 
-  const tail = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), fur);
-  tail.position.set(0, 0.72, -0.95);
-  group.add(tail);
+  const tail = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12), toon(CHEST));
+  tail.position.set(0, 0.78, -0.95);
+  rig.add(tail);
 
   // Lotus-leaf hat, raised when it rains.
   const hat = createLotusLeaf();
-  hat.position.set(0, 2.55, 0);
+  hat.position.set(0, 2.95, 0);
   hat.visible = false;
   group.add(hat);
 
-  return { group, body, earL, earR, armL, armR, eyeL, eyeR, sprout, tail, hat, blink: 2, step: 0 };
+  return {
+    group, rig, body, head, earL, earR, armL, armR, eyeL, eyeR, sprout, tail, hat,
+    blink: 2, step: 0, headLag: 0,
+  };
 };
 
 export const createLotusLeaf = (): THREE.Group => {
@@ -211,7 +259,9 @@ export const createLotusLeaf = (): THREE.Group => {
   return g;
 };
 
-// Walk cycle, breathing, ear jiggle, blinking, wind in the sprout.
+// Walk cycle, breathing, ear jiggle, blinking, wind in the sprout, and a
+// head that lags a beat behind the body — the follow-through is most of what
+// makes it feel alive rather than rigid.
 export const updateMossling = (
   m: Mossling,
   dt: number,
@@ -219,70 +269,73 @@ export const updateMossling = (
   st: { moving: boolean; airborne: boolean; vy: number; turn: number; raining: boolean; napping: boolean; sitting?: boolean },
 ): void => {
   if (st.napping) {
-    // Curled up asleep: slow breathing, ears drooped.
-    m.body.scale.set(1.1, 0.9, 1.02);
-    m.body.position.y = 0.92 + Math.sin(t * 1.4) * 0.05;
-    m.group.rotation.z = THREE.MathUtils.lerp(m.group.rotation.z, 0.12, dt * 3);
-    m.earL.rotation.z = THREE.MathUtils.lerp(m.earL.rotation.z, -0.5, dt * 3);
-    m.earR.rotation.z = THREE.MathUtils.lerp(m.earR.rotation.z, 0.5, dt * 3);
+    m.rig.position.y = THREE.MathUtils.lerp(m.rig.position.y, -0.34, dt * 3);
+    m.body.scale.set(1.12, 0.82, 0.98);
+    m.head.rotation.x = THREE.MathUtils.lerp(m.head.rotation.x, 0.5, dt * 3);
+    m.head.position.y = THREE.MathUtils.lerp(m.head.position.y, 1.6, dt * 3);
+    m.earL.rotation.z = THREE.MathUtils.lerp(m.earL.rotation.z, -0.2, dt * 3);
+    m.earR.rotation.z = THREE.MathUtils.lerp(m.earR.rotation.z, 0.2, dt * 3);
     m.eyeL.scale.y = m.eyeR.scale.y = 0.12;
     m.armL.rotation.x = m.armR.rotation.x = 0.5;
+    m.group.rotation.z = THREE.MathUtils.lerp(m.group.rotation.z, 0.1, dt * 3);
     m.hat.visible = false;
     return;
   }
 
   if (st.sitting) {
-    // Sitting down: settles onto its haunches and just breathes.
-    m.body.scale.set(1.08, 0.94 + Math.sin(t * 1.8) * 0.02, 1.0);
-    m.body.position.y = THREE.MathUtils.lerp(m.body.position.y, 0.86, dt * 4);
-    m.armL.position.y = m.armR.position.y = THREE.MathUtils.lerp(m.armL.position.y, 0.8, dt * 4);
-    m.armL.rotation.x = m.armR.rotation.x = THREE.MathUtils.lerp(m.armL.rotation.x, 0.35, dt * 4);
-    m.earL.rotation.z = THREE.MathUtils.lerp(m.earL.rotation.z, -0.12, dt * 3);
-    m.earR.rotation.z = THREE.MathUtils.lerp(m.earR.rotation.z, 0.12, dt * 3);
+    m.rig.position.y = THREE.MathUtils.lerp(m.rig.position.y, -0.26, dt * 4);
+    const breath = Math.sin(t * 1.8) * 0.02;
+    m.body.scale.set(1.08, 0.9 + breath, 1.0);
+    m.head.position.y = THREE.MathUtils.lerp(m.head.position.y, 1.7, dt * 4);
+    m.head.rotation.x = THREE.MathUtils.lerp(m.head.rotation.x, -0.06, dt * 4);
+    m.armL.rotation.x = m.armR.rotation.x = THREE.MathUtils.lerp(m.armL.rotation.x, 0.4, dt * 4);
+    m.earL.rotation.z = THREE.MathUtils.lerp(m.earL.rotation.z, 0.42, dt * 3);
+    m.earR.rotation.z = THREE.MathUtils.lerp(m.earR.rotation.z, -0.42, dt * 3);
     m.sprout.rotation.z = Math.sin(t * 1.4) * 0.2;
     m.group.rotation.z = THREE.MathUtils.lerp(m.group.rotation.z, 0, dt * 4);
     m.blink -= dt;
     m.eyeL.scale.y = m.eyeR.scale.y = m.blink < 0.13 ? 0.12 : 1;
     if (m.blink < 0) m.blink = rand(2.4, 6);
     m.hat.visible = st.raining;
-    if (st.raining) m.hat.position.y = 2.2 + Math.sin(t * 2.2) * 0.05;
     return;
   }
 
   m.step += dt * (st.moving && !st.airborne ? 8.5 : 0);
-  const breathe = Math.sin(t * 2) * 0.02;
-  const bob = st.moving && !st.airborne ? Math.abs(Math.sin(m.step)) * 0.12 : 0;
+  const breathe = Math.sin(t * 2) * 0.018;
+  const bob = st.moving && !st.airborne ? Math.abs(Math.sin(m.step)) * 0.11 : 0;
   const stretch = st.airborne ? THREE.MathUtils.clamp(st.vy * 0.025, -0.1, 0.1) : 0;
 
-  m.body.scale.set(1.02 * (1 - stretch + breathe), 1.06 * (1 + stretch + breathe), 0.96 * (1 - stretch));
-  m.body.position.y = 1.12 + bob;
-  m.armL.position.y = m.armR.position.y = 1.1 + bob;
+  m.rig.position.y = THREE.MathUtils.lerp(m.rig.position.y, bob, dt * 18);
+  m.body.scale.set(1 * (1 - stretch + breathe), 0.94 * (1 + stretch + breathe), 0.94 * (1 - stretch));
 
-  // Ears lag half a beat behind the bounce.
-  const jiggle = Math.sin(m.step - 0.6) * (st.airborne ? 0.35 : 0.14);
-  m.earL.rotation.z = jiggle;
-  m.earR.rotation.z = -jiggle;
+  // The head trails the bob by a fraction of a beat.
+  m.headLag = THREE.MathUtils.lerp(m.headLag, bob, dt * 9);
+  m.head.position.y = 1.86 + m.headLag * 0.6;
+  m.head.rotation.x = THREE.MathUtils.lerp(m.head.rotation.x, st.airborne ? -0.16 : (m.headLag - bob) * 1.6, dt * 8);
+  m.head.rotation.z = THREE.MathUtils.lerp(m.head.rotation.z, -st.turn * 0.18, dt * 7);
 
-  const swing = st.airborne ? -1.1 : Math.sin(m.step) * 0.55;
+  const jiggle = Math.sin(m.step - 0.7) * (st.airborne ? 0.3 : 0.12);
+  m.earL.rotation.z = 0.42 + jiggle;
+  m.earR.rotation.z = -0.42 - jiggle;
+
+  const swing = st.airborne ? -1.0 : Math.sin(m.step) * 0.5;
   m.armL.rotation.x = swing;
   m.armR.rotation.x = -swing;
 
-  // The sprout always drifts in the breeze.
   m.sprout.rotation.z = Math.sin(t * 1.7) * 0.16 - st.turn * 0.3;
   m.sprout.rotation.x = Math.cos(t * 1.3) * 0.1;
-  m.tail.position.y = 0.72 + bob * 0.4;
+  m.tail.position.y = 0.78 + bob * 0.3;
 
   m.blink -= dt;
   m.eyeL.scale.y = m.eyeR.scale.y = m.blink < 0.13 ? 0.12 : 1;
   if (m.blink < 0) m.blink = rand(2.4, 6);
 
-  // Lean into turns.
-  m.group.rotation.z = THREE.MathUtils.lerp(m.group.rotation.z, -st.turn * 0.22, dt * 8);
+  m.group.rotation.z = THREE.MathUtils.lerp(m.group.rotation.z, -st.turn * 0.2, dt * 8);
 
   m.hat.visible = st.raining;
   if (st.raining) {
     m.hat.rotation.y += dt * 0.5;
-    m.hat.position.y = 2.55 + bob + Math.sin(t * 2.2) * 0.05;
+    m.hat.position.y = 2.95 + bob + Math.sin(t * 2.2) * 0.05;
     m.hat.rotation.z = Math.sin(t * 1.1) * 0.06;
   }
 };
@@ -346,9 +399,35 @@ export const createBush = (leaves: number[]): THREE.Group => {
 // The old tree at the heart of the clearing, with a hollow you can nap in.
 export const createGreatTree = (): THREE.Group => {
   const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 4.4, 17, 14), toon(0x6d5136));
+  const barkLight = toon(0x7a5b3c);
+  const barkDark = toon(0x59422c);
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 4.4, 17, 16), barkLight);
   trunk.position.y = 8.5;
   g.add(trunk);
+
+  // Bark ridges: thin slabs running up the trunk so it is not a bare cylinder.
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2 + rand(-0.08, 0.08);
+    const h = rand(9, 16);
+    const ridge = new THREE.Mesh(
+      new THREE.BoxGeometry(rand(0.3, 0.7), h, 0.42),
+      i % 3 === 0 ? barkDark : barkLight,
+    );
+    const r = 3.1 + (1 - h / 17) * 0.7;
+    ridge.position.set(Math.sin(a) * r, h / 2 + rand(0, 1.4), Math.cos(a) * r);
+    ridge.rotation.y = -a;
+    ridge.rotation.z = rand(-0.03, 0.03);
+    g.add(ridge);
+  }
+
+  // Moss creeping up from the roots.
+  for (let i = 0; i < 12; i++) {
+    const a = rand(0, Math.PI * 2);
+    const moss = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.5, 1.1), 0), flat(0x527f43));
+    moss.position.set(Math.sin(a) * 3.6, rand(0.2, 3.4), Math.cos(a) * 3.6);
+    moss.scale.set(1, rand(0.5, 1.2), 0.45);
+    g.add(moss);
+  }
 
   // Hollow: a dark recess in the trunk facing the path.
   const hollow = new THREE.Mesh(new THREE.SphereGeometry(1.9, 18, 14), toon(0x3a2a1c));
@@ -375,15 +454,32 @@ export const createGreatTree = (): THREE.Group => {
     g.add(root);
   }
 
-  // Canopy.
-  const leafMat = flat(0x4d8a45);
-  const blobGeo = new THREE.IcosahedronGeometry(1, 0);
-  for (let i = 0; i < 12; i++) {
-    const b = new THREE.Mesh(blobGeo, leafMat);
+  // Hanging vines.
+  for (let i = 0; i < 8; i++) {
     const a = rand(0, Math.PI * 2);
-    const r = rand(0, 7);
-    b.position.set(Math.sin(a) * r, rand(16, 22), Math.cos(a) * r);
-    b.scale.setScalar(rand(2.6, 5));
+    const r = rand(3.5, 6.5);
+    const len = rand(2.5, 6);
+    const vine = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, len, 5), toon(0x63834a));
+    vine.position.set(Math.sin(a) * r, 16.5 - len / 2, Math.cos(a) * r);
+    g.add(vine);
+    const tuft = new THREE.Mesh(new THREE.IcosahedronGeometry(0.45, 0), flat(0x5f9a4c));
+    tuft.position.set(vine.position.x, 16.5 - len, vine.position.z);
+    tuft.scale.set(1, 0.7, 1);
+    g.add(tuft);
+  }
+
+  // Canopy: many blobs, shaded from a sunlit crown down to a darker underside.
+  const blobGeo = new THREE.IcosahedronGeometry(1, 0);
+  const crownBase = new THREE.Color(0x4d8a45);
+  for (let i = 0; i < 22; i++) {
+    const a = rand(0, Math.PI * 2);
+    const r = Math.sqrt(Math.random()) * 7.5;
+    const y = rand(15.5, 22.5);
+    const lift = (y - 15.5) / 7;
+    const shade = crownBase.clone().offsetHSL(rand(-0.02, 0.02), rand(-0.05, 0.05), -0.1 + lift * 0.16);
+    const b = new THREE.Mesh(blobGeo, flat(shade.getHex()));
+    b.position.set(Math.sin(a) * r, y, Math.cos(a) * r);
+    b.scale.setScalar(rand(2.2, 4.6));
     b.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
     g.add(b);
   }
@@ -597,7 +693,7 @@ export const createWaterMaterial = (
         float r3 = sin(vW.x * 2.7 - vW.z * 1.9 + uTime * 2.1);
         float ripple = r1 * 0.5 + r2 * 0.25 + r3 * 0.12;
         vec3 col = mix(uDeep, uShallow, clamp(0.45 + ripple * 0.3, 0.0, 1.0));
-        col = mix(col, uSky, fres * 0.45);
+        col = mix(col, uSky, fres * 0.3);
         col += smoothstep(0.93, 1.0, ripple + 0.42) * 0.16;
         col *= uTint;
         // Feather the waterline so the surface does not end on a hard polygon
@@ -609,6 +705,36 @@ export const createWaterMaterial = (
         gl_FragColor = vec4(col, clamp(uOpacity + fres * 0.18, 0.0, 1.0) * edge);
       }`,
   });
+
+// A single blade of grass: a tapered strip that curves as it rises, with a
+// dark-root-to-pale-tip gradient baked in. Cones read as spikes; this reads
+// as grass.
+export const createBladeGeometry = (
+  height = 0.55, width = 0.055, bend = 0.3, segments = 4,
+): THREE.BufferGeometry => {
+  const positions: number[] = [];
+  const colors: number[] = [];
+  const indices: number[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const w = width * Math.pow(1 - t, 0.65) + 0.004;
+    const y = height * t;
+    const z = bend * t * t;
+    positions.push(-w, y, z, w, y, z);
+    const shade = 0.86 + t * 0.46;
+    for (let k = 0; k < 2; k++) colors.push(shade * 0.93, shade, shade * 0.82);
+  }
+  for (let i = 0; i < segments; i++) {
+    const a = i * 2;
+    indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+};
 
 // Bakes a base-to-tip gradient into a blade so grass is not a flat colour.
 export const shadeBlade = (geo: THREE.BufferGeometry, height: number): THREE.BufferGeometry => {
