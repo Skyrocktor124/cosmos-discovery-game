@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import {
   createBamboo, createBench, createBladeGeometry, createBlossomTree, createBridge, createBush,
+  createDrawbridge, createRopePost,
   createButterfly, createDragonfly, createFarmhouse, createFence, createGreatTree, createGrotto,
   createLantern, createMushroomCluster, createOverlook, createPowerPole, createRock,
   createScarecrow, createStoneSteps, createSteppingStone, createTree, createWatermill,
@@ -102,6 +103,12 @@ export const REGIONS: Region[] = [
 
 // --- Terrain -----------------------------------------------------------
 const POND = { x: 95, z: 25, r: 24, floor: -1.2 };
+
+// A plateau ringed by a gorge. The only way across is a span held down by a
+// counterweight rope — which someone has to keep hold of while you cross.
+export const PLATEAU = { x: 118, z: 54, r: 14, rim: 25, top: 7, floor: -11 };
+// Where the span crosses, measured as an angle from the plateau centre.
+export const CROSSING_ANGLE = Math.PI;   // due west
 // A stream runs west out of the pond; the plank bridge crosses it.
 const STREAM = { ax: 74, az: 20, bx: 30, bz: 44, width: 3.4, floor: -1.35 };
 
@@ -128,6 +135,17 @@ export const terrainHeight = (x: number, z: number): number => {
   // The hollow that holds the pond.
   const pond = 1 - smoothstep(POND.r * 0.55, POND.r * 1.25, Math.hypot(x - POND.x, z - POND.z));
   h = THREE.MathUtils.lerp(h, POND.floor, pond);
+  // The plateau, and the gorge around it.
+  {
+    const d = Math.hypot(x - PLATEAU.x, z - PLATEAU.z);
+    if (d < PLATEAU.rim + 8) {
+      const top = 1 - smoothstep(PLATEAU.r - 1.5, PLATEAU.r + 1, d);
+      const gorge = (1 - smoothstep(PLATEAU.rim - 3, PLATEAU.rim + 0.5, d)) *
+        smoothstep(PLATEAU.r + 0.5, PLATEAU.r + 3.5, d);
+      h = THREE.MathUtils.lerp(h, PLATEAU.floor, gorge);
+      h = THREE.MathUtils.lerp(h, PLATEAU.top, top);
+    }
+  }
   // The millpond basin.
   const mill = 1 - smoothstep(9, 20, Math.hypot(x - 53, z - 116));
   h = THREE.MathUtils.lerp(h, -1.0, mill);
@@ -139,6 +157,38 @@ export const terrainHeight = (x: number, z: number): number => {
 };
 
 export const MILL_POND = { x: 53, z: 116, r: 11 };
+
+// The chasm is carved all the way round, including under the span. Passage is
+// split in two: the rock ring is never walkable, and the corridor the span
+// crosses is walkable only while the span is down (the caller checks that).
+const inRing = (x: number, z: number): boolean => {
+  const d = Math.hypot(x - PLATEAU.x, z - PLATEAU.z);
+  return d >= PLATEAU.r + 1.5 && d <= PLATEAU.rim + 1.5;
+};
+
+export const inCorridor = (x: number, z: number): boolean => {
+  if (!inRing(x, z)) return false;
+  const d = Math.hypot(x - PLATEAU.x, z - PLATEAU.z);
+  const a = Math.atan2(x - PLATEAU.x, z - PLATEAU.z);
+  // Angular half-width, scaled so the walkway stays about 3m wide.
+  const half = 2.2 / Math.max(6, d);
+  let diff = a - CROSSING_ANGLE;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  return Math.abs(diff) <= half;
+};
+
+export const inGorge = (x: number, z: number): boolean => inRing(x, z) && !inCorridor(x, z);
+
+// Deck height of the lowered span, so walking across puts you on the planks
+// rather than at the bottom of the chasm.
+export const DECK_Y = 0.66;
+
+// The span's own footprint: near bank, far bank, and the line between them.
+export const CROSSING = {
+  near: { x: PLATEAU.x + Math.sin(CROSSING_ANGLE) * (PLATEAU.rim + 1), z: PLATEAU.z + Math.cos(CROSSING_ANGLE) * (PLATEAU.rim + 1) },
+  far: { x: PLATEAU.x + Math.sin(CROSSING_ANGLE) * (PLATEAU.r + 0.5), z: PLATEAU.z + Math.cos(CROSSING_ANGLE) * (PLATEAU.r + 0.5) },
+};
 
 export const isWater = (x: number, z: number): boolean =>
   (Math.hypot(x - POND.x, z - POND.z) < POND.r * 0.82 && terrainHeight(x, z) < -0.35) ||
@@ -215,6 +265,7 @@ export const DISCOVERIES: Discovery[] = [
   { id: 'firstfish', name: '第一条鱼', note: '它在水里看了你很久才咬钩。放回去的时候,它甩了一下尾巴。', x: 9999, z: 9999, radius: 0 },
   { id: 'firstfruit', name: '第一颗果子', note: '沉甸甸的,凉凉的。咬开之前先闻了很久。', x: 9999, z: 9999, radius: 0 },
   { id: 'allplanted', name: '种满山谷', note: '每一处空地都长出了新的树。它们会比你活得更久。', x: 9999, z: 9999, radius: 0 },
+  { id: 'plateau', name: '桥那边的空地', note: '一棵很老的树,一张长椅,风比这边大。要有人替你按住绳子,你才到得了这里。', x: 118, z: 54, radius: 13 },
   { id: 'nightwalk', name: '夜里的散步', note: '什么都看不太清,但每一步都很稳。萤火虫替你照着路。', x: 9999, z: 9999, radius: 0 },
 ];
 
@@ -283,8 +334,12 @@ export interface World {
   flowers: THREE.InstancedMesh[];
   bridge: THREE.Group;
   farmhouse: THREE.Group;
+  drawbridgeSpan: THREE.Group;
+  bridgeRope: THREE.Group;
+  ropeAnchor: { x: number; z: number };
   water: THREE.ShaderMaterial[];
   millWheel: THREE.Group;
+  trunks: { x: number; z: number }[];
   butterflies: THREE.Group[];
   dragonflies: THREE.Group[];
   lanternGlow: THREE.Mesh[];
@@ -354,12 +409,14 @@ const groundDetailTexture = (): THREE.CanvasTexture => {
 
 export const buildWorld = (): World => {
   const group = new THREE.Group();
+  // Trunk positions, so the camera can avoid backing into them.
+  const trunks: { x: number; z: number }[] = [];
   const sway: { value: number }[] = [];
   let rice: THREE.InstancedMesh | null = null;
 
   // --- Ground: one big mesh, vertex-coloured by region weights ---
-  const SIZE = 620;
-  const SEG = 190;
+  const SIZE = 470;
+  const SEG = 300;
   const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -367,10 +424,18 @@ export const buildWorld = (): World => {
   const c = new THREE.Color();
   const regionColors = REGIONS.map(r => new THREE.Color(r.ground));
   const base = new THREE.Color(0x7fa85e);
+  const rock = new THREE.Color(0x8a8278);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
-    pos.setY(i, terrainHeight(x, z));
+    const hh = terrainHeight(x, z);
+    pos.setY(i, hh);
+    // Steep ground is rock, not turf. Forward differences are enough here and
+    // cost half what a centred gradient would.
+    const slope = Math.max(
+      Math.abs(terrainHeight(x + 1.2, z) - hh),
+      Math.abs(terrainHeight(x, z + 1.2) - hh),
+    ) / 1.2;
     const w = regionWeights(x, z);
     c.copy(base).multiplyScalar(0.25);
     let acc = 0.25;
@@ -387,6 +452,7 @@ export const buildWorld = (): World => {
     const mottle = Math.sin(x * 0.9) * Math.cos(z * 0.7) * 0.05 + Math.sin((x + z) * 0.31) * 0.04;
     c.offsetHSL(0, 0, mottle);
     if (trail > 0) c.lerp(new THREE.Color(0xbda37a), trail * 0.92);
+    if (slope > 0.55) c.lerp(rock, Math.min(1, (slope - 0.55) / 1.1) * 0.9);
     // Wet, darker soil under the pond.
     if (terrainHeight(x, z) < -0.6) c.lerp(new THREE.Color(0x5d7a5a), 0.5);
     colors[i * 3] = c.r;
@@ -405,7 +471,10 @@ export const buildWorld = (): World => {
 
   // --- Per-region planting ---
   for (const region of REGIONS) {
-    scatter(region, region.density, () => createTree(region.trees), group);
+    scatter(region, region.density, (x, z) => {
+      trunks.push({ x, z });
+      return createTree(region.trees);
+    }, group);
     scatter(region, Math.round(region.density * 0.8), () => createBush(region.trees.leaves), group);
     scatter(region, 6, () => createRock(), group);
 
@@ -613,6 +682,33 @@ export const buildWorld = (): World => {
   }
   place(createLantern(), -124, 52);
 
+  // --- The gorge crossing ---
+  const bridgeAngle = Math.atan2(CROSSING.far.x - CROSSING.near.x, CROSSING.far.z - CROSSING.near.z);
+  const drawbridge = createDrawbridge();
+  // The planks run along the group's -Z, so the frame faces the gorge only
+  // after a half turn; without it the span lies down on the near bank.
+  drawbridge.group.rotation.y = bridgeAngle + Math.PI;
+  drawbridge.group.position.set(CROSSING.near.x, terrainHeight(CROSSING.near.x, CROSSING.near.z), CROSSING.near.z);
+  group.add(drawbridge.group);
+
+  const ropePost = createRopePost();
+  // Set back from the rim on solid ground, and a little off the crossing line
+  // — whoever holds it is standing on this side, not walking over.
+  const ropeAngle = CROSSING_ANGLE + 0.16;
+  const ropeRadius = PLATEAU.rim + 5;
+  const ropeX = PLATEAU.x + Math.sin(ropeAngle) * ropeRadius;
+  const ropeZ = PLATEAU.z + Math.cos(ropeAngle) * ropeRadius;
+  ropePost.group.rotation.y = bridgeAngle + Math.PI;
+  place(ropePost.group, ropeX, ropeZ);
+
+  // What the gorge guards: a quiet clearing with one old tree and a bench.
+  place(createTree({ trunk: 0x6f5540, leaves: [0x4f8a4e, 0x63a05c] }, 2.2), PLATEAU.x + 3, PLATEAU.z + 2);
+  place(createBench(0), PLATEAU.x - 4, PLATEAU.z - 3);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    place(createRock(), PLATEAU.x + Math.sin(a) * 11, PLATEAU.z + Math.cos(a) * 11);
+  }
+
   // --- Blossom orchard, planted in rows ---
   const orchard = REGIONS.find(r => r.id === 'orchard')!;
   for (let row = -3; row <= 3; row++) {
@@ -694,7 +790,8 @@ export const buildWorld = (): World => {
 
   return {
     group, sway, rice, flowers: [stems, blossoms, hearts], bridge, farmhouse,
-    water: [pondMat, streamMat, puddleMat, millPondMat], millWheel: mill.wheel,
+    drawbridgeSpan: drawbridge.span, bridgeRope: ropePost.rope, ropeAnchor: { x: ropeX, z: ropeZ },
+    water: [pondMat, streamMat, puddleMat, millPondMat], millWheel: mill.wheel, trunks,
     butterflies, dragonflies,
     lanternGlow: [lantern.userData.glow as THREE.Mesh],
     pond, ripples, swing,

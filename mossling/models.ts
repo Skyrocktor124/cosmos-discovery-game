@@ -1226,3 +1226,223 @@ export const createFloat = (): THREE.Group => {
   g.add(bob, tip);
   return g;
 };
+
+// --- The companion -----------------------------------------------------
+// Smaller and paler than the mossling, and wearing a ring of grass above its
+// head. The design brief is firm about this: a companion must be readable as
+// a companion at a glance, never mistakable for another player.
+export interface Companion {
+  group: THREE.Group;
+  rig: THREE.Group;
+  body: THREE.Mesh;
+  head: THREE.Group;
+  earL: THREE.Mesh;
+  earR: THREE.Mesh;
+  ring: THREE.Mesh;
+  eyeL: THREE.Mesh;
+  eyeR: THREE.Mesh;
+  tail: THREE.Mesh;
+  blink: number;
+  step: number;
+}
+
+export const createCompanion = (): Companion => {
+  const group = new THREE.Group();
+  const rig = new THREE.Group();
+  group.add(rig);
+
+  const coat = toon(0xcfc6b4, { emissive: 0x171410 });
+  const coatShade = toon(0xb3a992);
+  const dark = toon(0x33291d);
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.62, 26, 20), coat);
+  body.scale.set(1, 0.92, 0.94);
+  body.position.y = 0.62;
+  rig.add(body);
+
+  const outlineMat = new THREE.MeshBasicMaterial({ color: 0x3a3226, side: THREE.BackSide });
+  const bodyOutline = new THREE.Mesh(new THREE.SphereGeometry(0.62, 18, 14), outlineMat);
+  bodyOutline.scale.setScalar(1.035);
+  body.add(bodyOutline);
+
+  const haunch = new THREE.Mesh(new THREE.SphereGeometry(0.58, 20, 14), coatShade);
+  haunch.scale.set(1, 0.6, 0.98);
+  haunch.position.y = -0.26;
+  body.add(haunch);
+
+  const head = new THREE.Group();
+  head.position.set(0, 1.16, 0.05);
+  rig.add(head);
+
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.46, 24, 18), coat);
+  skull.scale.set(1.04, 0.98, 0.98);
+  head.add(skull);
+  const headOutline = new THREE.Mesh(new THREE.SphereGeometry(0.46, 16, 12), outlineMat);
+  headOutline.scale.setScalar(1.045);
+  skull.add(headOutline);
+
+  const earGeo = new THREE.SphereGeometry(0.2, 16, 12);
+  const earL = new THREE.Mesh(earGeo, coat);
+  earL.scale.set(0.9, 1.35, 0.42);
+  earL.position.set(-0.4, 0.36, -0.02);
+  earL.rotation.z = 0.32;
+  const earR = earL.clone(true) as THREE.Mesh;
+  earR.position.x = 0.4;
+  earR.rotation.z = -0.32;
+  head.add(earL, earR);
+
+  const eyeGeo = new THREE.SphereGeometry(0.1, 14, 12);
+  const eyeL = new THREE.Mesh(eyeGeo, dark);
+  eyeL.position.set(-0.17, 0.05, 0.4);
+  const glint = new THREE.Mesh(new THREE.SphereGeometry(0.033, 8, 6), toon(0xffffff));
+  glint.position.set(-0.03, 0.04, 0.08);
+  eyeL.add(glint);
+  const eyeR = eyeL.clone(true) as THREE.Mesh;
+  eyeR.position.x = 0.17;
+  head.add(eyeL, eyeR);
+
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.19, 16, 12), toon(0xefe8d8));
+  muzzle.scale.set(1, 0.68, 0.55);
+  muzzle.position.set(0, -0.14, 0.36);
+  head.add(muzzle);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), dark);
+  nose.position.set(0, -0.09, 0.5);
+  head.add(nose);
+
+  // The marker: a ring of woven grass that hovers above its head.
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.045, 8, 20), toon(0x8fbb57, { emissive: 0x243d15 }));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.78;
+  head.add(ring);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), toon(0xa3cf6a));
+    leaf.scale.set(1, 0.25, 0.5);
+    leaf.position.set(Math.sin(a) * 0.3, 0, Math.cos(a) * 0.3);
+    leaf.rotation.y = -a;
+    ring.add(leaf);
+  }
+
+  const footGeo = new THREE.SphereGeometry(0.19, 14, 10);
+  for (const x of [-0.25, 0.25]) {
+    const f = new THREE.Mesh(footGeo, toon(0x6b5a44));
+    f.scale.set(1, 0.5, 1.25);
+    f.position.set(x, 0.11, 0.1);
+    rig.add(f);
+  }
+
+  const tail = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), toon(0xefe8d8));
+  tail.position.set(0, 0.5, -0.6);
+  rig.add(tail);
+
+  return { group, rig, body, head, earL, earR, ring, eyeL, eyeR, tail, blink: 1.5, step: 0 };
+};
+
+export const updateCompanion = (
+  c: Companion,
+  dt: number,
+  t: number,
+  st: { moving: boolean; airborne: boolean; holding: boolean; waiting: boolean; boosting: boolean },
+): void => {
+  // The ring always turns, which reads as "not a player" from any distance.
+  c.ring.rotation.z += dt * 0.8;
+  c.ring.position.y = 0.78 + Math.sin(t * 1.6) * 0.04;
+
+  if (st.boosting) {
+    // Crouched low, offering its back as a step.
+    c.rig.position.y = THREE.MathUtils.lerp(c.rig.position.y, -0.22, dt * 6);
+    c.body.scale.set(1.12, 0.68, 1.02);
+    c.head.position.y = THREE.MathUtils.lerp(c.head.position.y, 0.86, dt * 6);
+    c.head.rotation.x = THREE.MathUtils.lerp(c.head.rotation.x, 0.3, dt * 6);
+    c.eyeL.scale.y = c.eyeR.scale.y = 0.5;
+    return;
+  }
+
+  if (st.holding) {
+    // Leaning back with its whole weight on the rope.
+    c.rig.position.y = THREE.MathUtils.lerp(c.rig.position.y, -0.05, dt * 5);
+    c.rig.rotation.x = THREE.MathUtils.lerp(c.rig.rotation.x, -0.34, dt * 5);
+    c.body.scale.set(1, 0.96 + Math.sin(t * 7) * 0.02, 0.94);
+    c.head.rotation.x = THREE.MathUtils.lerp(c.head.rotation.x, 0.22, dt * 5);
+    c.eyeL.scale.y = c.eyeR.scale.y = 0.4;
+    return;
+  }
+  c.rig.rotation.x = THREE.MathUtils.lerp(c.rig.rotation.x, 0, dt * 6);
+
+  // It hops rather than walks, so its gait never matches the mossling's.
+  c.step += dt * (st.moving ? 7 : 0);
+  const hop = st.moving ? Math.abs(Math.sin(c.step)) : 0;
+  const breathe = Math.sin(t * 2.4) * 0.02;
+  c.rig.position.y = THREE.MathUtils.lerp(c.rig.position.y, hop * 0.22, dt * 16);
+  c.body.scale.set(1 + breathe - hop * 0.06, 0.92 - breathe + hop * 0.12, 0.94 + breathe);
+  c.head.position.y = 1.16 + hop * 0.06;
+  c.head.rotation.x = THREE.MathUtils.lerp(c.head.rotation.x, st.waiting ? 0.12 : -0.04, dt * 5);
+
+  const flop = Math.sin(c.step - 0.5) * (st.moving ? 0.3 : 0.06);
+  c.earL.rotation.z = 0.32 + flop;
+  c.earR.rotation.z = -0.32 - flop;
+  c.tail.position.y = 0.5 + hop * 0.1;
+
+  c.blink -= dt;
+  c.eyeL.scale.y = c.eyeR.scale.y = c.blink < 0.12 ? 0.14 : 1;
+  if (c.blink < 0) c.blink = rand(1.8, 5);
+};
+
+// --- The drawbridge ----------------------------------------------------
+// A span held up by a counterweight rope. Someone has to keep the rope down
+// for it to stay lowered — which is the whole point of the mechanism.
+export const createDrawbridge = (): { group: THREE.Group; span: THREE.Group } => {
+  const group = new THREE.Group();
+  const wood = toon(0x9c7a4f);
+  const dark = toon(0x6f5334);
+
+  // Towers on the near bank.
+  for (const x of [-1.5, 1.5]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.34, 4.6, 0.34), dark);
+    post.position.set(x, 2.3, 0);
+    group.add(post);
+  }
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.3, 0.34), dark);
+  lintel.position.y = 4.5;
+  group.add(lintel);
+
+  // The span, hinged at its near edge so it can swing down across the gap.
+  const span = new THREE.Group();
+  for (let i = 0; i < 14; i++) {
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.16, 0.62), wood);
+    plank.position.set(0, 0, -0.38 - i * 0.7);
+    span.add(plank);
+  }
+  for (const x of [-1.3, 1.3]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 10), dark);
+    rail.position.set(x, 0.14, -5.2);
+    span.add(rail);
+  }
+  span.position.set(0, 0.5, 0);
+  group.add(span);
+
+  return { group, span };
+};
+
+// The rope someone has to hold: a post, a hanging rope, and a wooden grip.
+export const createRopePost = (): { group: THREE.Group; rope: THREE.Group } => {
+  const group = new THREE.Group();
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 3, 8), toon(0x6f5334));
+  post.position.y = 1.5;
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.4, 6), toon(0x6f5334));
+  arm.rotation.z = Math.PI / 2;
+  arm.position.set(0.5, 2.9, 0);
+  group.add(post, arm);
+
+  const rope = new THREE.Group();
+  const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.1, 6), toon(0xb9a173));
+  cord.position.y = -1.05;
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.5, 8), toon(0x9c7a4f));
+  grip.rotation.z = Math.PI / 2;
+  grip.position.y = -2.1;
+  rope.add(cord, grip);
+  rope.position.set(1.15, 2.9, 0);
+  group.add(rope);
+
+  return { group, rope };
+};

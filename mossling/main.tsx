@@ -12,14 +12,15 @@ import './ui.css';
 import ShareButton from '../shared/ShareButton';
 import { sfx } from '../shared/sfx';
 import {
-  createBird, createBladeGeometry, createCaveMushroom, createCloudTexture, createFloat,
-  createFruit, createGlowTexture, createLightShaft, createMossling, createPlantingRing,
-  createRainbow, createSeed, createTree, flat, makeSway, Mossling, rand, updateMossling,
+  Companion, createBird, createBladeGeometry, createCaveMushroom, createCloudTexture,
+  createCompanion, createFloat, createFruit, createGlowTexture, createLightShaft, createMossling,
+  createPlantingRing, createRainbow, createSeed, createTree, flat, makeSway, Mossling, rand,
+  updateCompanion, updateMossling,
 } from './models';
 import {
-  BLOCKERS, buildWorld, DISCOVERIES, dominantRegion, EVENT_DISCOVERIES, FRUIT_SPOTS, isWater,
-  PLANT_SPOTS, Region, REGIONS, regionWeights, SEED_SPOTS, SHROOM_SPOTS, terrainHeight,
-  trailDistance,
+  BLOCKERS, buildWorld, CROSSING, DISCOVERIES, dominantRegion, EVENT_DISCOVERIES, FRUIT_SPOTS,
+  DECK_Y, inCorridor, inGorge, isWater, PLANT_SPOTS, PLATEAU, Region, REGIONS, regionWeights,
+  SEED_SPOTS, SHROOM_SPOTS, terrainHeight, trailDistance,
 } from './world';
 
 const SAVE_KEY = 'mossling-save-v1';
@@ -124,7 +125,19 @@ const WISHES: Wish[] = [
   { id: 'w-nap', text: '在老树的树洞里睡一觉', kind: 'nap' },
 ];
 
-type Prompt = { kind: 'plant' | 'nap' | 'fish' | 'reel'; label: string } | null;
+type Prompt = { kind: 'plant' | 'nap' | 'fish' | 'reel' | 'info'; label: string } | null;
+
+// The five things you can ask of a companion. Deliberately few: the whole
+// vocabulary has to be legible as gestures, with no text anywhere.
+type Order = 'follow' | 'wait' | 'goto' | 'hold' | 'boost';
+
+const ORDERS: { id: Order; label: string; key: string; hint: string }[] = [
+  { id: 'follow', label: '跟着我', key: '1', hint: '回到你身边' },
+  { id: 'wait', label: '在这儿等着', key: '2', hint: '待在原地不动' },
+  { id: 'goto', label: '站到那边', key: '3', hint: '走到你面前那块地方' },
+  { id: 'hold', label: '按住这个', key: '4', hint: '去按住最近的机关' },
+  { id: 'boost', label: '托我一把', key: '5', hint: '蹲下来当踏脚' },
+];
 
 const App: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -145,14 +158,16 @@ const App: React.FC = () => {
   const [sitting, setSitting] = useState(false);
   const [wishes, setWishes] = useState<{ wish: Wish; done: boolean }[]>([]);
   const [fishing, setFishing] = useState<'idle' | 'waiting' | 'bite'>('idle');
+  const [order, setOrder] = useState<Order>('follow');
+  const [bridgeDown, setBridgeDown] = useState(false);
   const [muted, setMuted] = useState(sfx.isMuted);
   const fadeRef = useRef<HTMLDivElement>(null);
 
   const startedRef = useRef(false);
   startedRef.current = started;
-  const controls = useRef<{ interact: () => void; jump: () => void; sit: () => void }>({
-    interact: () => {}, jump: () => {}, sit: () => {},
-  });
+  const controls = useRef<{
+    interact: () => void; jump: () => void; sit: () => void; order: (o: Order) => void;
+  }>({ interact: () => {}, jump: () => {}, sit: () => {}, order: () => {} });
 
   const persist = useCallback(() => {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(saved.current)); } catch { /* ignore */ }
@@ -352,6 +367,34 @@ const App: React.FC = () => {
       if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; }
     });
     scene.add(mossling.group);
+
+    // The companion. Always present — nothing in the valley waits on another
+    // person showing up.
+    const companion: Companion = createCompanion();
+    companion.group.traverse(o => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; }
+    });
+    scene.add(companion.group);
+
+    const C = {
+      x: 3, z: 16, y: 0, facing: 0, moving: false,
+      order: 'follow' as Order,
+      targetX: 3, targetZ: 16,
+      holding: false, boosting: false,
+      idleT: 0,
+      // Stuck detection: without a navmesh, a straight-line follower cannot
+      // walk around a ring-shaped gorge. Rather than pretend otherwise, it
+      // notices it is not getting closer and hops to your side.
+      stuckT: 0, bestGap: Infinity,
+    };
+
+    const companionShadow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.7, 20),
+      new THREE.MeshBasicMaterial({ color: 0x24341f, transparent: true, opacity: 0.16 }),
+    );
+    companionShadow.rotation.x = -Math.PI / 2;
+    scene.add(companionShadow);
 
     const shadow = new THREE.Mesh(
       new THREE.CircleGeometry(1.1, 24),
@@ -604,6 +647,7 @@ const App: React.FC = () => {
       napT: 0, napping: false, napFlipped: false, fade: 0,
       sitting: false, sitT: 0, wetness: 0, rainbowT: 0,
       fishing: false, fishWait: 0, fishBite: 0, fishX: 0, fishZ: 0, camSnap: false,
+      boostReady: false, bridgeT: 0,
       nightT: saved.current.night ? 1 : 0,
       time: 0,
     };
@@ -641,6 +685,12 @@ const App: React.FC = () => {
     grass.instanceMatrix.needsUpdate = true;
     if (grass.instanceColor) grass.instanceColor.needsUpdate = true;
 
+    const nearTrunks: { x: number; z: number; r: number; h: number }[] = [];
+    const bridgeDownRef = { current: false };
+    // The chasm blocks everywhere; the crossing only opens while the span is
+    // actually down, which is what makes holding the rope matter.
+    const blockedAt = (x: number, z: number): boolean =>
+      inGorge(x, z) || (inCorridor(x, z) && P.bridgeT < 0.9);
     let currentRegion: Region = dominantRegion(P.x, P.z);
     setRegionName(`${currentRegion.nameZh} · ${currentRegion.name}`);
 
@@ -759,6 +809,37 @@ const App: React.FC = () => {
       showToast('种子发芽了', '一棵新的小树。它会自己长大,你随时可以回来看它。');
     };
 
+    // --- Companion orders --------------------------------------------------
+    const ropeAnchor = world.ropeAnchor;
+    // Where the companion stands to hold the rope down: a step further from
+    // the plateau than the post itself, so the approach never grazes the gorge.
+    const outward = new THREE.Vector2(ropeAnchor.x - PLATEAU.x, ropeAnchor.z - PLATEAU.z).normalize();
+    const holdSpot = { x: ropeAnchor.x + outward.x * 1.3, z: ropeAnchor.z + outward.y * 1.3 };
+
+    const giveOrder = (o: Order) => {
+      if (!startedRef.current) return;
+      C.order = o;
+      C.holding = false;
+      C.boosting = false;
+      C.stuckT = 0;
+      C.bestGap = Infinity;
+      if (o === 'goto') {
+        C.targetX = P.x + Math.sin(P.facing) * 6;
+        C.targetZ = P.z + Math.cos(P.facing) * 6;
+      } else if (o === 'wait') {
+        C.targetX = C.x;
+        C.targetZ = C.z;
+      } else if (o === 'hold') {
+        C.targetX = holdSpot.x;
+        C.targetZ = holdSpot.z;
+      } else if (o === 'boost') {
+        C.targetX = P.x + Math.sin(P.facing) * 1.6;
+        C.targetZ = P.z + Math.cos(P.facing) * 1.6;
+      }
+      setOrder(o);
+      sfx.play('blip');
+    };
+
     // --- Fishing ----------------------------------------------------------
     const FISH = ['一条银色的小鱼', '一条胖乎乎的鲫鱼', '一条会发光的鱼', '一只溪蟹', '一条很小很小的鱼'];
     const floatObj = createFloat();
@@ -821,7 +902,7 @@ const App: React.FC = () => {
     };
 
     const interact = () => {
-      if (!startedRef.current) return;
+      if (!startedRef.current || promptState?.kind === 'info') return;
       if (promptState?.kind === 'reel') { reelIn(); return; }
       if (promptState?.kind === 'fish') { castLine(); return; }
       if (promptState?.kind === 'nap') { napInHollow(); return; }
@@ -842,11 +923,11 @@ const App: React.FC = () => {
     const jump = () => {
       if (!startedRef.current || P.airborne || P.napping) return;
       if (P.sitting) { P.sitting = false; setSitting(false); return; }
-      P.vy = JUMP_V;
+      P.vy = P.boostReady ? JUMP_V * 1.75 : JUMP_V;
       P.airborne = true;
       sfx.play('blip');
     };
-    controls.current = { interact, jump, sit };
+    controls.current = { interact, jump, sit, order: giveOrder };
 
     // --- Input ------------------------------------------------------------
     const onKeyDown = (e: KeyboardEvent) => {
@@ -854,6 +935,8 @@ const App: React.FC = () => {
       if (e.key === ' ') { e.preventDefault(); jump(); }
       if (e.key.toLowerCase() === 'e' || e.key === 'Enter') { e.preventDefault(); interact(); }
       if (e.key.toLowerCase() === 'c') { e.preventDefault(); sit(); }
+      const ordered = ORDERS.find(o => o.key === e.key);
+      if (ordered) { e.preventDefault(); giveOrder(ordered.id); }
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
 
@@ -1002,8 +1085,21 @@ const App: React.FC = () => {
         const wz = -nx * sin + nz * cos;
         const wading = isWater(P.x, P.z);
         const speed = WALK_SPEED * (wading ? 0.55 : 1) * Math.min(1, mag);
-        P.x += wx * speed * dt;
-        P.z += wz * speed * dt;
+        const nextX = P.x + wx * speed * dt;
+        const nextZ = P.z + wz * speed * dt;
+        // The gorge is a wall — but only from the outside. Anything that ends
+        // up down there (a fall, a fast-travel) must be able to walk out, or
+        // it is trapped forever.
+        const inside = inGorge(P.x, P.z);
+        if (inside || !blockedAt(nextX, nextZ)) {
+          P.x = nextX;
+          P.z = nextZ;
+        } else if (!blockedAt(nextX, P.z)) {
+          P.x = nextX;
+        } else if (!blockedAt(P.x, nextZ)) {
+          P.z = nextZ;
+        }
+        void inside;
         const targetFacing = Math.atan2(wx, wz);
         let diff = targetFacing - P.facing;
         while (diff > Math.PI) diff -= Math.PI * 2;
@@ -1022,7 +1118,10 @@ const App: React.FC = () => {
       }
 
       // Jump / ground.
-      const groundY = Math.max(terrainHeight(P.x, P.z), isWater(P.x, P.z) ? -0.6 : -99);
+      const onSpan = P.bridgeT > 0.9 && inCorridor(P.x, P.z);
+      const groundY = onSpan
+        ? DECK_Y
+        : Math.max(terrainHeight(P.x, P.z), isWater(P.x, P.z) ? -0.6 : -99);
       if (P.airborne) {
         P.vy += GRAVITY * dt;
         P.y += P.vy * dt;
@@ -1141,6 +1240,114 @@ const App: React.FC = () => {
       shadow.scale.setScalar(1 / (1 + lift * 0.3));
       (shadow.material as THREE.MeshBasicMaterial).opacity = 0.16 / (1 + lift * 0.5);
 
+      // --- Companion ---
+      {
+        const followDist = 3.2;
+        let tx = C.targetX;
+        let tz = C.targetZ;
+        if (C.order === 'follow') {
+          tx = P.x - Math.sin(P.facing) * followDist;
+          tz = P.z - Math.cos(P.facing) * followDist;
+        } else if (C.order === 'boost') {
+          tx = P.x + Math.sin(P.facing) * 1.5;
+          tz = P.z + Math.cos(P.facing) * 1.5;
+        }
+
+        const toX = tx - C.x;
+        const toZ = tz - C.z;
+        const gap = Math.hypot(toX, toZ);
+        const arrived = gap < (C.order === 'follow' ? 1.1 : 0.5);
+        C.moving = !arrived && !C.holding;
+
+        if (C.moving) {
+          // Slightly faster than the mossling, so it can always catch up.
+          const speed = Math.min(WALK_SPEED * 1.15, gap * 3.2);
+          const stepX = (toX / gap) * speed * dt;
+          const stepZ = (toZ / gap) * speed * dt;
+          // Same slide-along rule the mossling uses: a straight line to the
+          // target can graze the gorge, and without this it would stand there
+          // pressed against an invisible corner forever.
+          const trapped = inGorge(C.x, C.z);
+          if (trapped || !blockedAt(C.x + stepX, C.z + stepZ)) {
+            C.x += stepX;
+            C.z += stepZ;
+          } else if (!blockedAt(C.x + stepX, C.z)) {
+            C.x += stepX;
+          } else if (!blockedAt(C.x, C.z + stepZ)) {
+            C.z += stepZ;
+          } else {
+            // Boxed in: pick a side and keep to it, so it follows the edge
+            // instead of jittering in place.
+            const side = C.stuckT % 4 < 2 ? 1 : -1;
+            const px = -(toZ / gap) * speed * dt * side;
+            const pz = (toX / gap) * speed * dt * side;
+            if (!blockedAt(C.x + px, C.z + pz)) { C.x += px; C.z += pz; }
+          }
+          const want = Math.atan2(toX, toZ);
+          let d = want - C.facing;
+          while (d > Math.PI) d -= Math.PI * 2;
+          while (d < -Math.PI) d += Math.PI * 2;
+          C.facing += d * Math.min(1, dt * 10);
+        }
+
+        // Not getting closer? Come back to the mossling's side and start the
+        // approach from there. Covers both "left far behind" and "the gorge is
+        // between us", without a pathfinder.
+        if (C.order !== 'wait') {
+          if (gap < C.bestGap - 0.4) { C.bestGap = gap; C.stuckT = 0; }
+          else C.stuckT += dt;
+        }
+        const lost = C.order === 'follow' && gap > 45;
+        if (lost || (C.stuckT > 3 && gap > 1.2)) {
+          const sx = P.x - Math.sin(P.facing) * 2.4;
+          const sz = P.z - Math.cos(P.facing) * 2.4;
+          if (!inGorge(sx, sz)) {
+            burst(new THREE.Vector3(C.x, terrainHeight(C.x, C.z) + 0.6, C.z), 4);
+            C.x = sx;
+            C.z = sz;
+            burst(new THREE.Vector3(C.x, terrainHeight(C.x, C.z) + 0.6, C.z), 6);
+          }
+          C.stuckT = 0;
+          C.bestGap = Infinity;
+        }
+
+        C.holding = C.order === 'hold' && arrived;
+        C.boosting = C.order === 'boost' && arrived;
+        C.y = terrainHeight(C.x, C.z);
+        companion.group.position.set(C.x, C.y, C.z);
+        companion.group.rotation.y = C.facing;
+        updateCompanion(companion, dt, t, {
+          moving: C.moving, airborne: false,
+          holding: C.holding, waiting: C.order === 'wait', boosting: C.boosting,
+        });
+        companionShadow.position.set(C.x, C.y + 0.05, C.z);
+
+        // Standing on a crouched companion gives a much bigger jump.
+        if (C.boosting && !P.airborne && Math.hypot(P.x - C.x, P.z - C.z) < 1.9) {
+          P.boostReady = true;
+        } else {
+          P.boostReady = false;
+        }
+      }
+
+      // --- The drawbridge ---
+      {
+        // Either the companion or the mossling can hold the rope down — but
+        // whoever holds it is standing on this side, not crossing.
+        const playerHolding = !P.moving &&
+          Math.hypot(P.x - ropeAnchor.x, P.z - ropeAnchor.z) < 2.2;
+        const held = C.holding || playerHolding;
+        P.bridgeT = THREE.MathUtils.clamp(P.bridgeT + (held ? dt * 0.7 : -dt * 0.9), 0, 1);
+        // Swings from upright to flat across the gap.
+        world.drawbridgeSpan.rotation.x = (1 - P.bridgeT) * (Math.PI / 2 - 0.06);
+        world.bridgeRope.position.y = 2.9 - P.bridgeT * 1.1;
+        if ((P.bridgeT > 0.95) !== bridgeDownRef.current) {
+          bridgeDownRef.current = P.bridgeT > 0.95;
+          setBridgeDown(bridgeDownRef.current);
+          if (bridgeDownRef.current) sfx.play('merge');
+        }
+      }
+
       // --- Camera ---
       // On the title screen the camera drifts slowly around the great tree
       // instead of staring at the grass in front of the player.
@@ -1177,8 +1384,15 @@ const App: React.FC = () => {
       }
       // Sitting eases the camera back and a little lower, like settling in.
       let camDist = P.sitting ? 11 + Math.min(4.5, P.sitT * 1.6) : 11;
-      // Pull in if the camera would end up inside a trunk or a boulder.
-      for (const b of BLOCKERS) {
+      // Trees near the mossling count as blockers too — a camera parked inside
+      // a trunk is the most obvious kind of broken.
+      nearTrunks.length = 0;
+      for (const tr of world.trunks) {
+        if (Math.abs(tr.x - P.x) < 16 && Math.abs(tr.z - P.z) < 16) {
+          nearTrunks.push({ x: tr.x, z: tr.z, r: 1.3, h: 7 });
+        }
+      }
+      for (const b of nearTrunks.length ? BLOCKERS.concat(nearTrunks) : BLOCKERS) {
         // If the mossling itself is standing among the rocks, pulling the
         // camera in only jams it against its own back.
         if (Math.hypot(P.x - b.x, P.z - b.z) < b.r + 1.5) continue;
@@ -1290,6 +1504,11 @@ const App: React.FC = () => {
         setPromptOnce({ kind: 'nap', label: '在树洞里打个盹' });
       } else if (nearPlant && saved.current.seeds > 0) {
         setPromptOnce({ kind: 'plant', label: '种下一颗种子' });
+      } else if (!P.moving && Math.hypot(P.x - ropeAnchor.x, P.z - ropeAnchor.z) < 2.2) {
+        setPromptOnce({
+          kind: 'info',
+          label: P.bridgeT > 0.95 ? '你按着绳子,桥放下了 —— 但你过不去' : '按住绳子…(让同伴来按 · 4)',
+        });
       } else if (!P.moving && waterAhead()) {
         setPromptOnce({ kind: 'fish', label: '在这里钓鱼' });
       } else {
@@ -1495,7 +1714,7 @@ const App: React.FC = () => {
           P.camSnap = true;
         },
         setNight: (v: boolean) => { saved.current.night = v; setNight(v); },
-        grass, world, renderer, scene, pickups, getTier: () => tier,
+        grass, world, renderer, scene, pickups, C, giveOrder, inGorge, getTier: () => tier,
         save: saved.current, interact, jump,
       };
     }
@@ -1658,11 +1877,46 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Companion orders */}
+      {started && (
+        <div className="absolute right-4 bottom-6 flex flex-col items-end gap-2 ms-fade">
+          <div className="ms-sans text-[9px] ms-track uppercase text-white/45 pr-1">吩咐同伴</div>
+          {ORDERS.map(o => {
+            const active = order === o.id;
+            return (
+              <button
+                key={o.id}
+                data-testid={`order-${o.id}`}
+                title={o.hint}
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => controls.current.order(o.id)}
+                className={`ms-panel rounded-full pl-2.5 pr-4 py-1.5 flex items-center gap-2.5 transition-colors ${
+                  active ? 'text-[#f6e7c6]' : 'text-[#dfe9d4]/70 hover:text-white'
+                }`}
+                style={active ? { borderColor: 'rgba(232, 201, 138, 0.55)' } : undefined}
+              >
+                <span className="ms-key">{o.key}</span>
+                <span className="ms-serif text-[13.5px]">{o.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* The span, once it is down */}
+      {started && bridgeDown && (
+        <div className="absolute top-[22%] left-0 right-0 text-center pointer-events-none ms-fade">
+          <span className="ms-serif text-[15px] text-white/85" style={{ textShadow: '0 2px 14px rgba(0,0,0,0.6)' }}>
+            桥放下来了 —— 趁它按着,过去吧
+          </span>
+        </div>
+      )}
+
       {/* Touch-only jump */}
       {started && (
         <button
           onPointerDown={e => { e.stopPropagation(); controls.current.jump(); }}
-          className="ms-panel absolute bottom-8 right-6 w-14 h-14 rounded-full flex items-center justify-center text-[#dfe9d4] sm:hidden"
+          className="ms-panel absolute bottom-6 left-6 w-14 h-14 rounded-full flex items-center justify-center text-[#dfe9d4] sm:hidden"
           aria-label="跳"
         >
           <JumpIcon />
@@ -1729,6 +1983,7 @@ const App: React.FC = () => {
 
           <p className="ms-serif text-[15px] leading-[2] text-[#e8f0de]/90 max-w-md mt-8 ms-rise ms-delay-3">
             一只背上长着苔藓和小蘑菇的森林精灵,<br />
+            和一只戴草环的小同伴,<br />
             住在一片有十种风景的山谷里。<br />
             没有敌人,没有计时,也不会失败。
           </p>
