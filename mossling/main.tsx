@@ -61,6 +61,41 @@ const loadSave = (): SaveData => {
   };
 };
 
+// Postcards live in their own key: they are large, and a quota failure while
+// saving a photo must never cost the player their progress.
+const CARDS_KEY = 'mossling-postcards-v1';
+const MAX_CARDS = 12;
+
+interface Postcard {
+  id: string;
+  at: number;
+  region: string;
+  night: boolean;
+  data: string;
+}
+
+const loadCards = (): Postcard[] => {
+  try {
+    const raw = localStorage.getItem(CARDS_KEY);
+    return raw ? (JSON.parse(raw) as Postcard[]) : [];
+  } catch { return []; }
+};
+
+// Keeps the newest cards and drops the oldest until the write fits.
+const saveCards = (cards: Postcard[]): Postcard[] => {
+  let keep = cards.slice(-MAX_CARDS);
+  for (let attempt = 0; attempt < MAX_CARDS; attempt++) {
+    try {
+      localStorage.setItem(CARDS_KEY, JSON.stringify(keep));
+      return keep;
+    } catch {
+      if (keep.length <= 1) return keep;
+      keep = keep.slice(1);
+    }
+  }
+  return keep;
+};
+
 const NIGHT = { top: 0x0d1730, bottom: 0x2a3d55, fog: 0x203247 };
 // ?hq=1 pins full quality — useful when capturing stills on a machine whose
 // frame rate would otherwise trip the degradation watchdog.
@@ -92,6 +127,8 @@ const ShroomIcon = () => <Icon path={<><path d="M5 11a7 7 0 0 1 14 0Z" /><path d
 const FishIcon = () => <Icon path={<><path d="M3 12c3-4 7-5 10-5s6 2 8 5c-2 3-5 5-8 5s-7-1-10-5Z" /><path d="M17 12h.01" /></>} />;
 const WishIcon = () => <Icon path={<path d="m12 4 2.2 4.9 5.3.5-4 3.6 1.2 5.2L12 15.6 7.3 18.2l1.2-5.2-4-3.6 5.3-.5Z" />} className="w-3.5 h-3.5" />;
 const CheckIcon = () => <Icon path={<path d="m5 12.5 4.5 4.5L19 7" />} className="w-3.5 h-3.5" />;
+
+const CameraIcon = () => <Icon path={<><path d="M3.5 8.5h3l1.5-2.5h8l1.5 2.5h3v10h-17Z" /><circle cx="12" cy="13" r="3.2" /></>} />;
 
 const JumpIcon = () => <Icon path={<><path d="M12 19V6" /><path d="m7 11 5-5 5 5" /></>} className="w-6 h-6" />;
 
@@ -160,14 +197,22 @@ const App: React.FC = () => {
   const [fishing, setFishing] = useState<'idle' | 'waiting' | 'bite'>('idle');
   const [order, setOrder] = useState<Order>('follow');
   const [bridgeDown, setBridgeDown] = useState(false);
+  const [photoMode, setPhotoMode] = useState(false);
+  const [cards, setCards] = useState<Postcard[]>(loadCards);
+  const [viewing, setViewing] = useState<Postcard | null>(null);
   const [muted, setMuted] = useState(sfx.isMuted);
   const fadeRef = useRef<HTMLDivElement>(null);
+  const flashRef = useRef<HTMLDivElement>(null);
 
   const startedRef = useRef(false);
   startedRef.current = started;
   const controls = useRef<{
     interact: () => void; jump: () => void; sit: () => void; order: (o: Order) => void;
-  }>({ interact: () => {}, jump: () => {}, sit: () => {}, order: () => {} });
+    photo: () => void; shutter: () => void;
+  }>({
+    interact: () => {}, jump: () => {}, sit: () => {}, order: () => {},
+    photo: () => {}, shutter: () => {},
+  });
 
   const persist = useCallback(() => {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(saved.current)); } catch { /* ignore */ }
@@ -647,13 +692,13 @@ const App: React.FC = () => {
       napT: 0, napping: false, napFlipped: false, fade: 0,
       sitting: false, sitT: 0, wetness: 0, rainbowT: 0,
       fishing: false, fishWait: 0, fishBite: 0, fishX: 0, fishZ: 0, camSnap: false,
-      boostReady: false, bridgeT: 0,
+      boostReady: false, bridgeT: 0, photoPitch: 0,
       nightT: saved.current.night ? 1 : 0,
       time: 0,
     };
     const keys = new Set<string>();
     const joy = { active: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 };
-    const drag = { active: false, id: -1, x: 0 };
+    const drag = { active: false, id: -1, x: 0, y: 0 };
 
     let lastGrassX = 0;
     let lastGrassZ = 56;
@@ -809,6 +854,70 @@ const App: React.FC = () => {
       showToast('种子发芽了', '一棵新的小树。它会自己长大,你随时可以回来看它。');
     };
 
+    // --- Postcards ---------------------------------------------------------
+    // The shot has to be read back in the same frame as the render: the
+    // drawing buffer is cleared before the next one, and asking for
+    // preserveDrawingBuffer would cost every frame for a once-in-a-while photo.
+    const shot = { pending: false };
+    const photoRef = { current: false };
+
+    const takePostcard = () => {
+      const src = renderer.domElement;
+      const width = 1000;
+      const height = Math.round((width * src.height) / src.width);
+      const card = document.createElement('canvas');
+      card.width = width;
+      card.height = height + 64;
+      const g = card.getContext('2d');
+      if (!g) return;
+
+      g.fillStyle = '#101a14';
+      g.fillRect(0, 0, card.width, card.height);
+      g.drawImage(src, 0, 0, src.width, src.height, 0, 0, width, height);
+
+      // A caption bar, so a shared image says where and when it was taken.
+      g.fillStyle = '#16231b';
+      g.fillRect(0, height, width, 64);
+      g.fillStyle = 'rgba(226,240,214,0.22)';
+      g.fillRect(40, height + 1, width - 80, 1);
+      const region = dominantRegion(P.x, P.z);
+      g.fillStyle = '#f2f6ea';
+      g.font = '500 22px "Songti SC", serif';
+      g.textBaseline = 'middle';
+      g.fillText(`${region.nameZh}  ·  ${saved.current.night ? '夜' : '昼'}`, 40, height + 34);
+      g.fillStyle = 'rgba(199,214,180,0.6)';
+      g.font = '14px system-ui, sans-serif';
+      const stamp = new Date().toLocaleDateString('zh-CN');
+      const label = `苔灵漫游 · ${stamp}`;
+      g.fillText(label, width - 40 - g.measureText(label).width, height + 34);
+
+      const data = card.toDataURL('image/jpeg', 0.76);
+      const entry: Postcard = {
+        id: `${Date.now()}`, at: Date.now(), region: region.nameZh,
+        night: saved.current.night, data,
+      };
+      setCards(prev => saveCards([...prev, entry]));
+      sfx.play('chime');
+      showToast('记进手帐了', `${region.nameZh}的一张明信片。翻开手帐可以再看,也可以存下来。`);
+    };
+
+    const togglePhoto = () => {
+      if (!startedRef.current) return;
+      photoRef.current = !photoRef.current;
+      if (!photoRef.current) P.photoPitch = 0;
+      setPhotoMode(photoRef.current);
+      sfx.play('click');
+    };
+
+    const shutter = () => {
+      if (!photoRef.current) return;
+      shot.pending = true;
+      flashRef.current?.animate(
+        [{ opacity: 0.85 }, { opacity: 0 }],
+        { duration: 420, easing: 'ease-out' },
+      );
+    };
+
     // --- Companion orders --------------------------------------------------
     const ropeAnchor = world.ropeAnchor;
     // Where the companion stands to hold the rope down: a step further from
@@ -927,12 +1036,17 @@ const App: React.FC = () => {
       P.airborne = true;
       sfx.play('blip');
     };
-    controls.current = { interact, jump, sit, order: giveOrder };
+    controls.current = { interact, jump, sit, order: giveOrder, photo: togglePhoto, shutter };
 
     // --- Input ------------------------------------------------------------
     const onKeyDown = (e: KeyboardEvent) => {
       keys.add(e.key.toLowerCase());
-      if (e.key === ' ') { e.preventDefault(); jump(); }
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (photoRef.current) shutter(); else jump();
+      }
+      if (e.key.toLowerCase() === 'p') { e.preventDefault(); togglePhoto(); }
+      if (e.key === 'Escape' && photoRef.current) { e.preventDefault(); togglePhoto(); }
       if (e.key.toLowerCase() === 'e' || e.key === 'Enter') { e.preventDefault(); interact(); }
       if (e.key.toLowerCase() === 'c') { e.preventDefault(); sit(); }
       const ordered = ORDERS.find(o => o.key === e.key);
@@ -945,7 +1059,7 @@ const App: React.FC = () => {
       if (e.clientX < window.innerWidth * 0.5 && !joy.active) {
         joy.active = true; joy.id = e.pointerId; joy.ox = e.clientX; joy.oy = e.clientY; joy.dx = 0; joy.dy = 0;
       } else if (!drag.active) {
-        drag.active = true; drag.id = e.pointerId; drag.x = e.clientX;
+        drag.active = true; drag.id = e.pointerId; drag.x = e.clientX; drag.y = e.clientY;
       }
     };
     const onPointerMove = (e: PointerEvent) => {
@@ -954,7 +1068,13 @@ const App: React.FC = () => {
         joy.dy = THREE.MathUtils.clamp((e.clientY - joy.oy) / 70, -1, 1);
       } else if (drag.active && e.pointerId === drag.id) {
         P.camYaw -= (e.clientX - drag.x) * 0.006;
+        // While framing a shot, dragging up and down tilts the view too —
+        // otherwise every postcard comes out at the same height.
+        if (photoRef.current) {
+          P.photoPitch = THREE.MathUtils.clamp(P.photoPitch + (e.clientY - drag.y) * 0.004, -0.75, 1.1);
+        }
         drag.x = e.clientX;
+        drag.y = e.clientY;
       }
     };
     const onPointerUp = (e: PointerEvent) => {
@@ -1062,7 +1182,7 @@ const App: React.FC = () => {
       // --- Movement ---
       let mx = 0;
       let mz = 0;
-      if (startedRef.current && !P.napping) {
+      if (startedRef.current && !P.napping && !photoRef.current) {
         if (keys.has('w') || keys.has('arrowup')) mz -= 1;
         if (keys.has('s') || keys.has('arrowdown')) mz += 1;
         if (keys.has('a') || keys.has('arrowleft')) mx -= 1;
@@ -1406,14 +1526,14 @@ const App: React.FC = () => {
       }
       const camX = P.x - Math.sin(P.camYaw) * camDist;
       const camZ = P.z - Math.cos(P.camYaw) * camDist;
-      const camY = Math.max(terrainHeight(camX, camZ) + 2.6, P.y + 4.6);
+      const camY = Math.max(terrainHeight(camX, camZ) + 2.6, P.y + 4.6) + P.photoPitch * 5;
       if (P.camSnap) {
         camera.position.set(camX, camY, camZ);
         P.camSnap = false;
       } else {
         camera.position.lerp(new THREE.Vector3(camX, camY, camZ), Math.min(1, dt * 3.4));
       }
-      camera.lookAt(P.x, P.y + 1.7, P.z);
+      camera.lookAt(P.x, P.y + 1.7 - P.photoPitch * 1.6, P.z);
       sky.position.copy(camera.position);
       stars.position.copy(camera.position);
 
@@ -1699,6 +1819,11 @@ const App: React.FC = () => {
 
       gradePass.uniforms.uTime.value = t % 100;
       composer.render();
+
+      if (shot.pending) {
+        shot.pending = false;
+        takePostcard();
+      }
     };
     raf = requestAnimationFrame(frame);
 
@@ -1757,9 +1882,46 @@ const App: React.FC = () => {
       <div ref={mountRef} className="absolute inset-0" />
       {/* Sleep fade — driven straight from the loop, no re-render per frame. */}
       <div ref={fadeRef} className="absolute inset-0 bg-[#0e1a13] pointer-events-none" style={{ opacity: 0 }} />
+      {/* Shutter flash */}
+      <div ref={flashRef} className="absolute inset-0 bg-white pointer-events-none" style={{ opacity: 0 }} />
+
+      {/* Framing a shot */}
+      {photoMode && (
+        <div className="absolute inset-0 pointer-events-none ms-fade">
+          <div className="absolute inset-6 sm:inset-10 border border-white/25" />
+          {[
+            'top-6 left-6 sm:top-10 sm:left-10 border-t-2 border-l-2',
+            'top-6 right-6 sm:top-10 sm:right-10 border-t-2 border-r-2',
+            'bottom-6 left-6 sm:bottom-10 sm:left-10 border-b-2 border-l-2',
+            'bottom-6 right-6 sm:bottom-10 sm:right-10 border-b-2 border-r-2',
+          ].map(pos => (
+            <div key={pos} className={`absolute w-8 h-8 border-[#f6e7c6]/80 ${pos}`} />
+          ))}
+          <div className="absolute top-10 left-0 right-0 text-center sm:top-14">
+            <span className="ms-sans text-[10px] ms-track uppercase text-white/70">
+              {regionName.split(' · ')[1]}
+            </span>
+          </div>
+          <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-3 sm:bottom-16">
+            <button
+              data-testid="shutter"
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => controls.current.shutter()}
+              className="pointer-events-auto w-16 h-16 rounded-full border-2 border-white/80 bg-white/15 backdrop-blur-sm
+                hover:bg-white/30 transition-colors"
+              aria-label="拍下这张"
+            />
+            <div className="ms-sans text-[11px] text-white/70 flex items-center gap-3">
+              <span className="flex items-center gap-1.5"><span className="ms-key">空格</span>拍下</span>
+              <span className="flex items-center gap-1.5"><span className="ms-key">拖动</span>转视角</span>
+              <span className="flex items-center gap-1.5"><span className="ms-key">P</span>退出</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top bar: one quiet strip rather than a row of boxes */}
-      {started && (
+      {started && !photoMode && (
         <div className="absolute top-4 left-4 right-4 flex items-start justify-between pointer-events-none ms-fade">
           <div className="ms-panel rounded-full py-2 flex items-center divide-x divide-[#e2f0d6]/12">
             {stat(<SeedIcon />, seeds, '种子', 'seeds')}
@@ -1781,6 +1943,14 @@ const App: React.FC = () => {
               <span className="ms-serif text-[15px] leading-none" data-testid="found">{found.length}<span className="text-[#c7d6b4]/55 text-[12px]">/{total}</span></span>
             </button>
             <button
+              onClick={() => controls.current.photo()}
+              data-testid="photo-button"
+              title="拍一张明信片 (P)"
+              className="ms-panel rounded-full w-10 h-10 flex items-center justify-center text-[#c7d6b4] hover:text-white transition-colors"
+            >
+              <CameraIcon />
+            </button>
+            <button
               onClick={() => setMuted(sfx.toggle())}
               title={muted ? '打开声音' : '静音'}
               data-testid="sound-toggle"
@@ -1793,7 +1963,7 @@ const App: React.FC = () => {
       )}
 
       {/* Wishes */}
-      {started && wishes.length > 0 && !codexOpen && (
+      {started && wishes.length > 0 && !codexOpen && !photoMode && (
         <div className="absolute left-4 bottom-6 pointer-events-none ms-fade max-w-[15rem]">
           <div className="ms-sans text-[9px] ms-track uppercase text-white/45 mb-2 pl-1">今天想做的事</div>
           <div className="flex flex-col gap-1.5">
@@ -1840,7 +2010,7 @@ const App: React.FC = () => {
       )}
 
       {/* Bottom centre: whatever the moment offers */}
-      {started && (
+      {started && !photoMode && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
           {sitting && (
             <p className="ms-serif text-[15px] text-white/80 ms-fade text-center px-6"
@@ -1878,7 +2048,7 @@ const App: React.FC = () => {
       )}
 
       {/* Companion orders */}
-      {started && (
+      {started && !photoMode && (
         <div className="absolute right-4 bottom-6 flex flex-col items-end gap-2 ms-fade">
           <div className="ms-sans text-[9px] ms-track uppercase text-white/45 pr-1">吩咐同伴</div>
           {ORDERS.map(o => {
@@ -1904,7 +2074,7 @@ const App: React.FC = () => {
       )}
 
       {/* The span, once it is down */}
-      {started && bridgeDown && (
+      {started && bridgeDown && !photoMode && (
         <div className="absolute top-[22%] left-0 right-0 text-center pointer-events-none ms-fade">
           <span className="ms-serif text-[15px] text-white/85" style={{ textShadow: '0 2px 14px rgba(0,0,0,0.6)' }}>
             桥放下来了 —— 趁它按着,过去吧
@@ -1913,7 +2083,7 @@ const App: React.FC = () => {
       )}
 
       {/* Touch-only jump */}
-      {started && (
+      {started && !photoMode && (
         <button
           onPointerDown={e => { e.stopPropagation(); controls.current.jump(); }}
           className="ms-panel absolute bottom-6 left-6 w-14 h-14 rounded-full flex items-center justify-center text-[#dfe9d4] sm:hidden"
@@ -1935,6 +2105,25 @@ const App: React.FC = () => {
                 {found.length} of {total} found
               </p>
             </div>
+
+            {cards.length > 0 && (
+              <div className="mb-10">
+                <div className="ms-sans text-[10px] ms-track uppercase text-[#c7d6b4]/60 mb-4">
+                  明信片 · {cards.length}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[...cards].reverse().map(card => (
+                    <button
+                      key={card.id}
+                      onClick={() => setViewing(card)}
+                      className="group block overflow-hidden rounded-sm border border-[#e2f0d6]/15 hover:border-[#e8c98a]/60 transition-colors"
+                    >
+                      <img src={card.data} alt={`${card.region}的明信片`} className="w-full block" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col">
               {DISCOVERIES.map((d, i) => {
@@ -1961,6 +2150,43 @@ const App: React.FC = () => {
             <button onClick={() => setCodexOpen(false)}
               className="mt-8 mx-auto block ms-sans text-[10px] ms-track uppercase text-[#c7d6b4]/70 hover:text-white transition-colors">
               合上手帐
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* One postcard, full size */}
+      {viewing && (
+        <div className="absolute inset-0 z-20 bg-[#0b1610]/90 backdrop-blur-md flex flex-col items-center justify-center gap-5 p-6 ms-fade"
+          onClick={() => setViewing(null)}>
+          <img
+            src={viewing.data}
+            alt={`${viewing.region}的明信片`}
+            className="max-w-full max-h-[70vh] rounded-sm border border-[#e2f0d6]/20"
+            onClick={e => e.stopPropagation()}
+          />
+          <div className="flex items-center gap-6" onClick={e => e.stopPropagation()}>
+            <a
+              href={viewing.data}
+              download={`苔灵漫游-${viewing.region}-${new Date(viewing.at).toLocaleDateString('zh-CN').replace(/\//g, '')}.jpg`}
+              className="ms-serif text-[15px] text-[#f6e7c6] border-b border-[#e8c98a]/50 hover:border-[#e8c98a] transition-colors"
+            >
+              存下这张
+            </a>
+            <button
+              onClick={() => {
+                setCards(prev => saveCards(prev.filter(c => c.id !== viewing.id)));
+                setViewing(null);
+              }}
+              className="ms-sans text-[10px] ms-track uppercase text-[#c7d6b4]/50 hover:text-[#c7d6b4] transition-colors"
+            >
+              撕掉
+            </button>
+            <button
+              onClick={() => setViewing(null)}
+              className="ms-sans text-[10px] ms-track uppercase text-[#c7d6b4]/50 hover:text-[#c7d6b4] transition-colors"
+            >
+              合上
             </button>
           </div>
         </div>
