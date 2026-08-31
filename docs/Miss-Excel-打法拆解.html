@@ -1,0 +1,423 @@
+<title>Miss Excel 打法拆解</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;900&display=swap">
+<style>
+:root{
+  --paper:#EFF2EE;
+  --sheet:#FFFFFF;
+  --line:#D2DAD4;
+  --line-2:#B2BFB6;
+  --ink:#111A15;
+  --ink-2:#4B584F;
+  --ink-3:#78857D;
+  --green:#116B45;
+  --green-soft:#DCEBE2;
+  --pink:#C81F66;
+  --pink-soft:#FADFEA;
+  --amber:#9C6B12;
+  --amber-soft:#F3E9D3;
+  --chip:#E7EBE6;
+  --shadow:0 1px 0 rgba(17,26,21,.05), 0 18px 40px -32px rgba(17,26,21,.55);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B100D;
+    --sheet:#121915;
+    --line:#252F29;
+    --line-2:#3B473F;
+    --ink:#E6EDE8;
+    --ink-2:#A2AFA7;
+    --ink-3:#77847C;
+    --green:#4FC08D;
+    --green-soft:#0F2A1E;
+    --pink:#FF77AA;
+    --pink-soft:#2B1220;
+    --amber:#D6A557;
+    --amber-soft:#2A2113;
+    --chip:#1A221C;
+    --shadow:0 1px 0 rgba(0,0,0,.4), 0 18px 40px -32px #000;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B100D;
+  --sheet:#121915;
+  --line:#252F29;
+  --line-2:#3B473F;
+  --ink:#E6EDE8;
+  --ink-2:#A2AFA7;
+  --ink-3:#77847C;
+  --green:#4FC08D;
+  --green-soft:#0F2A1E;
+  --pink:#FF77AA;
+  --pink-soft:#2B1220;
+  --amber:#D6A557;
+  --amber-soft:#2A2113;
+  --chip:#1A221C;
+  --shadow:0 1px 0 rgba(0,0,0,.4), 0 18px 40px -32px #000;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  font-weight:400;
+  font-size:16px;
+  line-height:1.8;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:"Noto Serif SC","Songti SC",Georgia,serif;text-wrap:balance;margin:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* ---------- workbook chrome ---------- */
+.wb{max-width:1080px;margin:0 auto;background:var(--sheet);border-left:1px solid var(--line);border-right:1px solid var(--line);box-shadow:var(--shadow);min-height:100vh}
+.colhead{display:grid;grid-template-columns:34px repeat(8,1fr);border-bottom:1px solid var(--line-2);background:var(--chip);font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+.colhead span{padding:3px 0;text-align:center;border-right:1px solid var(--line)}
+.colhead span:first-child{border-right:1px solid var(--line-2)}
+.colhead span:last-child{border-right:0}
+.fbar{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--sheet);font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-2);overflow-x:auto;white-space:nowrap}
+.fbar b{color:var(--ink-3);font-weight:500;font-style:italic;padding-right:10px;border-right:1px solid var(--line)}
+.fbar .fx{color:var(--green)}
+.fbar .str{color:var(--pink)}
+
+.pad{padding:0 clamp(18px,5vw,64px)}
+
+/* ---------- hero ---------- */
+.hero{padding-top:clamp(40px,7vw,84px);padding-bottom:34px;position:relative}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);display:flex;align-items:center;gap:10px}
+.eyebrow::after{content:"";height:1px;flex:1;background:var(--line-2)}
+h1{font-weight:900;font-size:clamp(34px,6.4vw,62px);line-height:1.12;letter-spacing:-.01em;margin:20px 0 0}
+h1 em{font-style:normal;color:var(--green);position:relative}
+.sub{max-width:60ch;color:var(--ink-2);font-size:clamp(15px,1.6vw,17.5px);font-weight:300;margin-top:20px}
+.sel{position:relative;display:inline-block;padding:2px 6px;margin:0 -2px;background:var(--green-soft)}
+.ants::after{content:"";position:absolute;inset:-3px;pointer-events:none;
+  background:
+   linear-gradient(90deg,var(--green) 50%,transparent 0) 0 0/12px 2px repeat-x,
+   linear-gradient(90deg,var(--green) 50%,transparent 0) 0 100%/12px 2px repeat-x,
+   linear-gradient(0deg,var(--green) 50%,transparent 0) 0 0/2px 12px repeat-y,
+   linear-gradient(0deg,var(--green) 50%,transparent 0) 100% 0/2px 12px repeat-y;
+  animation:ants 1.1s infinite linear}
+.ants::before{content:"";position:absolute;right:-5px;bottom:-5px;width:7px;height:7px;background:var(--green);border:1px solid var(--sheet);z-index:2}
+@keyframes ants{to{background-position:12px 0,-12px 100%,0 -12px,100% 12px}}
+@media (prefers-reduced-motion:reduce){.ants::after{animation:none}}
+
+.factgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border:1px solid var(--line);margin-top:38px}
+.fact{padding:14px 16px;border-right:1px solid var(--line)}
+.fact:last-child{border-right:0}
+.fact dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.fact dd{margin:6px 0 0;font-family:"Noto Serif SC",serif;font-weight:600;font-size:19px;line-height:1.35;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.fact{border-right:0;border-bottom:1px solid var(--line)}.fact:last-child{border-bottom:0}}
+
+/* ---------- sheet tabs ---------- */
+.tabs{display:flex;gap:0;overflow-x:auto;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2);background:var(--chip);position:sticky;top:0;z-index:10}
+.tabs a{flex:0 0 auto;padding:9px 18px;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-2);text-decoration:none;border-right:1px solid var(--line);white-space:nowrap}
+.tabs a:hover{background:var(--sheet);color:var(--green)}
+.tabs a:focus-visible{outline:2px solid var(--green);outline-offset:-2px}
+.tabs a span{color:var(--ink-3)}
+
+/* ---------- sections ---------- */
+section{padding-top:clamp(48px,6vw,76px);padding-bottom:8px;border-top:1px solid var(--line);}
+section:first-of-type{border-top:0}
+.shead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:26px}
+.snum{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--sheet);background:var(--green);padding:2px 7px;letter-spacing:.06em}
+h2{font-weight:900;font-size:clamp(24px,3.4vw,34px);line-height:1.25}
+.lede{max-width:66ch;color:var(--ink-2);font-weight:300;margin:-8px 0 30px}
+p{max-width:66ch;margin:0 0 18px}
+h3{font-weight:600;font-size:19px;margin:34px 0 10px;line-height:1.4}
+h3 .k{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);margin-right:8px;font-weight:400}
+strong{font-weight:700}
+a.inline{color:var(--green)}
+
+/* ---------- cell blocks ---------- */
+.cells{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));border-top:1px solid var(--line);border-left:1px solid var(--line);margin:24px 0 30px}
+.cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 18px 20px;background:var(--sheet)}
+.cell .ref{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;color:var(--pink);text-transform:uppercase}
+.cell h4{margin:8px 0 8px;font-family:"Noto Serif SC",serif;font-weight:600;font-size:17px;line-height:1.45}
+.cell p{font-size:14.5px;line-height:1.75;color:var(--ink-2);margin:0;max-width:none}
+
+/* ---------- timeline (video anatomy) ---------- */
+.tl{border:1px solid var(--line);margin:26px 0 34px}
+.tl-row{display:grid;grid-template-columns:118px 1fr;border-bottom:1px solid var(--line)}
+.tl-row:last-child{border-bottom:0}
+.tl-t{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--green);background:var(--green-soft);padding:16px 14px;border-right:1px solid var(--line);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.tl-b{padding:16px 18px}
+.tl-b b{display:block;font-family:"Noto Serif SC",serif;font-weight:600;font-size:16.5px;margin-bottom:4px}
+.tl-b span{color:var(--ink-2);font-size:14.5px;line-height:1.75;display:block}
+@media(max-width:560px){.tl-row{grid-template-columns:1fr}.tl-t{border-right:0;border-bottom:1px solid var(--line)}}
+
+/* ---------- spreadsheet table ---------- */
+.sheetwrap{overflow-x:auto;border:1px solid var(--line-2);margin:26px 0 34px;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:660px;font-size:14.5px}
+thead th{background:var(--chip);color:var(--ink-3);font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:500;text-align:left;padding:7px 12px;border-bottom:1px solid var(--line-2);border-right:1px solid var(--line);position:sticky;top:0}
+td{padding:12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);vertical-align:top;line-height:1.7}
+.rn{background:var(--chip);color:var(--ink-3);font-family:"IBM Plex Mono",monospace;font-size:11px;text-align:center;width:34px;border-right:1px solid var(--line-2);font-variant-numeric:tabular-nums}
+tr.grp td{background:var(--green-soft);color:var(--green);font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:7px 12px;font-weight:600}
+td.what{font-weight:500;width:24%}
+td.why{color:var(--ink-2);width:34%;font-size:14px}
+kbd{font-family:"IBM Plex Mono",monospace;font-size:11.5px;background:var(--chip);border:1px solid var(--line-2);border-bottom-width:2px;padding:1px 5px;color:var(--ink);white-space:nowrap;display:inline-block;margin:1px 0}
+code{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--pink);background:var(--pink-soft);padding:1px 5px}
+
+/* ---------- callout ---------- */
+.note{border:1px solid var(--line-2);border-left:4px solid var(--amber);background:var(--amber-soft);padding:16px 18px;margin:28px 0}
+.note b{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:6px}
+.note p{margin:0;font-size:14.5px;color:var(--ink)}
+
+/* ---------- ladder ---------- */
+.ladder{display:grid;gap:0;border:1px solid var(--line);margin:26px 0 32px}
+.rung{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:16px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.rung:last-child{border-bottom:0}
+.rung .lv{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);letter-spacing:.1em}
+.rung b{font-family:"Noto Serif SC",serif;font-weight:600;font-size:16px}
+.rung span{display:block;color:var(--ink-2);font-size:14px;line-height:1.7}
+.bar{height:9px;background:var(--pink);flex:0 0 auto}
+.rung .price{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--pink);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.rung{grid-template-columns:44px 1fr}.rung .price{grid-column:2;text-align:left}}
+
+ul.dash{list-style:none;padding:0;margin:14px 0 22px;max-width:66ch}
+ul.dash li{position:relative;padding-left:22px;margin-bottom:9px;color:var(--ink-2)}
+ul.dash li::before{content:"";position:absolute;left:0;top:.72em;width:9px;height:1px;background:var(--green)}
+ul.dash li b{color:var(--ink)}
+
+/* ---------- status bar ---------- */
+footer{border-top:1px solid var(--line-2);background:var(--chip);padding:12px clamp(18px,5vw,64px);display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);margin-top:60px}
+
+/* ---------- print ---------- */
+@media print{
+  :root{
+    --paper:#FFFFFF;--sheet:#FFFFFF;--line:#D2DAD4;--line-2:#9AA9A0;--ink:#111A15;--ink-2:#3F4C44;
+    --ink-3:#6B786F;--green:#0E5D3C;--green-soft:#E7F1EA;--pink:#B01858;--pink-soft:#FAECF2;
+    --amber:#8A5E10;--amber-soft:#F7F1E2;--chip:#F2F4F1;--shadow:none;
+  }
+  @page{size:A4;margin:14mm 12mm}
+  body{font-size:10.5pt;line-height:1.65;background:#fff}
+  .wb{max-width:none;border:0;box-shadow:none}
+  .colhead,.tabs{display:none}
+  .fbar{border-top:1px solid var(--line-2)}
+  .pad{padding:0}
+  .hero{padding-top:6mm;padding-bottom:4mm}
+  h1{font-size:26pt}
+  .sub{font-size:11pt}
+  .ants::after,.ants::before{display:none}
+  .sel{background:var(--green-soft);box-decoration-break:clone}
+  section{break-before:page;padding-top:6mm}
+  section:first-of-type{break-before:auto}
+  h2{font-size:16pt}
+  h3{font-size:12pt;break-after:avoid}
+  .shead{break-after:avoid}
+  table{min-width:0;font-size:8.6pt}
+  td{padding:5px 7px}
+  thead th{position:static}
+  tr,.cell,.tl-row,.rung,.note,.factgrid{break-inside:avoid}
+  .sheetwrap{overflow:visible}
+  a{color:inherit;text-decoration:none}
+  footer{margin-top:8mm;background:#fff;border-top:1px solid var(--line-2)}
+}
+</style>
+
+<div class="wb">
+  <div class="colhead" aria-hidden="true">
+    <span></span><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span>
+  </div>
+  <div class="fbar"><b class="mono">fx</b><span class="fx">=IF</span>(<span class="str">最枯燥的主题</span> × <span class="str">最高能的表达</span>, <span class="str">"品类第一"</span>, <span class="str">"淹没在信息流"</span>)</div>
+
+  <div class="pad hero">
+    <div class="eyebrow">第三方拆解 · 基于公开信息</div>
+    <h1>把 Excel 跳成<br><em class="sel ants">一门生意</em>的方法论</h1>
+    <p class="sub">Kat Norton（Miss Excel）用短视频把全世界最不性感的软件做成了个人品牌。这一页拆开她的两套方法：一套是内容怎么做，一套是 Excel 到底该怎么用——两套要一起看，因为她的内容护城河，恰恰是她的 Excel 手法足够好。</p>
+
+    <dl class="factgrid">
+      <div class="fact"><dt>起点</dt><dd>2020 年 6 月<br>第一条 TikTok</dd></div>
+      <div class="fact"><dt>形式</dt><dd>竖屏 · 出镜<br>舞蹈 + 屏幕录制</dd></div>
+      <div class="fact"><dt>主题</dt><dd>只讲一个软件<br>不做泛办公技能</dd></div>
+      <div class="fact"><dt>变现</dt><dd>自有课程<br>+ 企业培训</dd></div>
+    </dl>
+  </div>
+
+  <nav class="tabs" aria-label="章节">
+    <a href="#s1"><span>01</span> 定位</a>
+    <a href="#s2"><span>02</span> 单条视频</a>
+    <a href="#s3"><span>03</span> 选题与节奏</a>
+    <a href="#s4"><span>04</span> Excel 方法库</a>
+    <a href="#s5"><span>05</span> 变现阶梯</a>
+    <a href="#s6"><span>06</span> 90 天执行表</a>
+    <a href="#s7"><span>07</span> 不可复制的部分</a>
+  </nav>
+
+  <div class="pad">
+
+  <section id="s1">
+    <div class="shead"><span class="snum">01</span><h2>定位：反差是引擎，垂直是护城河</h2></div>
+    <p class="lede">她做对的第一件事不是拍摄，是选赛道。三个决定在开拍前就已经做完了。</p>
+
+    <div class="cells">
+      <div class="cell">
+        <div class="ref">A1 · 反差公式</div>
+        <h4>枯燥主题 × 高能表达</h4>
+        <p>Excel 的公认标签是"无聊、办公、中年"。她叠加的是舞蹈、流行音乐、明亮配色——两种预期冲突，大脑会停下来。选题越"不该有趣"，反差红利越大。反过来，本身就有趣的题材（旅行、美食）没有这个杠杆。</p>
+      </div>
+      <div class="cell">
+        <div class="ref">A2 · 品类命名</div>
+        <h4>名字即品类</h4>
+        <p>"Miss Excel"这个名字自带搜索词、自带定位、自带记忆。它放弃了扩张的自由，换来了被想起的概率：任何人想到 Excel 就想到她。宁做一个词的第一，不做十个词的第七。</p>
+      </div>
+      <div class="cell">
+        <div class="ref">A3 · 视觉签名</div>
+        <h4>可复用的三件套</h4>
+        <p>固定的出镜位置、固定的一两个转场动作、固定的字幕样式与配色。用户在刷到第 0.3 秒、还没看清内容时就认出是谁。签名不是审美问题，是识别成本问题。</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>迁移提示</b>
+      <p>你的"反差"不一定是舞蹈。可以是场景（在工地讲财务模型）、身份（外科医生讲谈判）、节奏（把 40 分钟的课压成 25 秒）。要求只有一条：让人对"这个主题居然能这样讲"产生一点点意外。</p>
+    </div>
+  </section>
+
+  <section id="s2">
+    <div class="shead"><span class="snum">02</span><h2>单条视频的解剖</h2></div>
+    <p class="lede">她的视频高度模板化。模板化不是偷懒，是让产能可以复制——同一个骨架填不同的技巧，一天能拍二十条。</p>
+
+    <div class="tl">
+      <div class="tl-row"><div class="tl-t">0:00 – 0:01</div><div class="tl-b"><b>钩子：结果先行</b><span>第一帧就是"爽点"或"痛点"的画面，不是自我介绍。「一列姓名，3 秒拆成两列」——先给承诺，再给过程。任何形式的开场白（大家好、今天我们来讲）都是流量杀手。</span></div></div>
+      <div class="tl-row"><div class="tl-t">0:01 – 0:03</div><div class="tl-b"><b>视觉签名 + 卡点</b><span>一个动作转场落在音乐的第一个重拍上。这一秒不传递信息，只传递"这个人是谁、这条值得看完"。</span></div></div>
+      <div class="tl-row"><div class="tl-t">0:03 – 0:20</div><div class="tl-b"><b>一条视频 = 一个技巧</b><span>步骤不超过三步，屏幕录制放大到手机上看得清，每一步一个大字幕。绝不在一条里塞两个知识点——观众记不住第二个，算法也不喜欢犹豫。</span></div></div>
+      <div class="tl-row"><div class="tl-t">0:20 – 结束</div><div class="tl-b"><b>循环钩，而不是求关注</b><span>结尾抛下一个悬念（"但如果数据有重复值呢？"）或者直接回到第一帧形成循环播放。"点赞关注"是索取，悬念是给予——后者带来的完播和收藏更值钱。</span></div></div>
+    </div>
+
+    <h3><span class="k">规则 1</span>音频优先，内容后填</h3>
+    <p>她的顺序是反的：先在平台上挑一条<strong>正在上升期</strong>的热门音频，再决定这条讲哪个技巧、动作卡在哪个鼓点。音频是分发红利，节拍是剪辑节奏表——两个问题一次解决。选音频只看一个指标：使用量在最近 3–5 天内快速上升，而不是已经铺天盖地。</p>
+
+    <h3><span class="k">规则 2</span>静音可懂</h3>
+    <p>大部分人在静音状态下刷信息流。所以全程大字幕、关键结果用高对比色块框出、公式逐字打出。判断标准很简单：把声音关掉自己看一遍，如果看不懂，这条要重做。</p>
+
+    <h3><span class="k">规则 3</span>真实界面出镜</h3>
+    <p>不用抽象动画，直接录真实的 Excel 界面，鼠标怎么动、菜单怎么弹都保留。可信度来自"我看见你真的做了一遍"。做完的效果要在最后再完整闪一次，方便观众截图。</p>
+  </section>
+
+  <section id="s3">
+    <div class="shead"><span class="snum">03</span><h2>选题、节奏与分发</h2></div>
+
+    <h3><span class="k">选题</span>三个来源 × 一个筛子</h3>
+    <ul class="dash">
+      <li><b>评论区。</b>每一条"那如果……怎么办"都是下一条视频的标题。她把回复评论本身做成视频，回答者与提问者共同带来传播。</li>
+      <li><b>搜索补全。</b>在平台搜索框和搜索引擎里输入"Excel 怎么"，把自动补全的词全部抄下来——那是真实的、有量的需求。</li>
+      <li><b>线下卡点。</b>企业培训现场学员真正卡住的地方，比任何关键词工具都准。没有培训业务，就去论坛和同事的表格里找。</li>
+    </ul>
+    <p>筛子是一个三角：<strong>高频 × 高痛 × 低步骤</strong>。天天要做、做起来很烦、但解法只要三步——三条同时满足的才拍。只满足两条的进备用池。</p>
+
+    <h3><span class="k">节奏</span>批量生产，日更起步</h3>
+    <ul class="dash">
+      <li><b>把三件事分开。</b>选题日（列 20 个题）、拍摄日（一次拍完 15–20 条）、发布日（只做发布和回评论）。混在一起做，产能会掉到三分之一。</li>
+      <li><b>前 90 天日更。</b>不是为了粉丝，是为了拿到足够的样本量，让你自己看清哪种钩子有效。前 30 条基本都是学费。</li>
+      <li><b>不删旧内容。</b>教程类内容有长尾，一条半年前的视频可能突然被推。爆了就立刻做同题材的三条续集。</li>
+    </ul>
+
+    <h3><span class="k">分发</span>一鱼多吃，但换刀法</h3>
+    <p>同一条素材铺到多个平台，文案和封面各改一次：短视频平台保留娱乐化的钩子；职业社交平台把钩子改成结果导向的一句话（"这个函数每周帮我省 2 小时"）；长视频平台把 5 条短的合成一条合集。最后所有平台都指向同一个地方——<strong>邮件列表</strong>，那是唯一不会被算法改动的资产。</p>
+
+    <div class="note">
+      <b>只看三个数</b>
+      <p>教程类内容的北极星不是点赞，是<strong>收藏率</strong>（观众打算以后再用）。其次是 3 秒留存（钩子有没有立住），第三是评论里的<strong>提问数量</strong>（选题池有没有被喂饱）。点赞和粉丝数是结果，不是抓手。</p>
+    </div>
+  </section>
+
+  <section id="s4">
+    <div class="shead"><span class="snum">04</span><h2>Excel 方法库：既最实用，也最出片</h2></div>
+    <p class="lede">这一批是她这类内容反复出现的技巧，共同点是：解决高频痛点、三步之内出结果、屏幕上的前后对比足够强烈。按场景分组，按使用频率排序。</p>
+
+    <div class="sheetwrap">
+      <table>
+        <thead><tr><th class="rn" scope="col">#</th><th scope="col">方法</th><th scope="col">怎么用</th><th scope="col">为什么值得学 / 值得拍</th></tr></thead>
+        <tbody>
+          <tr class="grp"><td class="rn"></td><td colspan="3">A · 数据清洗——最痛、最高频</td></tr>
+          <tr><td class="rn">1</td><td class="what">快速填充</td><td>在旁边一列手动写出 1–2 个想要的结果，按 <kbd>Ctrl</kbd>+<kbd>E</kbd>，Excel 自动推断规律填完整列。拆姓名、提取手机号、合并地址、改大小写都能用。</td><td class="why">零公式、零学习成本，五秒出结果。是"魔法感"最强的一个，几乎所有同类账号都靠它起量。</td></tr>
+          <tr><td class="rn">2</td><td class="what">文本拆分函数</td><td><code>TEXTSPLIT</code> 按分隔符一次拆成多列/多行；<code>TEXTBEFORE</code> / <code>TEXTAFTER</code> 取某个符号前后的内容。（Microsoft 365 可用）</td><td class="why">快速填充的可靠版：源数据一变，结果自动更新，适合要交付给别人的表。</td></tr>
+          <tr><td class="rn">3</td><td class="what">Power Query</td><td>数据 → 获取和转换。把清洗步骤录成一条流程，下个月拿到新文件只需右键刷新。合并多个工作簿、逆透视二维表都靠它。</td><td class="why">从"每月手动两小时"变成"点一下"。是所有技巧里投入产出比最高的，也是收费课程真正的卖点。</td></tr>
+          <tr><td class="rn">4</td><td class="what">超级表</td><td>选中区域按 <kbd>Ctrl</kbd>+<kbd>T</kbd>。公式自动向下填充、范围自动扩展、可以用列名代替 A:B 引用。</td><td class="why">所有后续操作（透视表、图表、公式）的地基。不套表，后面每一步都要返工。</td></tr>
+
+          <tr class="grp"><td class="rn"></td><td colspan="3">B · 查找与匹配——最常被问</td></tr>
+          <tr><td class="rn">5</td><td class="what">XLOOKUP</td><td><code>=XLOOKUP(查什么, 在哪列查, 返回哪列, "没找到")</code>。可以向左查、可以从下往上查、自带找不到时的提示。</td><td class="why">直接替代 VLOOKUP，参数更少、不会因为插入列而错位。"再也不用数第几列"是极强的钩子。</td></tr>
+          <tr><td class="rn">6</td><td class="what">动态数组三件套</td><td><code>FILTER</code> 按条件抽出所有符合的行，<code>UNIQUE</code> 去重，<code>SORT</code> 排序。三个可以套在一起：<code>=SORT(UNIQUE(FILTER(...)))</code>。</td><td class="why">一个公式产出一整张结果表，还会随源数据自动变。视觉冲击力最强——回车一下，几十行凭空出现。</td></tr>
+          <tr><td class="rn">7</td><td class="what">LET / LAMBDA</td><td><code>LET</code> 给中间计算命名，长公式一下变清楚；<code>LAMBDA</code> 把常用的一段逻辑封装成自己的函数，起个名字全表复用。</td><td class="why">进阶内容的天花板，用来筛出"愿意付费的高级用户"。日常不必用，但秀出来很有说服力。</td></tr>
+
+          <tr class="grp"><td class="rn"></td><td colspan="3">C · 汇总与分析</td></tr>
+          <tr><td class="rn">8</td><td class="what">一键求和</td><td>选中数据区域（含空白的合计行列），按 <kbd>Alt</kbd>+<kbd>=</kbd>，行列合计一次全部生成。</td><td class="why">三秒钟的技巧，覆盖的人群最广，几乎人人立刻能用上。</td></tr>
+          <tr><td class="rn">9</td><td class="what">数据透视表 + 切片器</td><td>插入 → 数据透视表，拖字段成表；再插入切片器，做成点击即筛的看板。</td><td class="why">从明细到结论的核心工具。配上切片器就有了"仪表盘"的观感，是把免费内容引向付费课程的天然入口。</td></tr>
+          <tr><td class="rn">10</td><td class="what">SUMIFS / COUNTIFS</td><td><code>=SUMIFS(求和列, 条件列1, 条件1, 条件列2, 条件2)</code>，多条件累加。</td><td class="why">业务表里最常见的需求。比透视表更适合放进固定报表模板。</td></tr>
+
+          <tr class="grp"><td class="rn"></td><td colspan="3">D · 提速——决定你看起来是不是高手</td></tr>
+          <tr><td class="rn">11</td><td class="what">F4</td><td>重复上一次操作（连续插行、连续填色）；编辑公式时按它在 <code>A1 / $A$1 / A$1</code> 之间循环切换。</td><td class="why">一个键两种用途，是"老手感"最集中的一个键。</td></tr>
+          <tr><td class="rn">12</td><td class="what">区域跳转与选取</td><td><kbd>Ctrl</kbd>+<kbd>方向键</kbd> 跳到数据边缘；加 <kbd>Shift</kbd> 变成选中整段；<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> 开关筛选。</td><td class="why">十万行数据里不再拖滚动条。对比拖拽的画面，天然适合做前后对照。</td></tr>
+          <tr><td class="rn">13</td><td class="what">粘贴值 / 选择性粘贴</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> 直接粘为数值；选择性粘贴里还能"转置"行列互换、"运算"批量乘除。</td><td class="why">解决"复制过去公式就乱"这个全民痛点。转置那一下的动画效果尤其抓人。</td></tr>
+          <tr><td class="rn">14</td><td class="what">自定义快速访问工具栏</td><td>把最常用的五六个命令拖到左上角工具栏，之后用 <kbd>Alt</kbd>+<kbd>1</kbd>…<kbd>9</kbd> 触发。</td><td class="why">把个人习惯变成快捷键，别人学不走却看得见——很适合做"我的工作台"这类系列内容。</td></tr>
+          <tr><td class="rn">15</td><td class="what">单元格内换行</td><td><kbd>Alt</kbd>+<kbd>Enter</kbd>。</td><td class="why">最短的一条视频，也是被搜索最多的问题之一。低成本高覆盖。</td></tr>
+
+          <tr class="grp"><td class="rn"></td><td colspan="3">E · 呈现与校验</td></tr>
+          <tr><td class="rn">16</td><td class="what">条件格式</td><td>数据条、色阶、图标集，或用公式规则整行高亮（如 <code>=$D2&gt;100</code>）。</td><td class="why">让表格"自己说话"。前后对比在视频里一眼可见，是转化率最高的呈现类内容。</td></tr>
+          <tr><td class="rn">17</td><td class="what">自定义数字格式</td><td>格式代码如 <code>0.0,,"M"</code> 把 1,200,000 显示成 1.2M；<code>[红色]-0.0%;[绿色]0.0%</code> 做涨跌配色。</td><td class="why">只改显示不改数值，报表瞬间专业。属于"知道的人不多但人人用得上"的黄金区间。</td></tr>
+          <tr><td class="rn">18</td><td class="what">数据验证下拉</td><td>数据 → 数据验证 → 序列，来源指向一列选项，做成下拉菜单。</td><td class="why">从源头杜绝录入错误。是所有模板类产品的标配功能。</td></tr>
+          <tr><td class="rn">19</td><td class="what">公式排错</td><td><kbd>Ctrl</kbd>+<kbd>`</kbd> 一键显示全表公式；选中公式片段按 <kbd>F9</kbd> 看这一段算出什么；公式 → 追踪引用单元格看依赖关系。</td><td class="why">面向"表算错了但找不到哪错"的人群，情绪价值极高，评论区互动最活跃。</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <b>学习顺序建议</b>
+      <p>如果你是学的一方：先用两周把 D 组（提速）练成肌肉记忆，再学 A 组（清洗），然后是 B、C 组的函数，最后才碰 E 组。顺序反了会很挫败——大多数人卡住不是因为函数不会写，是因为鼠标太慢、表结构太乱。</p>
+    </div>
+  </section>
+
+  <section id="s5">
+    <div class="shead"><span class="snum">05</span><h2>变现阶梯：内容只是漏斗最上面那一层</h2></div>
+    <p class="lede">她的收入不来自平台分成，而来自把注意力转成自有资产、再转成产品。每一层都在过滤人群，客单价随之上升。</p>
+
+    <div class="ladder">
+      <div class="rung"><span class="lv mono">L0</span><div><b>免费短视频</b><span>目标不是成交，是被记住和被收藏。唯一任务：把人带到下一层。</span></div><span class="price">$0</span></div>
+      <div class="rung"><span class="lv mono">L1</span><div><b>邮件列表</b><span>用速查表、模板、快捷键清单换邮箱。这是唯一属于你的渠道，算法改版动不了它。</span></div><span class="price">获取成本</span></div>
+      <div class="rung"><span class="lv mono">L2</span><div><b>自学课程</b><span>录制一次、无限售卖。按"帮你省下多少时间"定价，不按课时长短定价。</span></div><span class="price">$50–200</span></div>
+      <div class="rung"><span class="lv mono">L3</span><div><b>课程套装 / 会员</b><span>把单课打包，加上答疑与更新。提高客单价，同时降低获客成本。</span></div><span class="price">$300–600</span></div>
+      <div class="rung"><span class="lv mono">L4</span><div><b>企业培训 · 品牌合作</b><span>公开内容就是你的作品集和报价依据。单笔金额远高于零售，且不占用日常产能。</span></div><span class="price">四位数以上</span></div>
+    </div>
+
+    <ul class="dash">
+      <li><b>限时开售。</b>常年挂在那里的课不会有人买。设定开售与关闭窗口，用真实的截止时间制造决策点，其余时间只做内容。</li>
+      <li><b>用学员成果代替自我推销。</b>把"我的课很好"换成"她用这个方法把周报从 3 小时压到 20 分钟"。</li>
+      <li><b>品类纯度。</b>只接与主题一致的合作。一条不相关的广告，损失的是"她只讲 Excel"这个心智，代价远高于那笔钱。</li>
+      <li><b>一人公司的杠杆。</b>产品做一次卖无限次，剪辑和客服外包，工具栈保持最简。产能的瓶颈是精力，不是需求。</li>
+    </ul>
+  </section>
+
+  <section id="s6">
+    <div class="shead"><span class="snum">06</span><h2>90 天执行表</h2></div>
+    <p class="lede">把上面的方法压成可执行的动作。不追求完美，追求样本量。</p>
+
+    <div class="sheetwrap">
+      <table>
+        <thead><tr><th class="rn" scope="col">#</th><th scope="col">阶段</th><th scope="col">动作</th><th scope="col">完成标准</th></tr></thead>
+        <tbody>
+          <tr><td class="rn">1</td><td class="what">第 1 周<br>定位</td><td>选定一个细分（不是"Excel"，而是"给财务的 Excel"或"给 HR 的 Excel"）。确定账号名、固定的出镜位与配色、三条视觉签名动作。</td><td class="why">能用一句话说清"我是给谁讲什么的"。</td></tr>
+          <tr><td class="rn">2</td><td class="what">第 2 周<br>攒题</td><td>用评论区、搜索补全、真实工作场景，列出 60 个选题，用"高频 × 高痛 × 低步骤"筛掉一半。</td><td class="why">手上有 30 个随时能拍的题。</td></tr>
+          <tr><td class="rn">3</td><td class="what">第 3–6 周<br>放量</td><td>每周一个拍摄日，一次拍 15 条；日更发布。每条严格套用 02 的四段结构。</td><td class="why">累计发布 30 条，不评价好坏。</td></tr>
+          <tr><td class="rn">4</td><td class="what">第 7 周<br>复盘</td><td>按收藏率排序全部内容，找出前 5 条的共同点：是钩子形式、是选题类别、还是节奏？写成一句可复制的规律。</td><td class="why">得到属于你自己的爆款公式，而不是别人的。</td></tr>
+          <tr><td class="rn">5</td><td class="what">第 8–10 周<br>复制</td><td>只按上一步的规律做内容，把前 5 条各扩展成一个 5 集系列。同时上线速查表，开始收邮箱。</td><td class="why">邮件列表破 500，且有一个稳定跑通的系列。</td></tr>
+          <tr><td class="rn">6</td><td class="what">第 11–13 周<br>验证付费</td><td>先做一场小规模直播或工作坊验证有人愿意付钱，再录成课程。先卖后做，不要先做后卖。</td><td class="why">拿到第一笔收入，并收集到能用的学员反馈。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="s7">
+    <div class="shead"><span class="snum">07</span><h2>诚实地说：哪些不可复制</h2></div>
+    <p>照抄形式是最容易犯的错。她起步时踩中了短视频平台大力扶持知识类内容的窗口期，本人有舞蹈基础，且英语市场对"Excel 教学"的付费意愿本就成熟。这三件事今天都不再自动成立。</p>
+    <p>可以迁移的是结构，不是形式：<strong>反差定位、单点垄断、一条一个知识点、按痛点选题、把注意力沉淀成邮件列表、用产品而不是广告变现</strong>。这六条在任何平台、任何年份都成立。</p>
+    <p>如果今天从零开始，我会做三处调整：把细分再切细一层（细分的红利现在大于泛化）；用图文长贴与短视频交替，覆盖搜索流量；把剪辑与字幕交给自动化工具，把省下的时间全部投回选题质量——因为现在稀缺的不是产能，是"值得被记住的那一个技巧"。</p>
+  </section>
+
+  </div>
+
+  <footer>
+    <span>就绪 · 第三方拆解，非本人或其团队发布</span>
+    <span>数据与做法均基于公开报道与可观察到的内容规律</span>
+  </footer>
+</div>
